@@ -52,7 +52,7 @@ export function createFakeOpenAI() {
       const path = new URL(url).pathname.replace(/^\/v1/, "");
       const body = init.body ? JSON.parse(init.body) : null;
       fake.calls.push({ path, body, headers: init.headers });
-      if (path === "/chat/completions") return fake.chat(body);
+      if (path === "/chat/completions") return fake.chat(body, init);
       if (path === "/moderations") return fake.moderation(body);
       if (path.startsWith("/models/")) return fake.model(path);
       return json(404, { error: { message: "not found" } });

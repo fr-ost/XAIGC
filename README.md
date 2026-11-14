@@ -57,6 +57,7 @@ Railway was chosen over Vercel because this backend wants a long-running process
 
 4. **Expose it.** Settings, Networking, Generate Domain. Set the health check path to `/health`.
 5. **Check it.** Open `https://<your-domain>/health`. It should return `{"ok":true,"version":"3.0.0"}`. The schema is created on first boot.
+6. **Check that the server sees real client addresses.** Sign in at `https://<your-domain>/admin`. The header shows `You: <address> via x-real-ip`. That address should be your own public IP. If it is a private address (`10.x`, `100.64.x`, `192.168.x`), every user is sharing one rate-limit bucket: set `CLIENT_IP_HEADER` to the header your host fills in with the caller's address.
 
 The server refuses to start in production if a required variable is missing, if `OPENAI_API_KEY` is rejected, or if `OPENAI_MODEL` does not exist for your key. Railway then keeps the previous healthy deployment running, and the deploy log says exactly what to fix.
 
@@ -104,19 +105,19 @@ Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/li
 | Risk | Control |
 | --- | --- |
 | The API used as a free OpenAI proxy | The server owns the prompts. Clients send only a post, idea or draft plus a few style options. Inputs are length-capped, the model and output size are fixed server side, and output is limited to post-length text. |
-| Free trial reset by reinstalling | Trial use is counted against the install, the signed-in X account (hashed) and the network (hashed) at the same time. A reinstall on a synced Chrome profile comes back as the same install. |
+| Free trial reset by reinstalling | Trial use is counted against the install, the signed-in X account (hashed) and the network (hashed) at the same time, and an install stays tied to the X account it reported. |
 | Trial farming with many installs | A per-network trial allowance over a 30-day window, a cap on new installs per network, and a global daily cap on trial generations. |
-| License sharing | Device limit per license, a daily quota shared by all of a license's devices, a limit on activations per 30 days, and a dashboard warning when one key is used from many networks. |
-| Key guessing | 100-bit keys, and a lockout per network and per install after a few wrong keys. |
-| Flooding and scripts | Rate limits per network and per install, one generation at a time per install, a short cooldown, small request bodies, and an optional origin allowlist. |
-| A runaway OpenAI bill | Hard global caps on generations per day. Failed generations are refunded, so limits track real spend. |
+| License sharing | Device limit per license, a daily quota shared by all of a license's devices, a limit on activations per 30 days, a daily cap on re-issuing an install's token (so an install id cannot be passed around as a seat), and a dashboard warning when one key is used from many networks. |
+| Key guessing | 100-bit keys. Wrong keys are throttled per network and per install. A correct key is always accepted, so the throttle cannot be turned against a paying customer. |
+| Flooding and scripts | Rate limits per network and per install, one generation at a time per install, a short cooldown, small request bodies, and an optional origin allowlist. The in-page buttons ignore clicks made by scripts. |
+| A runaway OpenAI bill | Hard global caps on generations per day, and a time budget per generation. Failures are refunded, but a failure the model was already paid for is refunded only a few times an hour per install and network, so no input can be looped to spend money for free. |
 | Harmful output | Safety rules in the system prompt, OpenAI moderation on every result, and a pseudonymous per-user id sent to OpenAI so misuse is attributed to one user. |
 | Stolen credentials | Device tokens, install IDs and license keys are stored only as hashes. IPs and X accounts are stored only as keyed hashes. Reinstalling rotates the device token. |
-| Admin takeover | Constant-time token comparison, lockout after repeated failures, and the admin surface does not exist unless `ADMIN_TOKEN` is set. |
+| Admin takeover | Constant-time token comparison, throttling of wrong tokens (the correct token is never locked out), and the admin surface does not exist unless `ADMIN_TOKEN` is set. |
 
 Quota counters are reserved in Postgres before the model is called, inside one transaction, so parallel requests cannot overspend a limit.
 
-Two honest limits: a person with a new network, a new X account and a fresh browser profile gets a new trial, and an origin allowlist stops other websites and casual scripts but not a determined person imitating the extension. That is why every limit that costs money is enforced on the server.
+Three honest limits. A person with a new network, a new X account and a fresh browser profile gets a new trial. An origin allowlist stops other websites and casual scripts, not a determined person imitating the extension. And a device token copied out of one browser into another works in both, like any bearer credential. That is why every limit that costs money is enforced on the server, and why a license's daily quota is shared by all of its devices: copying a seat adds no capacity.
 
 ## Running locally
 
@@ -160,7 +161,8 @@ All responses are JSON. Errors have the shape `{"error":{"code":"...","message":
 - `APP_SECRET` keys the IP and X-account hashes. Changing it resets trial tracking but does not affect licenses.
 - Rate limits are per process. If you run several replicas, each enforces its own. Trial, daily and global limits live in Postgres and stay exact.
 - Per-request usage records are pruned after 60 days (`USAGE_EVENT_RETENTION_DAYS`). They never contain post text or generated text.
-- Behind a different proxy than Railway, set `CLIENT_IP_HEADER` to the header your platform overwrites with the caller's address.
+- Client addresses come from `X-Real-IP` on Railway. On any other host nothing is assumed and the socket address is used, so set `CLIENT_IP_HEADER` to a header your platform overwrites with the caller's address (never one a client can set freely). The admin dashboard header shows what the server sees for you.
+- Reinstalling the extension creates a new install, so the customer enters the license key again. If the old install still holds a seat, the settings page offers to move the license to the current browser.
 
 ## License
 

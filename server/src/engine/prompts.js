@@ -222,8 +222,20 @@ LIMITS
 OUTPUT
 - Return only JSON that matches the schema you were given. No commentary, no labels, no numbering inside the strings.`;
 
+// User-supplied material is fenced in tags, so it must not be able to open
+// or close one. Whole look-alike tags are dropped, and every remaining "<"
+// becomes a look-alike character: with no "<" left, no tag can start, however
+// it is spelled ("</post", "< /post>", ...). cleanCandidate turns the
+// look-alike back into "<" in output, so "a < b" survives a rewrite.
+export const LT_STANDIN = "\u2039"; // single left-pointing angle quotation mark
 const TAG_RE = /<\/?\s*(post|context|idea|draft|voice|recent|rejected)\b[^>]*>/gi;
-const clean = (s, max) => String(s || "").replace(TAG_RE, " ").replace(/\u0000/g, "").trim().slice(0, max);
+const clean = (s, max) =>
+  String(s || "")
+    .replace(TAG_RE, " ")
+    .replace(/</g, LT_STANDIN)
+    .replace(/\u0000/g, "")
+    .trim()
+    .slice(0, max);
 const bullet = (items, max) =>
   items
     .map((s) => clean(s, max).replace(/\s+/g, " "))

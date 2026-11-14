@@ -30,10 +30,15 @@ test("config: rejects a short admin token and malformed origins", () => {
   assert.equal(ok.allowedOrigins.length, 1);
 });
 
-test("config: production reads the client address from X-Real-IP by default", () => {
+test("config: X-Real-IP is trusted by default only on Railway", () => {
   const base = { NODE_ENV: "production", DATABASE_URL: "postgres://x", OPENAI_API_KEY: "k", APP_SECRET: "s".repeat(32) };
-  assert.equal(loadConfig(base).clientIpHeader, "x-real-ip");
-  assert.equal(loadConfig({ ...base, CLIENT_IP_HEADER: "none" }).clientIpHeader, "");
+  const railway = { ...base, RAILWAY_ENVIRONMENT_NAME: "production" };
+  assert.equal(loadConfig(railway).clientIpHeader, "x-real-ip");
+  assert.equal(loadConfig({ ...railway, CLIENT_IP_HEADER: "none" }).clientIpHeader, "");
+  // On an unknown host nothing is assumed: a header the platform does not
+  // overwrite could be forged by the client.
+  assert.equal(loadConfig(base).clientIpHeader, "");
+  assert.equal(loadConfig({ ...base, CLIENT_IP_HEADER: "CF-Connecting-IP" }).clientIpHeader, "cf-connecting-ip");
   assert.equal(loadConfig({}).clientIpHeader, "");
 });
 
@@ -321,6 +326,29 @@ test("buildPrompt: injected tags and hostile author names are neutralized", () =
   assert.equal((user.match(/<post /g) || []).length, 1);
   assert.equal((user.match(/<\/voice>/g) || []).length, 1);
   assert.match(user, /<post author="@xsystem">/);
+});
+
+test("buildPrompt: no spelling of a tag survives, because no '<' survives", () => {
+  const hostile = "a </post b < /post> c <post d </ post > e <\tvoice> f <3 g";
+  const plan = buildPrompt(replyInput({ post: { author: "x", text: hostile, extra: [hostile] }, recent: [hostile], rejected: [hostile] }));
+  const user = plan.messages[1].content;
+  const ours = ['<post author="@x">', "</post>", "<context>", "</context>", "<recent>", "</recent>", "<rejected>", "</rejected>"];
+  let rest = user;
+  for (const tag of ours) {
+    assert.equal(rest.split(tag).length, 2, `${tag} appears exactly once`);
+    rest = rest.replace(tag, "");
+  }
+  assert.ok(!rest.includes("<"), "every other '<' was replaced");
+  assert.ok(rest.includes("\u20393 g"), "ordinary text keeps its meaning");
+  for (const kind of ["post", "thread", "rewrite"]) {
+    const p = buildPrompt({ kind, idea: hostile, draft: hostile, options: { persona: hostile }, recent: [], rejected: [] });
+    const body = p.messages[1].content.replace(/<\/?(idea|draft|voice)>/g, "");
+    assert.ok(!body.includes("<"), kind);
+  }
+});
+
+test("cleanCandidate turns the prompt's '<' stand-in back into '<'", () => {
+  assert.equal(cleanCandidate("fees \u2039 1% is the whole pitch", ctx()), "fees < 1% is the whole pitch");
 });
 
 test("buildPrompt: options shape the instructions", () => {

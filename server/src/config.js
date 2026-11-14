@@ -83,6 +83,8 @@ export function loadConfig(env = process.env) {
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
   const pricing = MODEL_PRICING[model] || { in: 0, out: 0 };
   const trialGenerations = int(env.TRIAL_GENERATIONS, 20, { min: 0, max: 10000 });
+  // Railway injects RAILWAY_* variables into every service.
+  const onRailway = Object.keys(env).some((key) => key.startsWith("RAILWAY_"));
 
   const config = {
     version: SERVER_VERSION,
@@ -90,11 +92,14 @@ export function loadConfig(env = process.env) {
     port: int(env.PORT, 8787, { min: 1, max: 65535 }),
     host: env.HOST || "0.0.0.0",
     logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
-    // Railway's edge sets X-Real-IP to the caller's address on every public
-    // request, so that is the default in production. Set CLIENT_IP_HEADER=none
-    // to use the socket address, or TRUST_PROXY for X-Forwarded-For setups.
+    // Which header carries the caller's address is a property of the host.
+    // Railway's edge sets X-Real-IP on every public request, so that is the
+    // default there. Anywhere else nothing is assumed: a header the platform
+    // does not overwrite could be forged by the client. Set CLIENT_IP_HEADER
+    // explicitly, or "none" to use the socket address.
     trustProxy: parseTrustProxy(env.TRUST_PROXY),
-    clientIpHeader: (env.CLIENT_IP_HEADER ?? (production ? "x-real-ip" : "")).toLowerCase().replace(/^none$/, ""),
+    clientIpHeader: (env.CLIENT_IP_HEADER ?? (production && onRailway ? "x-real-ip" : "")).toLowerCase().replace(/^none$/, ""),
+    onRailway,
 
     databaseUrl: env.DATABASE_URL || "",
     databaseSsl: (env.DATABASE_SSL || "").toLowerCase(), // "", "true", "no-verify", "false"
@@ -109,7 +114,11 @@ export function loadConfig(env = process.env) {
       model,
       reasoningEffort: env.OPENAI_REASONING_EFFORT || "", // empty = chosen per model family
       verifyModelOnBoot: flag(env.OPENAI_VERIFY_MODEL, production),
-      timeoutMs: int(env.OPENAI_TIMEOUT_MS, 25000, { min: 2000, max: 120000 }),
+      timeoutMs: int(env.OPENAI_TIMEOUT_MS, 20000, { min: 500, max: 120000 }),
+      // Ceiling on all model calls for one generation, retries included. Kept
+      // below the extension's own timeout so a request is never charged
+      // after the client has given up on it.
+      totalTimeoutMs: int(env.OPENAI_TOTAL_TIMEOUT_MS, 30000, { min: 1000, max: 120000 }),
       moderation: flag(env.MODERATION, true),
       moderationModel: env.MODERATION_MODEL || "omni-moderation-latest",
       priceInPerM: Number(env.PRICE_IN_PER_M ?? pricing.in) || 0,
@@ -141,6 +150,8 @@ export function loadConfig(env = process.env) {
       devicesPerIpPerDay: int(env.DEVICES_PER_IP_PER_DAY, 15, { min: 1 }),
       activateFailuresPer15Min: int(env.ACTIVATE_FAILURES_PER_15MIN, 8, { min: 1 }),
       activationsPer30Days: int(env.ACTIVATIONS_PER_30_DAYS, 10, { min: 1 }),
+      reregistrationsPerDay: int(env.REREGISTRATIONS_PER_DAY, 3, { min: 1 }),
+      refundedFailuresPerHour: int(env.REFUNDED_FAILURES_PER_HOUR, 5, { min: 0 }),
       adminFailuresPer15Min: int(env.ADMIN_FAILURES_PER_15MIN, 10, { min: 1 }),
       bodyBytes: int(env.BODY_LIMIT_BYTES, 32 * 1024, { min: 1024 }),
     },

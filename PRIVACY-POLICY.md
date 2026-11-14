@@ -47,10 +47,11 @@ Stored with Chrome's extension storage on your device:
 - Your settings (tone, persona, language, output mode)
 - Your last 30 drafts, used to avoid repetition. You can clear them at any time in Settings.
 - Your install ID and access token
+- A one-way hash of your X handle (never the handle itself)
 - A cached copy of your plan and remaining allowance
 - The contents of the compose window, so it is not lost when the popup closes
 
-The install ID is also saved in Chrome's synced storage, so reinstalling on the same Chrome profile keeps your license. Removing the extension deletes the local data.
+None of this is synced to other devices. Removing the extension deletes it.
 
 ## 4. Who receives data
 

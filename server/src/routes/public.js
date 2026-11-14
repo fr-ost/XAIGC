@@ -31,6 +31,7 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
         installId: req.body.installId,
         clientVersion: clientVersion(req),
         ipHash: req.net.hash,
+        now: clock(),
       });
       const full = await authenticateDevice(db, token);
       const account = await buildAccount(db, config, { device: full, ipHash: req.net.hash, now: clock() });
@@ -64,17 +65,6 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
     },
     async (req) => {
       const device = req.device;
-      const buckets = [`ip:${req.net.group}`, `dev:${device.id}`];
-
-      // Wrong keys are counted per network and per device. After a handful
-      // of misses both are locked out, which makes guessing keys hopeless.
-      for (const bucket of buckets) {
-        const state = limiters.activateFail.check(bucket);
-        if (!state.ok) {
-          throw errors.tooMany("too_many_attempts", "Too many incorrect keys. Wait a few minutes and try again.", state.retryAfterMs);
-        }
-      }
-
       try {
         await activateLicense(db, config, {
           device,
@@ -83,8 +73,18 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
           ipHash: req.net.hash,
         });
       } catch (err) {
+        // Wrong keys are counted per network and per install, and past the
+        // allowance the answer becomes "slow down". The key is always checked
+        // first, so a correct key gets through no matter how many wrong ones
+        // came before it: nobody can lock a paying customer out by spamming
+        // bad keys from the same network. Guessing stays hopeless either way
+        // (100-bit keys against a few attempts a minute).
         if (err instanceof ApiError && err.code === "invalid_key") {
-          for (const bucket of buckets) limiters.activateFail.take(bucket);
+          const misses = [`ip:${req.net.group}`, `dev:${device.id}`].map((bucket) => limiters.activateFail.take(bucket));
+          const blocked = misses.find((m) => !m.ok);
+          if (blocked) {
+            throw errors.tooMany("too_many_attempts", "Too many incorrect keys. Wait a few minutes and try again.", blocked.retryAfterMs);
+          }
         }
         throw err;
       }

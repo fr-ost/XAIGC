@@ -72,7 +72,10 @@
     $("app").hidden = !on;
     $("refresh").hidden = !on;
     $("signOut").hidden = !on;
-    if (!on) $("modelTag").hidden = true;
+    if (!on) {
+      $("modelTag").hidden = true;
+      $("callerTag").hidden = true;
+    }
   }
 
   function signOut(message) {
@@ -107,6 +110,9 @@
     const s = await api("/stats");
     $("modelTag").textContent = `Model: ${s.model}`;
     $("modelTag").hidden = false;
+    $("callerTag").textContent = `You: ${s.caller.address} via ${s.caller.source}`;
+    $("callerTag").title = "How the server sees your address. If this is a private proxy address rather than your public IP, set CLIENT_IP_HEADER for this host.";
+    $("callerTag").hidden = false;
 
     const stat = (label, value, sub) => h("div", { class: "stat" }, h("div", { class: "label" }, label), h("div", { class: "value" }, value), h("div", { class: "sub" }, sub));
     $("stats").replaceChildren(
@@ -244,7 +250,11 @@
       toast(message);
       await Promise.all([openDetail(id), loadLicenses()]);
     };
+    // A license sold as "N days from first activation" that has not been
+    // activated yet has no end date to move: lengthen its duration instead.
+    const pending = !l.expiresAt && l.durationDays && !l.firstActivatedAt;
     const extend = (days) => {
+      if (pending) return patch({ durationDays: l.durationDays + days }, `Now ${l.durationDays + days} days from first activation`);
       const base = l.expiresAt && new Date(l.expiresAt) > new Date() ? new Date(l.expiresAt) : new Date();
       return patch({ expiresAt: new Date(base.getTime() + days * 86400000).toISOString() }, `Extended by ${days} days`);
     };

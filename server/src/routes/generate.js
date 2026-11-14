@@ -177,11 +177,16 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
         : errors.tooMany("cooldown", "Slow down a moment before generating again.", slot.retryAfterMs);
     }
 
-    let succeeded = false;
+    // Once the model has been called, the cooldown applies whatever the
+    // outcome, so a failing request cannot be hammered in a tight loop.
+    let invoked = false;
     try {
       const now = clock();
       const entitlement = resolveEntitlement(config, device.license, now);
-      const xhHash = req.body.xh ? hmac(config.appSecret, `xh:${req.body.xh}`) : null;
+      // An install stays tied to the X account it last reported, so leaving
+      // the field out later (the compose popup has no page to read it from)
+      // does not open a second trial allowance.
+      const xhHash = req.body.xh ? hmac(config.appSecret, `xh:${req.body.xh}`) : device.xh_hash || null;
       const event = {
         deviceId: device.id,
         licenseId: entitlement.mode === "license" ? entitlement.license.id : null,
@@ -206,12 +211,22 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
         // A stable pseudonymous id lets OpenAI attribute abuse to one end
         // user instead of to the whole account.
         const safetyId = hmac(config.appSecret, `safety:${event.licenseId || device.id}`);
+        invoked = true;
         result = await engine.generate(input, { safetyId });
       } catch (err) {
         const latencyMs = Date.now() - started;
         if (err instanceof EngineError) {
           try {
-            if (err.code !== "content_blocked") await reservation.refund();
+            // A blocked result is never refunded. A failure the model was
+            // already paid for is refunded only a few times an hour per
+            // install and per network: otherwise an input that reliably
+            // yields unusable output would be a free way to burn the OpenAI
+            // budget without ever touching a quota.
+            const paid = err.usage.tokensIn + err.usage.tokensOut > 0;
+            const refundable =
+              err.code !== "content_blocked" &&
+              (!paid || (limiters.paidFailure.take(`dev:${device.id}`).ok && limiters.paidFailure.take(`ip:${req.net.group}`).ok));
+            if (refundable) await reservation.refund();
             await reservation.addTokens(err.usage.tokensIn, err.usage.tokensOut);
           } catch (bookkeeping) {
             req.log.error({ err: bookkeeping }, "refund failed");
@@ -227,7 +242,6 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
       }
 
       const latencyMs = Date.now() - started;
-      succeeded = true;
       // The text exists and has been paid for. Bookkeeping problems from
       // here on are logged, never turned into a failed request.
       try {
@@ -249,7 +263,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
       else payload.variants = result.variants;
       return payload;
     } finally {
-      gate.leave(device.id, { countCooldown: succeeded });
+      gate.leave(device.id, { countCooldown: invoked });
     }
   });
 }

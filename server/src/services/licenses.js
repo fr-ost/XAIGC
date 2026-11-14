@@ -291,7 +291,11 @@ export async function updateLicense(db, config, id, patch) {
       if (Number.isNaN(d.getTime())) throw errors.badRequest("expiresAt is not a valid date.");
       set("expires_at", d.toISOString());
     }
+    // An explicit expiry (or "never") replaces a pending "N days from first
+    // activation", which would otherwise overwrite it on activation.
+    if (patch.durationDays === undefined) set("duration_days", null);
   }
+  if (patch.durationDays !== undefined) set("duration_days", patch.durationDays);
   if (patch.maxDevices !== undefined) set("max_devices", patch.maxDevices);
   if (patch.dailyLimit !== undefined) set("daily_limit", patch.dailyLimit);
   if (patch.email !== undefined) set("email", patch.email ? String(patch.email).trim().toLowerCase().slice(0, 254) : null);

@@ -79,6 +79,7 @@ export function createEngine(config, { openai, logger, rng = Math.random }) {
     // -> { variants: string[] } or { thread: string[] }, plus tokensIn/tokensOut/attempts.
     async generate(input, { safetyId } = {}) {
       const usage = { tokensIn: 0, tokensOut: 0 };
+      const deadline = Date.now() + config.openai.totalTimeoutMs;
       let attempts = 0;
 
       for (const strict of [false, true]) {
@@ -93,6 +94,7 @@ export function createEngine(config, { openai, logger, rng = Math.random }) {
             maxTokens: plan.spec.maxTokens,
             temperature: plan.spec.temperature,
             safetyId,
+            deadline,
           });
         } catch (err) {
           throw mapUpstream(err, usage);
@@ -104,7 +106,9 @@ export function createEngine(config, { openai, logger, rng = Math.random }) {
           throw new EngineError("content_blocked", "The model declined to write this.", usage);
         }
 
-        const language = plan.language;
+        // A rewrite keeps the language of its draft whatever the reply
+        // language setting says, so its script checks follow the draft.
+        const language = input.kind === "rewrite" ? "auto" : plan.language;
         const sourceNonLatin = nonLatinCount(plan.source) > 0;
         const ctx = {
           kind: input.kind,

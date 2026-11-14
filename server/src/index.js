@@ -35,6 +35,14 @@ async function main() {
     await openai.verifyModel();
   }
 
+  if (config.production && !config.clientIpHeader && !config.trustProxy) {
+    bootLog.warn(
+      "CLIENT_IP_HEADER is not set and this does not look like Railway: client addresses are read from the socket. " +
+        "Behind a proxy that is the proxy itself, so every user would share one rate-limit bucket. " +
+        "Set CLIENT_IP_HEADER to the header your platform overwrites with the caller's address.",
+    );
+  }
+
   const engine = createEngine(config, { openai, logger: bootLog });
   const app = await buildApp({ config, db, engine });
 

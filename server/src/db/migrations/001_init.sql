@@ -32,6 +32,8 @@ CREATE TABLE devices (
   client_version    text,
   blocked           boolean NOT NULL DEFAULT false,
   blocked_reason    text,
+  rereg_day         text,                    -- UTC day of the latest token re-issue
+  rereg_count       integer NOT NULL DEFAULT 0,
   total_generations integer NOT NULL DEFAULT 0,
   created_at        timestamptz NOT NULL DEFAULT now(),
   last_seen_at      timestamptz NOT NULL DEFAULT now()

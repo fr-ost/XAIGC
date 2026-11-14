@@ -77,22 +77,25 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
 
   /* --------------------------------- auth --------------------------------- */
 
+  // The token is compared first and a correct one always gets in. Only
+  // requests that present a wrong token are counted, so neither a flood of
+  // bad guesses nor a page that makes the admin's browser fire token-less
+  // requests can lock the real admin out.
   async function requireAdmin(req) {
-    const bucket = `admin:${req.net.group}`;
-    const state = limiters.adminFail.check(bucket);
-    if (!state.ok) throw errors.tooMany("too_many_attempts", "Too many failed admin sign-ins. Try again later.", state.retryAfterMs);
     const match = String(req.headers.authorization || "").match(/^Bearer\s+(\S+)$/i);
-    if (!match || !safeEqual(match[1], config.adminToken)) {
-      limiters.adminFail.take(bucket);
-      throw errors.unauthorized("Admin token is missing or wrong.");
+    if (match && safeEqual(match[1], config.adminToken)) return;
+    if (match) {
+      const miss = limiters.adminFail.take(`admin:${req.net.group}`);
+      if (!miss.ok) throw errors.tooMany("too_many_attempts", "Too many failed admin sign-ins. Try again later.", miss.retryAfterMs);
     }
+    throw errors.unauthorized("Admin token is missing or wrong.");
   }
 
   const admin = { preValidation: requireAdmin };
 
   /* -------------------------------- stats --------------------------------- */
 
-  app.get("/admin/api/stats", admin, async () => {
+  app.get("/admin/api/stats", admin, async (req) => {
     const day = utcDay(clock());
     const [devices, licenses, series, statuses] = await Promise.all([
       db.query(
@@ -145,6 +148,10 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
       caps: config.caps,
       trial: config.trial,
       priced: config.openai.priceInPerM > 0 || config.openai.priceOutPerM > 0,
+      // How the server sees the admin's own address. If this shows a private
+      // proxy address instead of your public IP, CLIENT_IP_HEADER is wrong
+      // for this host and every user is sharing one rate-limit bucket.
+      caller: { address: req.net.ip, source: req.net.source },
     };
   });
 
@@ -243,6 +250,7 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
             status: { type: "string", enum: ["active", "revoked"] },
             plan: { type: "string", maxLength: 32 },
             expiresAt: { type: ["string", "null"], maxLength: 40 },
+            durationDays: nullableInt(1, 36500),
             maxDevices: nullableInt(1, 1000),
             dailyLimit: nullableInt(1, 1000000),
             email: { type: ["string", "null"], maxLength: 254 },

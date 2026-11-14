@@ -58,26 +58,15 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// The install id is kept in sync storage as well, so reinstalling on the
-// same Chrome profile restores the same device (and its license) instead of
-// starting over.
+// The install id is this browser's identity and stays on this device. It is
+// deliberately not put in synced storage: two computers signed in to the same
+// Chrome profile would then share one identity and keep invalidating each
+// other's token.
 async function getInstallId() {
-  let synced = null;
-  try {
-    synced = (await chrome.storage.sync.get("installId")).installId || null;
-  } catch {
-    /* sync storage unavailable */
-  }
-  const stored = (await local.get("installId")).installId || null;
-  const installId = synced || stored || randomId();
-  if (installId !== stored) await local.set({ installId });
-  if (installId !== synced) {
-    try {
-      await chrome.storage.sync.set({ installId });
-    } catch {
-      /* best effort */
-    }
-  }
+  const stored = (await local.get("installId")).installId;
+  if (stored) return stored;
+  const installId = randomId();
+  await local.set({ installId });
   return installId;
 }
 
@@ -187,7 +176,15 @@ async function generate(payload) {
 
   // The signed-in X handle is hashed here and never sent in the clear. The
   // server uses it only to stop the free trial being reset by reinstalling.
-  if (payload.handle) body.xh = await sha256Hex(String(payload.handle).toLowerCase().replace(/^@/, ""));
+  // The hash is remembered so requests from the popup, which has no X page
+  // to read the handle from, carry the same identity.
+  if (payload.handle) {
+    body.xh = await sha256Hex(String(payload.handle).toLowerCase().replace(/^@/, ""));
+    await local.set({ xh: body.xh });
+  } else {
+    const { xh } = await local.get("xh");
+    if (xh) body.xh = xh;
+  }
 
   try {
     return await request("/v1/generate", { method: "POST", body });

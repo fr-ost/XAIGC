@@ -90,9 +90,13 @@ export function createOpenAI(config, { fetchImpl = globalThis.fetch, logger } = 
   const { apiKey, baseUrl, model, timeoutMs } = config.openai;
   const profile = initialProfile(model, config.openai.reasoningEffort);
 
-  async function call(method, path, body, { attempts = 2, timeout = timeoutMs } = {}) {
+  async function call(method, path, body, { attempts = 2, timeout = timeoutMs, deadline = Infinity } = {}) {
     let lastError;
     for (let attempt = 1; attempt <= attempts; attempt++) {
+      // Never start a call that cannot finish inside the overall budget.
+      const remaining = deadline - Date.now();
+      if (remaining < 500) throw lastError || new UpstreamError("timeout", "OpenAI request timed out.");
+      const budget = Math.min(timeout, remaining);
       let res;
       try {
         res = await fetchImpl(`${baseUrl}${path}`, {
@@ -102,7 +106,7 @@ export function createOpenAI(config, { fetchImpl = globalThis.fetch, logger } = 
             ...(body ? { "Content-Type": "application/json" } : {}),
           },
           body: body ? JSON.stringify(body) : undefined,
-          signal: AbortSignal.timeout(timeout),
+          signal: AbortSignal.timeout(budget),
         });
       } catch (err) {
         const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
@@ -137,6 +141,7 @@ export function createOpenAI(config, { fetchImpl = globalThis.fetch, logger } = 
   }
 
   function chatBody({ messages, schemaName, schema, maxTokens, temperature, safetyId }) {
+    // (`deadline` on the request is a transport concern and is not sent.)
     const reasoning = Boolean(profile.effort) && profile.effort !== "none";
     const body = { model, messages };
     // Reasoning tokens count against the completion budget, so leave room.
@@ -160,7 +165,7 @@ export function createOpenAI(config, { fetchImpl = globalThis.fetch, logger } = 
     async chat(request) {
       for (let adaptations = 0; ; adaptations++) {
         try {
-          const json = await call("POST", "/chat/completions", chatBody(request));
+          const json = await call("POST", "/chat/completions", chatBody(request), { deadline: request.deadline });
           const choice = json?.choices?.[0];
           return {
             content: typeof choice?.message?.content === "string" ? choice.message.content : "",

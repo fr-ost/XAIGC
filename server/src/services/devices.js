@@ -1,10 +1,11 @@
 // Device identity.
 //
-// Each extension install registers once and receives an opaque bearer token.
-// Only the SHA-256 of the token is stored. The install id is a random secret
-// the extension keeps in chrome.storage.sync, so a reinstall on the same
-// Chrome profile comes back as the same device (same trial counters, same
-// license binding) instead of a fresh one.
+// Each extension install registers once with a random install id and receives
+// an opaque bearer token. Only SHA-256 hashes of both are stored. Registering
+// an install id that already exists re-issues the token (the old one stops
+// working), which is how an install recovers after losing its token. Because
+// that needs nothing but the install id, re-issues are capped per day, so an
+// install id passed between people cannot serve as a shared seat.
 
 import { randomUUID } from "node:crypto";
 import { ApiError, errors } from "../errors.js";
@@ -14,41 +15,55 @@ import { randomToken, sha256 } from "./crypto.js";
 const installHash = (installId) => sha256(`xaigc-install:${installId}`);
 const tokenHash = (token) => sha256(`xaigc-token:${token}`);
 
-export async function registerDevice(db, config, { installId, clientVersion, ipHash }) {
+export async function registerDevice(db, config, { installId, clientVersion, ipHash, now = Date.now() }) {
   const hash = installHash(installId);
   const token = randomToken("xd");
+  const day = new Date(now).toISOString().slice(0, 10);
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const existing = await db.query("SELECT * FROM devices WHERE install_hash = $1", [hash]);
+    const existing = await db.query("SELECT id, blocked FROM devices WHERE install_hash = $1", [hash]);
     if (existing.rows[0]) {
       const device = existing.rows[0];
       if (device.blocked) throw errors.forbidden("device_blocked", "This install has been blocked. Contact support.");
-      // Re-registration rotates the token, which also invalidates a stolen one.
       const updated = await db.query(
-        `UPDATE devices SET token_hash = $1, client_version = $2, last_ip_hash = $3, last_seen_at = now()
-         WHERE id = $4 RETURNING *`,
-        [tokenHash(token), clientVersion || null, ipHash, device.id],
+        `UPDATE devices SET
+           token_hash = $1, client_version = $2, last_ip_hash = $3, last_seen_at = now(),
+           rereg_count = CASE WHEN rereg_day = $5 THEN rereg_count + 1 ELSE 1 END,
+           rereg_day = $5
+         WHERE id = $4 AND (rereg_day IS DISTINCT FROM $5 OR rereg_count < $6)
+         RETURNING *`,
+        [tokenHash(token), clientVersion || null, ipHash, device.id, day, config.limits.reregistrationsPerDay],
       );
+      if (!updated.rows[0]) {
+        throw new ApiError(429, "too_many_reinstalls", "This install was set up again too many times today. Try again tomorrow.", {
+          retryAfter: 3600,
+        });
+      }
       return { device: updated.rows[0], token, created: false };
     }
 
-    const recent = await db.query(
-      "SELECT count(*)::int AS n FROM devices WHERE ip_hash = $1 AND created_at > now() - interval '24 hours'",
-      [ipHash],
-    );
-    if (num(recent.rows[0].n) >= config.limits.devicesPerIpPerDay) {
-      throw new ApiError(429, "too_many_devices", "Too many new installs from this network today. Try again tomorrow.", {
-        retryAfter: 3600,
-      });
-    }
-
     try {
-      const inserted = await db.query(
-        `INSERT INTO devices (id, token_hash, install_hash, ip_hash, last_ip_hash, client_version)
-         VALUES ($1, $2, $3, $4, $4, $5) RETURNING *`,
-        [randomUUID(), tokenHash(token), hash, ipHash, clientVersion || null],
-      );
-      return { device: inserted.rows[0], token, created: true };
+      const device = await db.tx(async (t) => {
+        // Count and insert under one lock per network, so parallel
+        // registrations cannot all pass the count before any of them inserts.
+        await t.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`devices:${ipHash}`]);
+        const recent = await t.query(
+          "SELECT count(*)::int AS n FROM devices WHERE ip_hash = $1 AND created_at > now() - interval '24 hours'",
+          [ipHash],
+        );
+        if (num(recent.rows[0].n) >= config.limits.devicesPerIpPerDay) {
+          throw new ApiError(429, "too_many_devices", "Too many new installs from this network today. Try again tomorrow.", {
+            retryAfter: 3600,
+          });
+        }
+        const inserted = await t.query(
+          `INSERT INTO devices (id, token_hash, install_hash, ip_hash, last_ip_hash, client_version)
+           VALUES ($1, $2, $3, $4, $4, $5) RETURNING *`,
+          [randomUUID(), tokenHash(token), hash, ipHash, clientVersion || null],
+        );
+        return inserted.rows[0];
+      });
+      return { device, token, created: true };
     } catch (err) {
       // Two registrations raced on the same install id: loop and take the update path.
       if (err?.code === "23505" && attempt === 0) continue;

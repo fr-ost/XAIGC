@@ -39,6 +39,7 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
     register: createLimiter({ limit: config.limits.registerPerIpPerHour, windowMs: 60 * MINUTE, now: clock }),
     activateFail: createLimiter({ limit: config.limits.activateFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
     adminFail: createLimiter({ limit: config.limits.adminFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
+    paidFailure: createLimiter({ limit: config.limits.refundedFailuresPerHour, windowMs: 60 * MINUTE, now: clock }),
   };
   const gate = createActivityGate({ cooldownMs: config.limits.cooldownMs, now: clock });
 
@@ -68,21 +69,22 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
   /* --------------------------- request context ---------------------------- */
 
   // Where is the caller? Preferred: the header the platform's edge sets
-  // (X-Real-IP on Railway). If that header is ever absent, fall back to the
-  // last X-Forwarded-For hop, which is the one the nearest proxy appended and
-  // a client cannot forge, and only then to the socket address. Falling back
-  // is logged once: behind a proxy, the socket address is the proxy itself,
-  // which would put every user in one rate-limit bucket.
+  // (X-Real-IP on Railway). For a list header such as X-Forwarded-For the
+  // LAST entry is used: that is the hop the nearest proxy appended, and the
+  // only one a client cannot forge. If the configured header is absent, fall
+  // back to the last X-Forwarded-For hop, then to the socket address, and say
+  // so once: behind a proxy the socket address is the proxy itself, which
+  // would put every user in one rate-limit bucket.
   let warnedAboutIp = false;
   function clientIp(req) {
-    const header = (name) => {
+    const lastHop = (name) => {
       const raw = req.headers[name];
-      return String(Array.isArray(raw) ? raw[raw.length - 1] : raw || "");
+      return String(Array.isArray(raw) ? raw[raw.length - 1] : raw || "").split(",").pop().trim();
     };
     if (config.clientIpHeader) {
-      const value = header(config.clientIpHeader).split(",")[0].trim();
-      if (net.isIP(value)) return value;
-      const forwarded = header("x-forwarded-for").split(",").pop().trim();
+      const value = lastHop(config.clientIpHeader);
+      if (net.isIP(value)) return { ip: value, source: config.clientIpHeader };
+      const forwarded = lastHop("x-forwarded-for");
       if (!warnedAboutIp) {
         warnedAboutIp = true;
         req.log.warn(
@@ -90,30 +92,35 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
           "client IP header missing on a request: check CLIENT_IP_HEADER for this platform",
         );
       }
-      if (net.isIP(forwarded)) return forwarded;
+      if (net.isIP(forwarded)) return { ip: forwarded, source: "x-forwarded-for" };
     }
-    return req.ip;
+    return { ip: req.ip, source: "socket" };
   }
 
   app.decorateRequest("net", null);
   app.decorateRequest("device", null);
 
   app.addHook("onRequest", async (req) => {
-    const group = ipGroup(clientIp(req));
+    const caller = clientIp(req);
+    const group = ipGroup(caller.ip);
     // The raw address is used for in-memory rate limiting only. Anything
     // written to the database is the keyed hash.
-    req.net = { group, hash: hmac(config.appSecret, `ip:${group}`) };
+    req.net = { group, hash: hmac(config.appSecret, `ip:${group}`), ip: caller.ip, source: caller.source };
 
-    const path = req.url.split("?")[0];
-    const guarded = path.startsWith("/v1/") || path.startsWith("/admin/api/");
-    if (!guarded || req.method === "OPTIONS") return;
+    // Decide by the route that matched, never by the raw URL. The router
+    // decodes percent-encoding, so "/%761/me" reaches /v1/me and would walk
+    // straight past a string test on req.url.
+    const route = req.routeOptions?.url || "";
+    if (req.method === "OPTIONS" || route === "/health") return;
 
     const hit = limiters.ip.take(group);
     if (!hit.ok) throw errors.tooMany("rate_limited", "Too many requests from this network. Slow down a little.", hit.retryAfterMs);
 
-    // With an allowlist configured, only the published extension may call
-    // the API from a browser context.
-    if (path.startsWith("/v1/") && config.allowedOrigins.length) {
+    // With an allowlist configured, only the published extension may make
+    // state-changing calls. GET is exempt: Chrome sends no Origin header on
+    // an extension's GET requests, and GET /v1/me only reads the caller's
+    // own account with its device token.
+    if (route.startsWith("/v1/") && req.method !== "GET" && config.allowedOrigins.length) {
       const origin = req.headers.origin || "";
       if (!config.allowedOrigins.includes(origin)) {
         throw errors.forbidden("origin_not_allowed", "This client is not allowed to use the API.");

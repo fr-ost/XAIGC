@@ -421,7 +421,7 @@ describe("licensing", () => {
     assert.equal((await t.activate(d, sloppy)).status, 200);
   });
 
-  test("wrong keys are rejected, and guessing locks out", async () => {
+  test("wrong keys are throttled, but can never lock a valid key out", async () => {
     const d = await t.install();
     const malformed = await t.activate(d, "hello");
     assert.equal(malformed.status, 400);
@@ -431,16 +431,20 @@ describe("licensing", () => {
       assert.equal(res.status, 404);
       assert.equal(res.body.error.code, "invalid_key");
     }
-    const lic = await t.license();
-    const locked = await t.activate(d, lic.key);
-    assert.equal(locked.status, 429, "even a correct key is refused during the lockout");
-    assert.equal(locked.body.error.code, "too_many_attempts");
-    assert.ok(Number(locked.headers["retry-after"]) > 0);
-    // The lockout follows the network too, not just the install.
-    const sameNetwork = await t.install({ ip: d.ip });
-    assert.equal((await t.activate(sameNetwork, lic.key)).status, 429);
-    t.advance(16 * 60_000);
+    // The allowance (8 misses per 15 minutes) is spent: more wrong keys are told to slow down.
+    const throttled = await t.activate(d, "XAIGC-AAAAA-BBBBB-CCCCC-DDDD8");
+    assert.equal(throttled.status, 429);
+    assert.equal(throttled.body.error.code, "too_many_attempts");
+    assert.ok(Number(throttled.headers["retry-after"]) > 0);
+    // Someone else on the same network who mistypes is throttled too...
+    const neighbour = await t.install({ ip: d.ip });
+    assert.equal((await t.activate(neighbour, "XAIGC-AAAAA-BBBBB-CCCCC-DDDD9")).status, 429);
+    // ...but a correct key always works, for the neighbour and for the guesser.
+    const lic = await t.license({ maxDevices: 2 });
+    assert.equal((await t.activate(neighbour, lic.key)).status, 200, "a valid key is never locked out by other people's misses");
     assert.equal((await t.activate(d, lic.key)).status, 200);
+    t.advance(16 * 60_000);
+    assert.equal((await t.activate(await t.install({ ip: d.ip }), "XAIGC-AAAAA-BBBBB-CCCCC-DDDDE")).status, 404, "the allowance refills");
     t.advance(-16 * 60_000);
   });
 
@@ -788,6 +792,185 @@ describe("abuse controls", () => {
     }
   });
 
+  test("an encoded path cannot slip past the rate limit or the origin allowlist", async () => {
+    const t = await createTestApp({ RL_IP_PER_MIN: "3", ALLOWED_ORIGINS: EXT_ORIGIN });
+    try {
+      const d = await t.install({ ip: nextIp() }).catch(() => null);
+      assert.equal(d, null, "registration without the extension's origin is refused");
+      // "/%761/..." decodes to "/v1/..." in the router. It must be treated as /v1.
+      const body = { installId: newInstallId() };
+      for (const url of ["/%761/devices", "/%76%31/devices", "/v1/%64evices"]) {
+        const res = await t.call("POST", url, { body, ip: nextIp() });
+        assert.equal(res.status, 403, url);
+        assert.equal(res.body.error.code, "origin_not_allowed");
+      }
+      const ip = nextIp();
+      const statuses = [];
+      for (let i = 0; i < 5; i++) statuses.push((await t.call("GET", "/%761/me", { ip })).status);
+      assert.deepEqual(statuses, [401, 401, 401, 429, 429], "the network limit applies to the decoded route");
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("the origin allowlist does not break the extension's own GET requests", async () => {
+    const t = await createTestApp({ ALLOWED_ORIGINS: EXT_ORIGIN });
+    try {
+      const res = await t.call("POST", "/v1/devices", { body: { installId: newInstallId() }, ip: nextIp(), headers: { origin: EXT_ORIGIN } });
+      assert.equal(res.status, 200);
+      // Chrome sends no Origin header on an extension's GET requests.
+      const me = await t.call("GET", "/v1/me", { token: res.body.token });
+      assert.equal(me.status, 200);
+      // Everything that changes state or spends money still needs it.
+      for (const url of ["/v1/generate", "/v1/license/activate", "/v1/license/deactivate"]) {
+        const post = await t.call("POST", url, { token: res.body.token, body: {} });
+        assert.equal(post.status, 403, url);
+      }
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("a list-style IP header is read from its last hop, which a client cannot forge", async () => {
+    const t = await createTestApp({ CLIENT_IP_HEADER: "x-forwarded-for", REGISTER_PER_IP_PER_HOUR: "1" });
+    try {
+      const register = (forwarded) => t.call("POST", "/v1/devices", { body: { installId: newInstallId() }, headers: { "x-forwarded-for": forwarded } });
+      assert.equal((await register("198.51.100.9")).status, 200);
+      assert.equal((await register("1.1.1.1, 198.51.100.9")).status, 429, "a forged first entry changes nothing");
+      assert.equal((await register("2.2.2.2, 3.3.3.3, 198.51.100.9")).status, 429);
+      assert.equal((await register("198.51.100.9, 198.51.100.10")).status, 200, "a different real address is a different bucket");
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("an install id cannot be used as a shared seat", async () => {
+    const t = await createTestApp();
+    try {
+      const lic = await t.license({ maxDevices: 1 });
+      const owner = await t.install();
+      await t.activate(owner, lic.key);
+      // Someone else who has the install id can take the token over, which
+      // signs the owner out, and the two can trade places a few times...
+      let current = owner;
+      for (let i = 0; i < 3; i++) {
+        const other = await t.install({ installId: owner.installId });
+        assert.equal(other.deviceId, owner.deviceId);
+        assert.equal((await t.me(current)).status, 401, "only one token is ever valid");
+        current = other;
+      }
+      // ...and then the install stops re-issuing tokens for the day.
+      const fourth = await t.call("POST", "/v1/devices", { body: { installId: owner.installId }, ip: nextIp() });
+      assert.equal(fourth.status, 429);
+      assert.equal(fourth.body.error.code, "too_many_reinstalls");
+      assert.equal((await t.me(current)).status, 200, "the last holder keeps working");
+      t.advance(DAY);
+      assert.equal((await t.call("POST", "/v1/devices", { body: { installId: owner.installId }, ip: nextIp() })).status, 200);
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("the per-network install cap holds under parallel registration", async () => {
+    const t = await createTestApp({ DEVICES_PER_IP_PER_DAY: "3" });
+    try {
+      const ip = nextIp();
+      const results = await Promise.all(Array.from({ length: 12 }, () => t.call("POST", "/v1/devices", { ip, body: { installId: newInstallId() } })));
+      assert.equal(results.filter((r) => r.status === 200).length, 3);
+      assert.equal(results.filter((r) => r.status === 429 && r.body.error.code === "too_many_devices").length, 9);
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("failures the model was paid for cannot be farmed for free generations", async () => {
+    const t = await createTestApp({ REFUNDED_FAILURES_PER_HOUR: "2", TRIAL_GENERATIONS: "3", TRIAL_IP_LIMIT: "50", COOLDOWN_MS: "1000" });
+    try {
+      const d = await t.install();
+      // The model answers, and is paid, but returns nothing usable.
+      t.fake.chat = () => chatResponse({ candidates: [] });
+      const used = async () => (await t.me(d)).body.account.quota.used;
+      const global = async () => Number((await t.db.query("SELECT count FROM usage_daily WHERE subject = 'global'")).rows[0]?.count || 0);
+
+      const first = await t.generate(d);
+      assert.equal(first.status, 502);
+      assert.equal(await used(), 0, "an honest failure is refunded");
+      const hammer = await t.generate(d);
+      assert.equal(hammer.status, 429, "and the cooldown applies after a failure too");
+      assert.equal(hammer.body.error.code, "cooldown");
+      t.advance(1000);
+      assert.equal((await t.generate(d)).status, 502);
+      assert.equal(await used(), 0, "second refund, the last one this hour");
+      for (let i = 1; i <= 3; i++) {
+        t.advance(1000);
+        assert.equal((await t.generate(d)).status, 502);
+        assert.equal(await used(), i, "further paid failures are charged");
+      }
+      assert.equal(await global(), 3, "and count toward the global cap");
+      t.advance(1000);
+      assert.equal((await t.generate(d)).status, 402, "so the loop ends when the allowance does");
+
+      // A failure the model was never paid for (it was down) is always refunded.
+      const e = await t.install();
+      t.fake.chat = () => openaiError(500, "down");
+      for (let i = 0; i < 4; i++) {
+        t.advance(1000);
+        assert.equal((await t.generate(e)).status, 502);
+      }
+      assert.equal((await t.me(e)).body.account.quota.used, 0);
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("a rewrite keeps the draft's script even when the reply language is English", async () => {
+    const t = await createTestApp();
+    try {
+      const d = await t.install();
+      t.fake.chat = () => chatResponse({ candidates: ["Выпускать понемногу каждую неделю лучше, чем один большой запуск.", "Маленькие релизы каждую неделю учат быстрее большого запуска."] });
+      const res = await t.generate(d, { kind: "rewrite", post: undefined, draft: "я думаю что выпускать маленькие вещи каждую неделю лучше чем один большой запуск", options: { language: "en" } });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.variants.length, 2);
+      assert.equal(t.fake.chatCalls().length, 1, "no wasted second model call");
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("an install stays tied to the X account it reported", async () => {
+    const t = await createTestApp();
+    try {
+      const a = await t.install();
+      assert.equal((await t.generate(a, { xh: xh("sticky") })).status, 200);
+      // Leaving the account out afterwards (as the compose popup does) still counts against it.
+      assert.equal((await t.generate(a)).status, 200);
+      assert.equal((await t.generate(a)).status, 200);
+      const b = await t.install();
+      const res = await t.generate(b, { xh: xh("sticky") });
+      assert.equal(res.status, 402, "all three of that account's trial generations are spent");
+    } finally {
+      await t.close();
+    }
+  });
+
+  test("one generation has a hard time budget and is refunded when it runs out", async () => {
+    const t = await createTestApp({ OPENAI_TIMEOUT_MS: "600", OPENAI_TOTAL_TIMEOUT_MS: "1000" });
+    try {
+      const d = await t.install();
+      // A model that never answers: resolves only when the request is aborted.
+      t.fake.chat = (body, init) => new Promise((resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason)));
+      const started = Date.now();
+      const res = await t.generate(d);
+      const took = Date.now() - started;
+      assert.equal(res.status, 504);
+      assert.equal(res.body.error.code, "upstream_timeout");
+      assert.ok(took < 2500, `gave up after ${took}ms`);
+      assert.equal((await t.me(d)).body.account.quota.used, 0);
+    } finally {
+      await t.close();
+    }
+  });
+
   test("blocked installs are shut out everywhere", async () => {
     const t = await createTestApp();
     try {
@@ -815,13 +998,17 @@ describe("admin", () => {
   before(async () => (t = await createTestApp()));
   after(() => t.close());
 
-  test("requires the token and locks out guessing", async () => {
+  test("requires the token; wrong guesses are throttled; the real admin cannot be locked out", async () => {
     const ip = nextIp();
-    assert.equal((await t.call("GET", "/admin/api/stats", { ip })).status, 401);
-    for (let i = 0; i < 9; i++) assert.equal((await t.call("GET", "/admin/api/stats", { ip, token: `wrong-${i}` })).status, 401);
-    const locked = await t.call("GET", "/admin/api/stats", { ip, token: ADMIN_TOKEN });
-    assert.equal(locked.status, 429, "ten failures lock that network out, even with the right token");
-    assert.equal((await t.admin("GET", "/stats")).status, 200, "other networks are unaffected");
+    // Requests with no token at all are refused but not counted: a web page
+    // that makes the admin's browser fire such requests must not lock them out.
+    for (let i = 0; i < 30; i++) assert.equal((await t.call("GET", "/admin/api/stats", { ip })).status, 401);
+    for (let i = 0; i < 10; i++) assert.equal((await t.call("GET", "/admin/api/stats", { ip, token: `wrong-${i}` })).status, 401);
+    const throttled = await t.call("GET", "/admin/api/stats", { ip, token: "wrong-again" });
+    assert.equal(throttled.status, 429, "the eleventh wrong token from one network is told to stop");
+    const real = await t.call("GET", "/admin/api/stats", { ip, token: ADMIN_TOKEN });
+    assert.equal(real.status, 200, "the correct token works even from the throttled network");
+    assert.deepEqual(real.body.caller, { address: ip, source: "x-real-ip" });
   });
 
   test("serves the dashboard with a strict content security policy", async () => {
@@ -866,6 +1053,32 @@ describe("admin", () => {
     assert.equal((await t.admin("PATCH", `/licenses/${one.id}`, {})).status, 400);
     assert.equal((await t.admin("PATCH", "/licenses/00000000-0000-4000-8000-000000000000", { note: "x" })).status, 404);
     assert.equal((await t.admin("GET", "/licenses/not-a-uuid")).status, 400);
+  });
+
+  test("validity edits behave on a duration license that is not activated yet", async () => {
+    const year = await t.license({ days: 365 });
+    // Lengthening the duration keeps it a duration.
+    const longer = await t.admin("PATCH", `/licenses/${year.id}`, { durationDays: 395 });
+    assert.equal(longer.body.license.durationDays, 395);
+    assert.equal(longer.body.license.expiresAt, null);
+    const d = await t.install();
+    const activated = await t.activate(d, year.key);
+    const expires = new Date(activated.body.account.license.expiresAt).getTime();
+    assert.ok(Math.abs(expires - (Date.now() + 395 * DAY)) < 60_000);
+
+    // "Never expires" really means never, even though a duration was pending.
+    const forever = await t.license({ days: 30 });
+    const cleared = await t.admin("PATCH", `/licenses/${forever.id}`, { expiresAt: null });
+    assert.equal(cleared.body.license.durationDays, null);
+    const kept = await t.activate(await t.install(), forever.key);
+    assert.equal(kept.body.account.license.expiresAt, null);
+
+    // A fixed date replaces a pending duration instead of being overwritten by it.
+    const fixed = await t.license({ days: 30 });
+    const date = new Date(Date.now() + 90 * DAY).toISOString();
+    await t.admin("PATCH", `/licenses/${fixed.id}`, { expiresAt: date });
+    const dated = await t.activate(await t.install(), fixed.key);
+    assert.equal(dated.body.account.license.expiresAt, date);
   });
 
   test("license detail shows devices, usage and history", async () => {

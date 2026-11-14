@@ -28,7 +28,7 @@ const URL_RE = /https?:\/\/[^\s<>"]+|\bwww\.[^\s<>"]+/gi;
 
 // ctx: { kind, maxChars, emojiMax, source, multiline }
 export function cleanCandidate(raw, ctx) {
-  let s = String(raw ?? "").replace(/\r/g, "");
+  let s = String(raw ?? "").replace(/\r/g, "").replace(/\u2039/g, "<"); // undo the prompt's "<" stand-in
   const sourceLower = String(ctx.source || "").toLowerCase();
   const allowedHandles = extractHandles(ctx.source);
   const allowedTags = extractHashtags(ctx.source);

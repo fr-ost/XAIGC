@@ -249,17 +249,6 @@
     return box && isVisible(box) ? box : null;
   }
 
-  function nearestTextbox(article) {
-    const boxes = [...document.querySelectorAll(TEXTBOX_SELECTOR)].filter(isVisible);
-    if (!boxes.length) return null;
-    const a = article.getBoundingClientRect();
-    const distance = (box) => {
-      const r = box.getBoundingClientRect();
-      return Math.hypot(r.left + r.width / 2 - (a.left + a.width / 2), r.top + r.height / 2 - (a.top + a.height / 2));
-    };
-    return boxes.sort((x, y) => distance(x) - distance(y))[0];
-  }
-
   function findReplyButton(article) {
     return (
       article.querySelector('[data-testid="reply"]') ||
@@ -267,23 +256,26 @@
     );
   }
 
-  // The right box is the one X itself opens for this post. An open reply
-  // dialog wins; otherwise press the post's own Reply button and take the
-  // dialog (timeline) or the box it focuses (the main post on a status page).
+  // The only acceptable box is one X itself opened for this post: an open
+  // reply dialog, or, after pressing the post's own Reply button, the dialog
+  // it opens (timeline) or the box it focuses (the main post on a status
+  // page). There is deliberately no "closest text box" fallback. If replies
+  // are restricted or X is slow and nothing opens, returning null makes the
+  // caller copy the draft instead, rather than clearing and overwriting some
+  // unrelated editor such as a half-written post in the home composer.
   async function findOrOpenReplyBox(article) {
     const open = dialogTextbox();
     if (open) return open;
     const replyButton = findReplyButton(article);
-    if (replyButton) {
-      const before = focusedTextbox();
-      replyButton.click();
-      for (let i = 0; i < 20; i++) {
-        await wait(150);
-        const box = dialogTextbox() || focusedTextbox();
-        if (box && (box !== before || i >= 4)) return box;
-      }
+    if (!replyButton) return null;
+    const before = focusedTextbox();
+    replyButton.click();
+    for (let i = 0; i < 20; i++) {
+      await wait(150);
+      const box = dialogTextbox() || focusedTextbox();
+      if (box && box !== before) return box;
     }
-    return dialogTextbox() || focusedTextbox() || nearestTextbox(article);
+    return null;
   }
 
   /* ---------------------------- typing into the box ------------------------ */
@@ -506,7 +498,7 @@
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (btn.dataset.busy === "1") return;
+      if (!e.isTrusted || btn.dataset.busy === "1") return;
       btn.dataset.busy = "1";
       try {
         const state = drafts.get(article);
@@ -550,6 +542,7 @@
       b.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!e.isTrusted) return;
         closeMenu();
         onPick();
       });
@@ -635,10 +628,12 @@
     more.setAttribute("aria-expanded", "false");
     question.hidden = !settings.showQuestionButton;
 
+    // isTrusted: only a real click from the person at the keyboard may spend
+    // a generation. A script on the page calling .click() is ignored.
     const guard = (fn) => (e) => {
       e.preventDefault();
       e.stopPropagation();
-      fn();
+      if (e.isTrusted) fn();
     };
     reply.addEventListener("click", guard(() => run(article, reply, "reply")));
     question.addEventListener("click", guard(() => run(article, question, "question")));
