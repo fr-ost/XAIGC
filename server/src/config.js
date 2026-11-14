@@ -188,7 +188,7 @@ export function loadConfig(env = process.env) {
 
     links: {
       buy: env.BUY_URL || "https://xaicg.uniquelabs.org/#pricing",
-      support: env.SUPPORT_URL || "https://uniquelabs.org",
+      support: env.SUPPORT_URL || "https://xaicg.uniquelabs.org/support",
       website: "https://uniquelabs.org",
     },
   };

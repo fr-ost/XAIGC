@@ -99,4 +99,6 @@ This policy may be updated. The date at the top shows the latest revision.
 
 ## 10. Contact
 
+Help and contact: https://xaicg.uniquelabs.org/support
+
 Unique Labs: https://uniquelabs.org

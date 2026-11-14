@@ -77,6 +77,8 @@ If part of these terms is found unenforceable, the rest still applies. Not enfor
 
 ## 15. Contact
 
+Help and contact: https://xaicg.uniquelabs.org/support
+
 Unique Labs: https://uniquelabs.org
 
 A product of Unique Labs. Developed by Shahriar Ahmed.

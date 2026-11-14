@@ -58,6 +58,7 @@ await writeFile(
     `  <url><loc>${origin}/</loc></url>\n` +
     `  <url><loc>${origin}/privacy</loc></url>\n` +
     `  <url><loc>${origin}/terms</loc></url>\n` +
+    `  <url><loc>${origin}/support</loc></url>\n` +
     `</urlset>\n`,
 );
 

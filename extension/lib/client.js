@@ -44,7 +44,7 @@ export function describeAccount(account) {
     notice,
     signInRequired,
     buyUrl: account.links?.buy || "https://xaicg.uniquelabs.org/#pricing",
-    supportUrl: account.links?.support || "https://uniquelabs.org",
+    supportUrl: account.links?.support || "https://xaicg.uniquelabs.org/support",
   };
 }
 

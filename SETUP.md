@@ -263,7 +263,8 @@ It is the only file you need to edit.
 | --- | --- |
 | `chromeStoreUrl` | Leave empty for now. The buttons read "Coming soon". You fill it in after Part 8. |
 | `buyUrl` | Where people pay. A payment link, or a page where they can reach you. |
-| `supportUrl` | Where people get help |
+| `supportUrl` | Leave as `/support`: the site has a help page, built from `SUPPORT.md`. |
+| `supportEmail` | The address people write to. The help page's button becomes "Email <address>". While it is empty the button goes to `contactUrl`. |
 | `trialGenerations` | Must equal the server's `TRIAL_GENERATIONS` (20 unless you changed it) |
 | `plans` | Names, limits and prices. They are set to Starter $0.99, Pro $1.99 and Agency $4.99 per month. Write prices as you want them shown, for example `price: "$0.99"`, `period: "per month"`. The limits must equal the server's plans. |
 
@@ -276,7 +277,7 @@ In Railway, add to the server's variables:
 | Variable | Value |
 | --- | --- |
 | `BUY_URL` | `<your-site>/#pricing` |
-| `SUPPORT_URL` | your support page |
+| `SUPPORT_URL` | `<your-site>/support` |
 
 These are where **Get a license** and **Support** inside the extension lead.
 
@@ -391,15 +392,15 @@ Push to the branch Railway deploys. It rebuilds and restarts by itself, and data
 
 Edit, commit, push. Vercel redeploys.
 
-### The privacy policy and the terms
+### The privacy policy, the terms and the help page
 
-The policy is written once, in `PRIVACY-POLICY.md`, and the terms in `TERMS.md`. After changing either:
+The policy is written once, in `PRIVACY-POLICY.md`, the terms in `TERMS.md` and the help page in `SUPPORT.md`. After changing any of them:
 
 ```bash
 node scripts/build-privacy.mjs
 ```
 
-That rebuilds `website/privacy.html` and `website/terms.html`. Commit and push. If what the extension collects has changed, update the privacy answers in the store dashboard too.
+That rebuilds `website/privacy.html`, `website/terms.html` and `website/support.html`. Commit and push. If what the extension collects has changed, update the privacy answers in the store dashboard too.
 
 ---
 
@@ -435,7 +436,7 @@ The code is ready to sell. These parts are yours to add, and none of them are in
 
 - **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 11.
 - **Terms and a refund policy that are really yours.** The site has a terms page, built from `TERMS.md`. It is a sensible starting text, not legal advice: read it, set the refund rule you actually want in section 6, add the country whose law applies, and have it checked before you rely on it. After editing, run `node scripts/build-privacy.mjs`.
-- **A support address** that someone reads.
+- **A support address** that someone reads. Put it in `website/config.js` as `supportEmail`, so the help page can offer it.
 - **Your business details** for the store's trader declaration and for invoices.
 
 ---
@@ -451,6 +452,6 @@ Run all of them from the top of the repository.
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store |
 | `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address |
-| `node scripts/build-privacy.mjs` | Rebuilds the website's privacy and terms pages from `PRIVACY-POLICY.md` and `TERMS.md` |
+| `node scripts/build-privacy.mjs` | Rebuilds the website's privacy, terms and support pages from `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md` |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots |
 | `node store/build-icons.mjs` | Renders `store/icon.svg` into every icon file |

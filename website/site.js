@@ -25,7 +25,17 @@
     }
   }
   for (const a of all('[data-link="buy"]')) a.href = cfg.buyUrl || "#pricing";
-  for (const a of all('[data-link="support"]')) a.href = cfg.supportUrl || cfg.buyUrl || "#";
+  for (const a of all('[data-link="support"]')) a.href = cfg.supportUrl || "/support";
+  // "Contact support" on the support page: an email address when one is set.
+  for (const a of all('[data-link="contact"]')) {
+    if (cfg.supportEmail) {
+      a.href = `mailto:${cfg.supportEmail}`;
+      a.removeAttribute("rel");
+      a.textContent = `Email ${cfg.supportEmail}`;
+    } else {
+      a.href = cfg.contactUrl || "https://uniquelabs.org";
+    }
+  }
   for (const node of all('[data-fill="trial"]')) node.textContent = String(cfg.trialGenerations ?? 20);
   for (const node of all('[data-fill="year"]')) node.textContent = String(new Date().getFullYear());
 

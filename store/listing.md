@@ -72,6 +72,7 @@ PRIVACY
 • No advertising, no analytics trackers, no sale of data
 Full policy: https://xaicg.uniquelabs.org/privacy
 Terms: https://xaicg.uniquelabs.org/terms
+Help: https://xaicg.uniquelabs.org/support
 
 ABOUT
 XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
@@ -110,7 +111,7 @@ The screenshots show the real extension on a sample timeline with made-up accoun
 | Field | Value |
 | --- | --- |
 | Homepage URL | `https://xaicg.uniquelabs.org` |
-| Support URL | `https://xaicg.uniquelabs.org` or your support page |
+| Support URL | `https://xaicg.uniquelabs.org/support` |
 | Official URL | Optional. Needs the site verified in Google Search Console. |
 | Mature content | No |
 
@@ -239,7 +240,7 @@ Notes for the reviewer:
 
 - [ ] `node scripts/pack-extension.mjs` ran without complaint (it refuses a build that points at localhost)
 - [ ] The extension, loaded unpacked, can sign in, generate a reply on x.com and activate a license against the live server
-- [ ] `https://xaicg.uniquelabs.org/privacy` and `https://xaicg.uniquelabs.org/terms` open
+- [ ] `https://xaicg.uniquelabs.org/privacy`, `https://xaicg.uniquelabs.org/terms` and `https://xaicg.uniquelabs.org/support` open
 - [ ] The reviewer license key in the test instructions works
 - [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
 

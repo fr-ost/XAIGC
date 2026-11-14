@@ -12,7 +12,13 @@ window.XAICG_SITE = {
   // Where people buy a license, and where they get help.
   // Where people buy a license. Until there is a checkout, this is where they reach you.
   buyUrl: "https://uniquelabs.org",
-  supportUrl: "https://uniquelabs.org",
+  // "Support" links lead to the help page on this site.
+  supportUrl: "/support",
+  // How people reach you from that page. Put an email address here and its
+  // button becomes "Email <address>"; leave it empty to send people to
+  // contactUrl instead.
+  supportEmail: "",
+  contactUrl: "https://uniquelabs.org",
 
   // Free generations for a new account.
   trialGenerations: 20,
