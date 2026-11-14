@@ -661,11 +661,11 @@
     if (!runtimeAlive()) return; // the extension was reloaded; this script is orphaned
     syncTheme();
     for (const article of document.querySelectorAll('article[data-testid="tweet"], article[role="article"]')) {
-      if (article.dataset.xaigc === "1") continue;
+      // Check for the buttons themselves rather than a marker on the post:
+      // when X re-renders a post's action bar, the buttons come back.
+      if (article.querySelector(".xaigc-wrap")) continue;
       const bar = findActionBar(article);
-      if (!bar) continue;
-      article.dataset.xaigc = "1";
-      bar.appendChild(createButtons(article));
+      if (bar) bar.appendChild(createButtons(article));
     }
   }
 

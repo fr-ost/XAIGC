@@ -706,6 +706,21 @@ describe("abuse controls", () => {
     }
   });
 
+  test("without the edge header, the last X-Forwarded-For hop is used, never a client-supplied one", async () => {
+    const t = await createTestApp({ REGISTER_PER_IP_PER_HOUR: "1" });
+    try {
+      const register = (forwarded) => t.call("POST", "/v1/devices", { body: { installId: newInstallId() }, headers: { "x-forwarded-for": forwarded } });
+      assert.equal((await register("198.51.100.1")).status, 200);
+      // Same real address, with a forged entry in front: still the same bucket.
+      assert.equal((await register("1.2.3.4, 198.51.100.1")).status, 429);
+      assert.equal((await register("9.9.9.9, 198.51.100.1")).status, 429);
+      // A different real address is a different bucket.
+      assert.equal((await register("1.2.3.4, 198.51.100.2")).status, 200);
+    } finally {
+      await t.close();
+    }
+  });
+
   test("origin allowlist: only the published extension may call the API", async () => {
     const t = await createTestApp({ ALLOWED_ORIGINS: EXT_ORIGIN });
     try {

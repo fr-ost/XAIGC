@@ -19,7 +19,14 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
     logger:
       config.logLevel === "silent"
         ? false
-        : { level: config.logLevel, redact: ["req.headers.authorization", "req.headers.cookie"] },
+        : {
+            level: config.logLevel,
+            // Log the path only. Query strings can carry an email address or
+            // a pasted license key (admin search), and bodies carry post text.
+            serializers: {
+              req: (req) => ({ method: req.method, url: String(req.url || "").split("?")[0] }),
+            },
+          },
     trustProxy: config.trustProxy,
     // Request logs carry method, path and status only. Bodies (post text) are
     // never logged.
@@ -60,11 +67,30 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
 
   /* --------------------------- request context ---------------------------- */
 
+  // Where is the caller? Preferred: the header the platform's edge sets
+  // (X-Real-IP on Railway). If that header is ever absent, fall back to the
+  // last X-Forwarded-For hop, which is the one the nearest proxy appended and
+  // a client cannot forge, and only then to the socket address. Falling back
+  // is logged once: behind a proxy, the socket address is the proxy itself,
+  // which would put every user in one rate-limit bucket.
+  let warnedAboutIp = false;
   function clientIp(req) {
+    const header = (name) => {
+      const raw = req.headers[name];
+      return String(Array.isArray(raw) ? raw[raw.length - 1] : raw || "");
+    };
     if (config.clientIpHeader) {
-      const raw = req.headers[config.clientIpHeader];
-      const value = String(Array.isArray(raw) ? raw[0] : raw || "").split(",")[0].trim();
+      const value = header(config.clientIpHeader).split(",")[0].trim();
       if (net.isIP(value)) return value;
+      const forwarded = header("x-forwarded-for").split(",").pop().trim();
+      if (!warnedAboutIp) {
+        warnedAboutIp = true;
+        req.log.warn(
+          { expected: config.clientIpHeader, fallback: net.isIP(forwarded) ? "x-forwarded-for" : "socket" },
+          "client IP header missing on a request: check CLIENT_IP_HEADER for this platform",
+        );
+      }
+      if (net.isIP(forwarded)) return forwarded;
     }
     return req.ip;
   }
