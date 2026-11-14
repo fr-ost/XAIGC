@@ -20,8 +20,8 @@ window.XAICG_SITE = {
   // Paid plans. `price` is shown as written, for example "$9" with
   // period "per month". Leave price empty to show the plan without one.
   plans: [
-    { name: "Starter", icon: "⭐", perDay: 60, devices: 1, price: "$0.99", period: "per month" },
-    { name: "Pro", icon: "👑", perDay: 200, devices: 2, price: "$1.99", period: "per month", featured: true },
-    { name: "Agency", icon: "🚀", perDay: 600, devices: 5, price: "$4.99", period: "per month" },
+    { name: "Starter", perDay: 60, devices: 1, price: "$0.99", period: "per month" },
+    { name: "Pro", perDay: 200, devices: 2, price: "$1.99", period: "per month", featured: true },
+    { name: "Agency", perDay: 600, devices: 5, price: "$4.99", period: "per month" },
   ],
 };

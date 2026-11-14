@@ -5,6 +5,9 @@ inter.woff2           Inter, Copyright 2016 The Inter Project Authors
                       (https://github.com/rsms/inter)
 jetbrains-mono.woff2  JetBrains Mono, Copyright 2020 The JetBrains Mono
                       Project Authors (https://github.com/JetBrains/JetBrainsMono)
+plex-500.woff2        IBM Plex Sans, Copyright 2017 IBM Corp.
+plex-700.woff2        (https://github.com/IBM/plex)
 
-Both files are the Latin subsets of the variable (weight axis) fonts, as
+Inter and JetBrains Mono are the Latin subsets of the variable (weight axis)
+fonts; IBM Plex Sans is the Latin subset at weights 500 and 700. All as
 packaged by Fontsource (https://fontsource.org).

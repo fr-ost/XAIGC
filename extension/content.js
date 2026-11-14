@@ -90,7 +90,7 @@
     if (calm() || !box?.animate) return;
     try {
       box.animate(
-        [{ boxShadow: "0 0 0 0 rgba(255, 210, 63, 0.7)" }, { boxShadow: "0 0 0 12px rgba(255, 210, 63, 0)" }],
+        [{ boxShadow: "0 0 0 0 rgba(252, 213, 53, 0.6)" }, { boxShadow: "0 0 0 10px rgba(252, 213, 53, 0)" }],
         { duration: 750, easing: "ease-out" },
       );
     } catch {
@@ -98,7 +98,7 @@
     }
   }
   // A handful of coloured dots fly out of the button when a draft lands.
-  const DOT_COLORS = ["#ffd23f", "#ef6c4a", "#3cc4bd", "#5dade2", "#fff8e7", "#ffd23f", "#ef6c4a", "#3cc4bd"];
+  const DOT_COLORS = ["#fcd535", "#ffffff", "#fcd535", "#f0b90b", "#fcd535", "#ffffff"];
   function burst(el) {
     if (!el || calm() || !document.body.animate) return;
     const r = el.getBoundingClientRect();
@@ -107,8 +107,8 @@
     DOT_COLORS.forEach((color, i) => {
       const dot = document.createElement("span");
       dot.className = "xaicg-dot";
-      dot.style.left = `${x - 4}px`;
-      dot.style.top = `${y - 4}px`;
+      dot.style.left = `${x - 3}px`;
+      dot.style.top = `${y - 3}px`;
       dot.style.background = color;
       document.body.appendChild(dot);
       const angle = (i / DOT_COLORS.length) * Math.PI * 2 + 0.4;

@@ -324,11 +324,7 @@ for (const [name, state] of [["compose", popupPosts], ["thread", popupThread]]) 
   await page.goto(OPTIONS);
   await page.locator("#signedIn").waitFor();
   await settle(page);
-  // The site shows this card on a white band and the account cards on a soft
-  // grey one, so each is captured on the background it will sit on.
-  await page.evaluate(() => (document.body.style.background = "#ffffff"));
   await save(path.join(SHOTS, "voice.png"), await page.locator("#persona").locator("xpath=ancestor::section").screenshot({ type: "png" }));
-  await page.evaluate(() => (document.body.style.background = ""));
   // Bounding boxes are relative to the viewport and the capture above scrolled it; a full-page clip is not.
   const scrollY = await page.evaluate(() => window.scrollY);
   const a = await page.locator("#account").boundingBox();

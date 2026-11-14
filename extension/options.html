@@ -16,7 +16,6 @@
         <small>X AI Comment/Reply Generator</small>
       </div>
     </div>
-    <span class="fan" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
     <span id="planBadge" class="badge">…</span>
   </header>
 
@@ -24,15 +23,14 @@
     <h1 class="page-title">Settings</h1>
 
     <section id="welcome" class="card welcome" hidden>
-      <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-      <h2 class="welcome-title">🎉 You're set up</h2>
+      <h2 class="welcome-title">You're set up</h2>
       <p>Open <a href="https://x.com" target="_blank" rel="noopener">x.com</a>. Every post now has <b>AI Reply</b> and <b>Question</b> buttons, and the arrow next to them opens tones. Drafts are typed into the reply box for you to review. Nothing is posted until you press Reply.</p>
       <p>For original posts and threads, click the XAICG icon in the toolbar.</p>
       <p id="welcomeSignIn" hidden><b>One step first:</b> sign in with Google below to start your free trial.</p>
     </section>
 
     <section id="account" class="card" hidden>
-      <div class="card-head"><h2><span class="emo" aria-hidden="true">👤</span><span id="accountTitle">Account</span></h2></div>
+      <div class="card-head"><h2><span id="accountTitle">Account</span></h2></div>
       <div id="signedOut" class="stack">
         <p id="signInWhy" class="muted"></p>
         <button id="googleSignIn" class="gsi" type="button">
@@ -54,7 +52,7 @@
 
     <section id="license" class="card">
       <div class="card-head">
-        <h2><span class="emo" aria-hidden="true">🎟️</span><span id="planTitle">Your free trial</span></h2>
+        <h2><span id="planTitle">Your free trial</span></h2>
         <button id="refresh" class="btn sm" type="button">Refresh</button>
       </div>
       <p id="planLead" class="muted lead"></p>
@@ -106,7 +104,7 @@
 
     <section class="card voice">
       <div class="card-head">
-        <h2><span class="emo" aria-hidden="true">🎙️</span>Your voice</h2>
+        <h2>Your voice</h2>
         <span id="saved" class="status" role="status" aria-live="polite"></span>
       </div>
       <p class="muted lead">These apply to everything XAICG writes. Changes save automatically.</p>
@@ -187,7 +185,7 @@
     </section>
 
     <section class="card">
-      <div class="card-head"><h2><span class="emo" aria-hidden="true">⚙️</span>On x.com</h2></div>
+      <div class="card-head"><h2>On x.com</h2></div>
       <fieldset>
         <legend class="label">Where drafts go</legend>
         <label class="choice"><input type="radio" name="outputMode" value="insert"> <span><b>Type into the reply box</b><br><span class="muted small">XAICG opens the reply box and fills it in. You review and post.</span></span></label>
@@ -203,7 +201,7 @@
     </section>
 
     <section class="card about">
-      <div class="card-head"><h2><span class="emo" aria-hidden="true">ℹ️</span>About</h2></div>
+      <div class="card-head"><h2>About</h2></div>
       <dl class="facts">
         <div><dt>Version</dt><dd id="version"></dd></div>
         <div class="wide"><dt>Install ID</dt><dd id="deviceId" class="mono"></dd></div>

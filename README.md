@@ -148,7 +148,7 @@ Who owns a license: the Google account whose verified email the license was issu
 
 ## Design
 
-The extension, the website, the admin dashboard and the store images share one look, the Flip7 design system: retro and playful, in teal (`#2BA8A2`), gold (`#FFD23F`) and coral (`#EF6C4A`) on cream. Pill buttons that bounce, cream input surfaces, cards with a coloured bar down the left edge, dashed rules under section titles, coloured glows instead of grey shadows, extra-bold type, and a fan of cards with a folded ribbon for the brand.
+The extension, the website, the admin dashboard and the store images share one design system. The base is a deep near-black canvas (`#0B0E11`) with white type and a single accent, yellow (`#FCD535`), which carries every primary action (always with black text), the wordmark and the headline claims. Cards are flat blocks a step lighter than the canvas (`#1E2329`); depth comes from that contrast, not from shadows or gradients. Corners are tight (6 to 12px), headings are bold, and every number is set in its own typeface (IBM Plex Sans). Surfaces that are about doing something, such as the step cards, the price list, the legal pages and the admin dashboard, flip to a light mode with the same yellow buttons, and the website closes on a light footer.
 
 The tokens live at the top of `extension/ui.css` (popup and settings), `extension/content.css` (the buttons on X), `website/styles.css` and `server/src/admin-ui/admin.css`. The icon is `store/icon.svg`; `node store/build-icons.mjs` renders every size from it.
 

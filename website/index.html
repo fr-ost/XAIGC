@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>XAICG: X AI Comment/Reply Generator, in your own voice</title>
   <meta name="description" content="X AI Comment/Reply Generator (XAICG) is a Chrome extension that drafts comments, replies, posts and threads for X (Twitter) in your own voice. You review every draft and post it yourself. Free trial, no API key needed.">
-  <meta name="theme-color" content="#2ba8a2">
+  <meta name="theme-color" content="#0b0e11">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/assets/icon-48.png">
   <link rel="apple-touch-icon" href="/assets/icon-128.png">
@@ -43,16 +43,12 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div>
-          <div class="lockup" aria-hidden="true">
-            <span class="fan" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-            <span class="plate"><b>X</b><span>AICG</span></span>
-          </div>
-          <p class="ribbon">AI Comment / Reply Generator</p>
-          <h1 class="display-mega">Replies for X, in your own voice.</h1>
+          <span class="badge">X AI Comment/Reply Generator</span>
+          <h1 class="display-mega">Replies for X, in <em>your own voice</em>.</h1>
           <p class="lead">XAICG adds a button to every post. One click drafts a comment that sounds like you and types it into the reply box. You read it, change what you like, and post it yourself.</p>
           <div class="actions">
             <a class="btn primary lg" data-link="store" href="#pricing">Add to Chrome</a>
-            <a class="btn outline lg" href="#how">See how it works</a>
+            <a class="btn lg" href="#how">See how it works</a>
           </div>
           <p class="fine">Free trial: <span class="num" data-fill="trial">20</span> generations. No API key, no card.</p>
         </div>
@@ -63,6 +59,13 @@
             <span class="mini-bar"><i id="demoBar"></i></span>
           </div>
           <div class="ui-card demo" id="demo">
+            <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
+              <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
+              <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
+              <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
+              <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
+              <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
+            </div>
             <div class="demo-post">
               <span class="demo-av" aria-hidden="true">N</span>
               <div class="demo-body">
@@ -73,13 +76,6 @@
                   <button type="button" class="demo-ai" id="demoRun"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</button>
                 </div>
               </div>
-            </div>
-            <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
-              <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
-              <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
-              <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
-              <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
-              <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
             </div>
             <div class="demo-reply">
               <p class="demo-label">Your draft</p>
@@ -110,38 +106,38 @@
     <section id="features" class="band">
       <div class="wrap">
         <div class="band-head">
-          <span class="badge"><i aria-hidden="true">✨</i>Features</span>
+          <span class="badge">Features</span>
           <h2 class="display-lg">Built for the way you actually use X</h2>
           <p class="lead">Everything happens where you already are: in the timeline, on the post you want to answer.</p>
         </div>
         <div class="grid">
           <article class="card">
-            <span class="plate-box" aria-hidden="true">👆</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.9 2.9M15.5 15.5l2.9 2.9M5.6 18.4l2.9-2.9M15.5 8.5l2.9-2.9"/></svg></span>
             <h3>One click on any post</h3>
             <p>AI Reply and Question buttons sit in each post's action bar. The draft lands in X's own reply box, ready for you to read.</p>
           </article>
           <article class="card">
-            <span class="plate-box" aria-hidden="true">🎭</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="1.6"/></svg></span>
             <h3>A tone for the moment</h3>
             <p>Auto fits each post. Or pick casual, witty, supportive, skeptical, analytical, blunt, technical or professional.</p>
           </article>
           <article class="card">
-            <span class="plate-box" aria-hidden="true">🔁</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></span>
             <h3>Try another, for free</h3>
             <p>Each request brings back several drafts. Step through them without spending another generation.</p>
           </article>
           <article class="card">
-            <span class="plate-box" aria-hidden="true">🧵</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
             <h3>Posts, threads and rewrites</h3>
             <p>The toolbar popup turns a rough idea into post drafts or a full thread, and tightens a draft you already wrote.</p>
           </article>
           <article class="card">
-            <span class="plate-box" aria-hidden="true">🎙️</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
             <h3>Your voice, saved once</h3>
             <p>Describe how you sound. Set reply length, language and emoji. It applies to everything XAICG writes.</p>
           </article>
           <article class="card">
-            <span class="plate-box" aria-hidden="true">🛡️</span>
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span>
             <h3>You stay in control</h3>
             <p>Nothing is ever posted for you. Every draft waits in the box until you press Reply. A copy-only mode never touches the page.</p>
           </article>
@@ -149,10 +145,10 @@
       </div>
     </section>
 
-    <section id="how" class="band soft">
+    <section id="how" class="band light">
       <div class="wrap">
         <div class="band-head">
-          <span class="badge"><i aria-hidden="true">🚀</i>How it works</span>
+          <span class="badge">How it works</span>
           <h2 class="display-lg">Up and running in a minute</h2>
         </div>
         <ol class="grid">
@@ -166,7 +162,7 @@
     <section class="band">
       <div class="wrap split">
         <div class="split-text">
-          <span class="badge"><i aria-hidden="true">🎭</i>Tones</span>
+          <span class="badge">Tones</span>
           <h2 class="display-md">Pick a tone when you want one</h2>
           <p>Most of the time Auto reads the room. When you want something specific, the arrow next to the buttons opens the tones, and the same menu copies a line for a quote post.</p>
           <ul class="ticks">
@@ -181,10 +177,10 @@
       </div>
     </section>
 
-    <section class="band soft">
+    <section class="band alt">
       <div class="wrap split reverse">
         <div class="split-text">
-          <span class="badge"><i aria-hidden="true">✍️</i>Compose</span>
+          <span class="badge">Compose</span>
           <h2 class="display-md">Write the post you meant to write</h2>
           <p>Open XAICG from the toolbar and say what the post should be about. You get drafts to copy or open in X, a thread of the length you choose, or a tighter version of something you already wrote.</p>
           <ul class="ticks">
@@ -203,7 +199,7 @@
     <section class="band">
       <div class="wrap split">
         <div class="split-text">
-          <span class="badge"><i aria-hidden="true">🎙️</i>Your voice</span>
+          <span class="badge">Your voice</span>
           <h2 class="display-md">Sounds like you, not like an assistant</h2>
           <p>XAICG is built to avoid the tells. No generic praise, no hype words, no em dashes, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it remembers your recent drafts so it does not repeat itself.</p>
           <p>Describe your persona once, or start from a preset and edit it.</p>
@@ -214,10 +210,10 @@
       </div>
     </section>
 
-    <section class="band soft">
+    <section class="band alt">
       <div class="wrap split reverse">
         <div class="split-text">
-          <span class="badge"><i aria-hidden="true">🎟️</i>Account</span>
+          <span class="badge">Account</span>
           <h2 class="display-md">Your plan follows you</h2>
           <p>Your license belongs to your Google account. On a new computer you sign in and it is there, with no key to type. If every seat is in use, you choose which browser gives it up.</p>
           <p>Prefer not to sign in? A license key works on its own.</p>
@@ -228,11 +224,12 @@
       </div>
     </section>
 
-    <section class="band dark">
+    <section class="band alt">
       <div class="wrap">
         <div class="band-head">
-          <span class="badge"><i aria-hidden="true">🛡️</i>Privacy</span>
-          <h2 class="display-lg">What it sees, and what it keeps</h2>
+          <span class="badge">Privacy</span>
+          <h2 class="claim">Nothing is posted for you</h2>
+          <p class="lead">What XAICG sees, and what it keeps.</p>
         </div>
         <div class="grid two">
           <article class="card">
@@ -255,10 +252,10 @@
       </div>
     </section>
 
-    <section id="pricing" class="band">
+    <section id="pricing" class="band light">
       <div class="wrap">
         <div class="band-head">
-          <span class="badge"><i aria-hidden="true">👑</i>Pricing</span>
+          <span class="badge">Pricing</span>
           <h2 class="display-lg">Start free. Upgrade when it earns its place.</h2>
           <p class="lead">A generation is one request for drafts. Stepping through the drafts you already have is free.</p>
         </div>
@@ -269,10 +266,10 @@
       </div>
     </section>
 
-    <section id="faq" class="band soft">
+    <section id="faq" class="band">
       <div class="wrap narrow faq">
         <div class="band-head">
-          <span class="badge"><i aria-hidden="true">💬</i>FAQ</span>
+          <span class="badge">FAQ</span>
           <h2 class="display-lg">Questions</h2>
         </div>
         <details>
@@ -314,13 +311,14 @@
       </div>
     </section>
 
-    <section class="cta">
-      <span class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    <section class="band">
       <div class="wrap">
-        <h2 class="display-lg">Answer more posts, and still sound like yourself.</h2>
-        <div class="actions center">
-          <a class="btn deep lg" data-link="store" href="#pricing">Add to Chrome</a>
-          <a class="btn ink lg" data-link="buy" href="#pricing">Get a license</a>
+        <div class="cta-card">
+          <h2>Answer more posts, and still sound like yourself.</h2>
+          <div class="actions">
+            <a class="btn primary" data-link="store" href="#pricing">Add to Chrome</a>
+            <a class="btn" data-link="buy" href="#pricing">Get a license</a>
+          </div>
         </div>
       </div>
     </section>

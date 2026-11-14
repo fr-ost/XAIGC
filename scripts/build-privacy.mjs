@@ -84,7 +84,7 @@ for (const page of pages) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escape(heading.trim())} | XAICG</title>
   <meta name="description" content="${escape(page.description)}">
-  <meta name="theme-color" content="#2ba8a2">
+  <meta name="theme-color" content="#0b0e11">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -107,9 +107,11 @@ for (const page of pages) {
     <div class="wrap narrow"><h1>${escape(heading.trim())}</h1></div>
   </div>
   <!-- Generated from ${page.source} by scripts/build-privacy.mjs. Edit that file, not this one. -->
+  <div class="reading">
   <main id="main" class="wrap narrow prose">
     ${rest.length ? `<p><strong>${inline(rest.join(":").trim())}</strong></p>\n    ` : ""}${out.join("\n    ")}
   </main>
+  </div>
   <footer class="footer">
     <div class="wrap">
       <div class="footer-cols">

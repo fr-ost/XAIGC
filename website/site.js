@@ -31,14 +31,12 @@
 
   const plans = document.getElementById("plans");
   if (plans) {
-    const card = ({ name, icon, price, period, lines, cta, featured }) => {
+    const card = ({ name, price, period, lines, cta, featured }) => {
       const box = el("article", `plan${featured ? " featured" : ""}`);
       const top = el("div", "plan-top");
-      const emo = el("span", "plan-emo", icon || (featured ? "👑" : "⭐"));
-      emo.setAttribute("aria-hidden", "true");
-      top.append(emo, el("h3", "", name));
+      top.append(el("h3", "", name));
+      if (featured) top.append(el("span", "plan-tag", "Most popular"));
       box.append(top);
-      if (featured) box.append(el("span", "plan-tag", "Most popular"));
       const cost = el("p", "plan-price");
       if (price) {
         cost.append(el("strong", /\d/.test(price) ? "num" : "", price));
@@ -65,7 +63,6 @@
     const cards = [
       card({
         name: "Free trial",
-        icon: "🎟️",
         price: "Free",
         period: "",
         lines: [`${trial} generations to try everything`, "Every tone and every writing mode", "No card and no API key"],
@@ -80,7 +77,6 @@
       cards.push(
         card({
           name: p.name,
-          icon: p.icon,
           price: p.price,
           period: p.period,
           featured: p.featured,
