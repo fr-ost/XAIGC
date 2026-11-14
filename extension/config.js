@@ -25,4 +25,5 @@ export const DEFAULT_SETTINGS = {
   emoji: "auto",
   outputMode: "insert", // "insert" types into X's reply box, "clipboard" only copies
   showQuestionButton: true,
+  sfx: true, // sound effects when a draft starts, arrives and is sent
 };

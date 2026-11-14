@@ -43,6 +43,7 @@ WHAT YOU CAN DO
 • Turn one idea into a thread of three to eight posts
 • Rewrite a draft of your own so it reads better and keeps your facts, names and links
 • Write in English, in the post's own language, or in one of 17 languages you choose
+• Soft sound effects when a draft arrives and when you send your reply. Switch them off in Settings if you prefer quiet.
 
 SOUNDS LIKE YOU
 Describe your persona once, or start from a preset and edit it. XAICG is built to avoid the usual signs of AI writing: no generic praise, no hype words, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it keeps track of your recent drafts so it does not repeat itself.

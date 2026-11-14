@@ -99,7 +99,9 @@ function renderResult() {
     copyBtn.className = "btn sm";
     copyBtn.textContent = "Copy";
     copyBtn.addEventListener("click", async () => {
-      copyBtn.textContent = (await copy(text)) ? "Copied" : "Copy failed";
+      const ok = await copy(text);
+      copyBtn.textContent = ok ? "Copied" : "Copy failed";
+      confirmed(copyBtn, ok);
       setTimeout(() => (copyBtn.textContent = "Copy"), 1400);
     });
     actions.appendChild(copyBtn);
@@ -119,6 +121,17 @@ function renderResult() {
   section.hidden = false;
 }
 
+// Sounds are an extra: a missing module must never stop anything.
+const sfx = (name) => globalThis.XAICG_SFX?.play(name);
+// A copy that worked gets a small sound and a pop on its button.
+function confirmed(button, ok) {
+  sfx(ok ? "tick" : "error");
+  if (!ok) return;
+  button.classList.remove("flash");
+  void button.offsetWidth;
+  button.classList.add("flash");
+}
+
 async function generate() {
   const mode = state.mode;
   const text = $("input").value.trim();
@@ -135,9 +148,12 @@ async function generate() {
 
   const button = $("generate");
   button.disabled = true;
+  button.classList.add("busy");
   setStatus("Writing…");
+  sfx("start");
   try {
     const data = await send("xaicg:generate", { payload });
+    sfx("done");
     state.result = { kind: data.kind, items: data.thread || data.variants || [] };
     showAccount(data.account);
     setStatus("");
@@ -145,6 +161,7 @@ async function generate() {
     persist();
     $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (err) {
+    sfx("error");
     setStatus(err.message, "error");
     if (err.code === "trial_ended" || err.code === "daily_limit" || err.code === "sign_in_required") {
       const { account } = await chrome.storage.local.get("account");
@@ -152,6 +169,7 @@ async function generate() {
     }
   } finally {
     button.disabled = false;
+    button.classList.remove("busy");
   }
 }
 
@@ -183,6 +201,7 @@ $("generate").addEventListener("click", generate);
 $("copyAll").addEventListener("click", async () => {
   const ok = await copy((state.result?.items || []).join("\n\n"));
   $("copyAll").textContent = ok ? "Copied" : "Copy failed";
+  confirmed($("copyAll"), ok);
   setTimeout(() => ($("copyAll").textContent = "Copy thread"), 1400);
 });
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
@@ -190,7 +209,8 @@ $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage(
 $("signIn").addEventListener("click", () => send("xaicg:open-options", { section: "account" }).then(() => window.close(), () => {}));
 
 (async function init() {
-  const stored = await chrome.storage.local.get(["popupState", "account"]);
+  const stored = await chrome.storage.local.get(["popupState", "account", "settings"]);
+  if (globalThis.XAICG_SFX) globalThis.XAICG_SFX.enabled = stored.settings?.sfx !== false;
   if (stored.popupState) {
     Object.assign(state, stored.popupState);
     state.inputs = { post: "", thread: "", rewrite: "", ...(stored.popupState.inputs || {}) };

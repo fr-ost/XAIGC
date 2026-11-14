@@ -53,6 +53,7 @@ Helper scripts, run from the top of the repository:
 - **Try another** steps through alternative drafts the server already returned, without spending another generation.
 - **Compose studio** in the toolbar popup: original posts, threads and rewrites of a draft.
 - A persona description, default tone, reply length, language and emoji preference that apply to everything.
+- Animated buttons and soft sound effects when a draft starts, arrives and is sent. The sounds are synthesized in the browser (no audio files) and can be switched off in Settings.
 - **Sign in with Google.** One free trial per Google account, and a license that follows the account it was issued to: on a new browser the user signs in and is licensed, with no key to type.
 - A license key still works on its own, for customers who prefer not to sign in.
 

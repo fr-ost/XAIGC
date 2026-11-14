@@ -39,6 +39,7 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "lib/sfx.js",
         "content.js"
       ],
       "css": [

@@ -22,7 +22,7 @@
     ["technical", "Technical"],
     ["professional", "Professional"],
   ];
-  const DEFAULT_SETTINGS = { outputMode: "insert", showQuestionButton: true };
+  const DEFAULT_SETTINGS = { outputMode: "insert", showQuestionButton: true, sfx: true };
 
   const ICON_SPARK = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>`;
   const ICON_QUESTION = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5.5a2.5 2.5 0 1 1 3.6 2.25c-.7.34-1.1.9-1.1 1.6V10"/><circle cx="8" cy="13" r=".7" fill="currentColor" stroke="none"/></svg>`;
@@ -63,6 +63,44 @@
     return res.data;
   }
 
+  // Sounds and small flourishes. Both are extras: a missing sound module or
+  // an old browser must never stop a draft from being written.
+  const sfx = (name) => {
+    try {
+      globalThis.XAICG_SFX?.play(name);
+    } catch {
+      /* no sound */
+    }
+  };
+  const applySound = () => {
+    if (globalThis.XAICG_SFX) globalThis.XAICG_SFX.enabled = settings.sfx !== false;
+  };
+  const calm = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // Add a class for one animation, then take it off again.
+  function flash(el, className, ms = 700) {
+    if (!el || calm()) return;
+    el.classList.remove(className);
+    void el.offsetWidth; // restart the animation if it is already running
+    el.classList.add(className);
+    setTimeout(() => el.classList.remove(className), ms);
+  }
+  // A ring that spreads from the reply box when a draft lands in it. It uses
+  // the Web Animations API, so nothing is added to X's own element.
+  function glow(box) {
+    if (calm() || !box?.animate) return;
+    try {
+      box.animate(
+        [{ boxShadow: "0 0 0 0 rgba(0, 82, 255, 0.55)" }, { boxShadow: "0 0 0 12px rgba(0, 82, 255, 0)" }],
+        { duration: 750, easing: "ease-out" },
+      );
+    } catch {
+      /* not supported */
+    }
+  }
+  // The reply box XAICG last filled, so the "sent" sound plays only for a
+  // reply it helped write.
+  let draftedBox = null;
+
   // Settings and the cached account are read straight from extension storage
   // and kept fresh through change events.
   let settings = { ...DEFAULT_SETTINGS };
@@ -74,6 +112,7 @@
       const stored = await chrome.storage.local.get(["settings", "account"]);
       settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
       account = stored.account || null;
+      applySound();
     } catch {
       /* extension context gone */
     }
@@ -84,6 +123,7 @@
       if (area !== "local") return;
       if (changes.settings) {
         settings = { ...DEFAULT_SETTINGS, ...(changes.settings.newValue || {}) };
+        applySound();
         document.querySelectorAll(".xaicg-btn.q").forEach((b) => (b.hidden = !settings.showQuestionButton));
       }
       if (changes.account) {
@@ -132,6 +172,7 @@
   }
 
   function showError(err) {
+    if (err?.code !== "context") sfx("error");
     const openLicense = () => send("xaicg:open-options", { section: "license" }).catch(() => {});
     const openAccount = () => send("xaicg:open-options", { section: "account" }).catch(() => {});
     switch (err?.code) {
@@ -412,11 +453,13 @@
     if (kind === "quote") {
       await copyText(text);
       remember();
+      sfx("done");
       return toast(`Quote text copied. Choose Repost, then Quote, and paste.${note}`, { ms: 5200 });
     }
     if (settings.outputMode === "clipboard") {
       await copyText(text);
       remember();
+      sfx("done");
       return toast(`Copied. Paste it where you want.${note}`);
     }
 
@@ -424,9 +467,13 @@
     if (!box || !(await insertDraft(box, text))) {
       await copyText(text);
       remember();
+      sfx("error");
       return toast("Couldn't type into the reply box, so the draft was copied instead.", { error: true, ms: 4600 });
     }
     remember();
+    draftedBox = box;
+    sfx("done");
+    glow(box);
     attachRegenerate(box, article, kind);
     toast(`Draft inserted. Review it before posting.${note}`);
   }
@@ -437,12 +484,15 @@
     const label = btn.querySelector(".xaicg-label");
     const original = label?.textContent;
     if (label) label.textContent = "Writing…";
+    sfx("start");
     try {
       const { text, note } = await nextDraft(article, kind, tone);
       await deliver(article, kind, text, note);
+      flash(btn, "xaicg-ok");
     } catch (err) {
       if (err?.code !== "context") console.warn("[XAICG]", err?.code, err?.message);
       showError(err);
+      flash(btn, "xaicg-shake", 500);
     } finally {
       delete btn.dataset.busy;
       if (label) label.textContent = original;
@@ -503,10 +553,14 @@
       e.stopPropagation();
       if (!e.isTrusted || btn.dataset.busy === "1") return;
       btn.dataset.busy = "1";
+      sfx("start");
       try {
         const state = drafts.get(article);
         const { text, note } = await nextDraft(article, kind, state?.tone ?? "default");
         if (await insertDraft(box, text)) {
+          draftedBox = box;
+          sfx("done");
+          glow(box);
           send("xaicg:remember", { text }).catch(() => {});
           if (note) toast(`New draft inserted.${note}`);
         } else {
@@ -592,6 +646,36 @@
       closeMenu = () => {};
     };
   }
+
+  /* ------------------------------ "sent" sound ------------------------------ */
+
+  // XAICG never posts. When the person presses X's own Reply button (or
+  // Ctrl/Cmd+Enter) on a reply XAICG drafted, that is the moment for the
+  // "sent" sound. This only listens; it changes nothing about the click.
+  const SUBMIT = '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]';
+  function sentFrom(scope) {
+    const box = draftedBox;
+    if (!box || !document.contains(box) || !box.textContent.trim()) return;
+    const dialog = box.closest('[role="dialog"]');
+    if (dialog ? !dialog.contains(scope) : Boolean(scope.closest?.('[role="dialog"]'))) return;
+    draftedBox = null;
+    sfx("send");
+  }
+  document.addEventListener(
+    "click",
+    (e) => {
+      const button = e.isTrusted && e.target.closest?.(SUBMIT);
+      if (button && button.getAttribute("aria-disabled") !== "true") sentFrom(button);
+    },
+    true,
+  );
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.isTrusted && e.key === "Enter" && (e.ctrlKey || e.metaKey) && draftedBox?.contains(e.target)) sentFrom(e.target);
+    },
+    true,
+  );
 
   /* ------------------------------ post buttons ----------------------------- */
 

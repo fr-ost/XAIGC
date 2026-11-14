@@ -4,9 +4,10 @@
 // what the server enforces (TRIAL_GENERATIONS and the plans, see
 // server/.env.example).
 window.XAICG_SITE = {
-  // The extension's Chrome Web Store address. Until it is set, the "Add to
-  // Chrome" buttons read "Coming soon to Chrome".
-  chromeStoreUrl: "",
+  // The extension's Chrome Web Store address. With it empty (""), the "Add to
+  // Chrome" buttons read "Coming soon to Chrome" instead. The store shows an
+  // error page at this address until the listing has been approved.
+  chromeStoreUrl: "https://chromewebstore.google.com/detail/lpophlkocboadjhancbdikipnphffgil",
 
   // Where people buy a license, and where they get help.
   buyUrl: "https://uniquelabs.org",

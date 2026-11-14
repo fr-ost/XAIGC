@@ -157,6 +157,8 @@ function fillSettings() {
   for (const id of ["tone", "length", "language", "emoji"]) $(id).value = settings[id];
   $("persona").value = settings.persona || "";
   $("showQuestionButton").checked = settings.showQuestionButton !== false;
+  $("sfx").checked = settings.sfx !== false;
+  if (globalThis.XAICG_SFX) globalThis.XAICG_SFX.enabled = settings.sfx !== false;
   document.querySelectorAll('input[name="outputMode"]').forEach((r) => (r.checked = r.value === (settings.outputMode === "clipboard" ? "clipboard" : "insert")));
   updatePersonaCount();
 }
@@ -251,6 +253,13 @@ $("presets").addEventListener("click", (e) => {
 });
 document.querySelectorAll('input[name="outputMode"]').forEach((r) => r.addEventListener("change", () => r.checked && save({ outputMode: r.value })));
 $("showQuestionButton").addEventListener("change", () => save({ showQuestionButton: $("showQuestionButton").checked }));
+$("sfx").addEventListener("change", () => {
+  const on = $("sfx").checked;
+  if (globalThis.XAICG_SFX) globalThis.XAICG_SFX.enabled = on;
+  // Switching sound on plays one, so it is clear what was just turned on.
+  if (on) globalThis.XAICG_SFX?.play("done");
+  save({ sfx: on });
+});
 $("clearMemory").addEventListener("click", async () => {
   await send("xaicg:clear-memory");
   $("memoryStatus").textContent = "Reply memory cleared.";

@@ -41,7 +41,7 @@
     d.setAttribute("role", "dialog");
     d.innerHTML = `<p class="to">Replying to @${p.handle}</p>
       <div class="row"><div class="avatar" style="background:#334155">Y</div><div data-testid="tweetTextarea_0" role="textbox" contenteditable="true"></div></div>
-      <div class="foot"><button class="send" type="button">Reply</button></div>`;
+      <div class="foot"><button class="send" data-testid="tweetButton" type="button">Reply</button></div>`;
     document.body.appendChild(d);
     const box = d.querySelector('[role="textbox"]');
     // A rich editor handles paste itself, as the real one does.

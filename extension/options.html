@@ -183,6 +183,7 @@
         <label class="choice"><input type="radio" name="outputMode" value="clipboard"> <span><b>Copy to the clipboard</b><br><span class="muted small">Nothing on the page is touched. Paste wherever you like.</span></span></label>
       </fieldset>
       <label class="choice"><input type="checkbox" id="showQuestionButton"> <span><b>Show the Question button</b><br><span class="muted small">Adds a second button that drafts a short, specific question.</span></span></label>
+      <label class="choice"><input type="checkbox" id="sfx"> <span><b>Sound effects</b><br><span class="muted small">A soft sound when a draft starts, when it arrives, and when you send your reply.</span></span></label>
       <div class="card-foot">
         <button id="clearMemory" class="btn" type="button">Clear reply memory</button>
         <span id="memoryStatus" class="status" role="status" aria-live="polite"></span>
@@ -202,6 +203,7 @@
   </main>
 
   <footer class="credit">XAICG · A product of <a href="https://uniquelabs.org" target="_blank" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
+  <script src="lib/sfx.js"></script>
   <script type="module" src="options.js"></script>
 </body>
 </html>
