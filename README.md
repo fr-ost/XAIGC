@@ -32,6 +32,7 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 | `store/` | Chrome Web Store material: `assets/` (screenshots, promo tiles, icon), `listing.md` (the text for every dashboard field) and the generator that makes the images from the real extension. |
 | `Dockerfile` | Server image. Railway picks it up automatically. |
 | `PRIVACY-POLICY.md` | Privacy policy matching what the code does. The website's privacy page is built from it. |
+| `TERMS.md` | Terms and conditions. The website's terms page is built from it. A starting text: have it reviewed. |
 
 Helper scripts, run from the top of the repository:
 
@@ -42,7 +43,7 @@ Helper scripts, run from the top of the repository:
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together. |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store. Refuses a build that points at localhost. |
 | `node scripts/set-site-url.mjs <site address>` | Tells the website its own address, for link previews and the sitemap. |
-| `node scripts/build-privacy.mjs` | Rebuilds `website/privacy.html` from `PRIVACY-POLICY.md`. |
+| `node scripts/build-privacy.mjs` | Rebuilds `website/privacy.html` and `website/terms.html` from `PRIVACY-POLICY.md` and `TERMS.md`. |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots. Needs Playwright. |
 
 ## What users get

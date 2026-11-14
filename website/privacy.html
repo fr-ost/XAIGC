@@ -11,7 +11,7 @@
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <div class="page-head">
+  <div class="top">
     <header class="nav wrap">
       <a class="logo" href="/" aria-label="XAICG home"><img src="/assets/icon-128.png" width="32" height="32" alt=""><span>XAICG</span></a>
       <nav aria-label="Main">
@@ -21,7 +21,10 @@
         <a href="/#faq">FAQ</a>
       </nav>
       <a class="btn primary small" data-link="store" href="/#pricing">Add to Chrome</a>
+      <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
     </header>
+  </div>
+  <div class="page-head">
     <div class="wrap narrow"><h1>Privacy Policy</h1></div>
   </div>
   <!-- Generated from PRIVACY-POLICY.md by scripts/build-privacy.mjs. Edit that file, not this one. -->
@@ -50,7 +53,7 @@
     <ul><li><strong>OpenAI</strong> receives the material described in section 1 in order to generate and moderate drafts, together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: <a href="https://openai.com/policies/privacy-policy" rel="noopener">openai.com/policies/privacy-policy</a></li><li><strong>Google</strong> handles sign-in if you choose to sign in, under its own privacy policy: <a href="https://policies.google.com/privacy" rel="noopener">policies.google.com/privacy</a></li><li><strong>Our hosting and database providers</strong> run the XAICG server and store the records in section 2.</li></ul>
     <p>Data is not sold, rented or shared for advertising.</p>
     <h2>5. Browser permissions</h2>
-    <ul><li><strong>storage</strong>: saving your settings and the items in section 3.</li><li><strong>clipboardWrite</strong>: copying a draft when you choose clipboard mode or copy a quote line.</li><li><strong>Access to x.com and twitter.com</strong>: adding the XAICG buttons to posts, reading the post you chose, and typing the draft into the reply box.</li><li><strong>Access to the XAICG server</strong>: sending generation requests, and, during a sign-in you started, noticing when the sign-in tab returns to the XAICG server so the sign-in can be completed and the tab closed. The extension does not read your other tabs.</li></ul>
+    <ul><li><strong>storage</strong>: saving your settings and the items in section 3.</li><li><strong>clipboardWrite</strong>: copying a draft when you choose clipboard mode or copy a quote line.</li><li><strong>Access to x.com and twitter.com</strong>: adding the XAICG buttons to posts, reading the post you chose, and typing the draft into the reply box.</li><li><strong>identity</strong>: showing Chrome's Google account prompt when you choose to sign in.</li><li><strong>Access to the XAICG server</strong>: sending generation requests and checking your trial and license. The extension does not read your other tabs.</li></ul>
     <h2>6. Your choices</h2>
     <ul><li>Use clipboard mode if you do not want the extension to type into X.</li><li>Clear your reply memory in Settings.</li><li>Sign out, or use a license key without signing in at all.</li><li>Ask for your account to be deleted by contacting us with your account email, or the install ID shown under Settings, About. Deleting an account erases your Google account ID, name and email address, including the email on any license. What remains carries none of those: the free-trial count described above, your license itself (usable with its key), and usage records.</li><li>Uninstall the extension at any time.</li></ul>
     <h2>7. Security</h2>
@@ -89,6 +92,7 @@
           <h3>Legal</h3>
           <ul>
             <li><a href="/privacy">Privacy policy</a></li>
+            <li><a href="/terms">Terms and conditions</a></li>
           </ul>
         </nav>
       </div>
@@ -100,5 +104,6 @@
   </footer>
   <script src="/config.js"></script>
   <script src="/site.js"></script>
+  <script src="/motion.js"></script>
 </body>
 </html>

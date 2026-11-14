@@ -48,8 +48,11 @@
   --r-pill: 100px;
 
   --section: 96px;
-  --sans: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Apple's own typefaces (San Francisco) wherever the device has them: every
+     Mac, iPhone and iPad. Apple does not license them for download, so on
+     Windows and Android the bundled Inter and JetBrains Mono stand in. */
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "JetBrains Mono", Consolas, monospace;
 }
 
 * {
@@ -278,16 +281,98 @@ a {
   text-decoration: none;
 }
 .top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   background: var(--surface-dark);
   color: var(--on-dark);
+  border-bottom: 1px solid transparent;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.top.scrolled {
+  background: rgba(10, 11, 13, 0.82);
+  border-bottom-color: var(--hairline-dark);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+}
+.nav nav a {
+  position: relative;
+  color: var(--on-dark-soft);
+  transition: color 0.15s ease;
+}
+.nav nav a:hover,
+.nav nav a.current {
+  color: var(--on-dark);
+}
+.nav nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+.nav nav a.current::after {
+  transform: scaleX(1);
+}
+.menu-btn {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--surface-dark-elevated);
+  cursor: pointer;
+}
+.menu-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  margin: 5px auto;
+  border-radius: 2px;
+  background: var(--on-dark);
+  transition: transform 0.2s ease;
+}
+.top.open .menu-btn span:first-child {
+  transform: translateY(3.5px) rotate(45deg);
+}
+.top.open .menu-btn span:last-child {
+  transform: translateY(-3.5px) rotate(-45deg);
 }
 
 /* ---------- hero ---------- */
 .hero {
-  padding: 64px 0 var(--section);
+  position: relative;
+  padding: 64px 0 0;
   background: var(--surface-dark);
   color: var(--on-dark-soft);
   overflow: hidden;
+}
+/* One slow blue glow behind the demo: the page's single piece of atmosphere. */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 82, 255, 0.34), rgba(0, 82, 255, 0));
+  pointer-events: none;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+.hero > .wrap {
+  position: relative;
+}
+@keyframes drift {
+  to {
+    transform: translate(-90px, 70px) scale(1.12);
+  }
 }
 .hero-grid {
   display: grid;
@@ -313,7 +398,7 @@ a {
 /* Layered product cards: the page's signature. */
 .stack {
   position: relative;
-  padding: 0 0 72px 72px;
+  padding: 62px 0 44px;
 }
 .ui-card {
   border-radius: var(--r-xl);
@@ -751,15 +836,49 @@ td:first-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .stack {
-    max-width: 640px;
+    max-width: 600px;
   }
 }
 @media (max-width: 768px) {
   :root {
     --section: 64px;
   }
+  .menu-btn {
+    display: block;
+  }
+  .nav {
+    gap: 12px;
+  }
+  .nav .logo {
+    margin-right: auto;
+  }
   .nav nav {
     display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 8px 16px 20px;
+    background: var(--surface-dark);
+    border-bottom: 1px solid var(--hairline-dark);
+  }
+  .top.open .nav nav {
+    display: flex;
+    animation: drop 0.2s ease;
+  }
+  .nav nav a {
+    padding: 14px 4px;
+    border-top: 1px solid var(--hairline-dark);
+    font-size: 18px;
+    color: var(--on-dark);
+  }
+  .nav nav a::after {
+    display: none;
+  }
+  .stats {
+    grid-template-columns: 1fr 1fr;
   }
   .footer-cols {
     grid-template-columns: 1fr 1fr;
@@ -794,7 +913,15 @@ td:first-child {
   }
   /* The layered cards collapse to one on a phone. */
   .stack {
-    padding: 0;
+    padding: 0 0 8px;
+  }
+  .mini {
+    display: none;
+  }
+  .toast {
+    position: static;
+    margin-top: 12px;
+    transform: none;
   }
   .ui-card.float {
     display: none;
@@ -806,5 +933,440 @@ td:first-child {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ---------- the live demo ---------- */
+.demo {
+  position: relative;
+  padding: 24px;
+  border: 1px solid var(--hairline-dark);
+  color: var(--on-dark);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.demo-post {
+  display: flex;
+  gap: 12px;
+}
+.demo-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 600;
+}
+.demo-body {
+  flex: 1;
+  min-width: 0;
+}
+.demo-who span {
+  color: var(--on-dark-soft);
+}
+.demo-text {
+  margin-top: 2px;
+}
+.demo-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.demo-stats {
+  display: flex;
+  gap: 20px;
+  color: var(--muted);
+  font: 500 13px var(--mono);
+}
+.demo-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--on-dark);
+  font: 600 13px/1 var(--sans);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.demo-ai:hover {
+  background: var(--primary-active);
+}
+.demo-ai:active {
+  transform: scale(0.96);
+}
+.demo-ai svg {
+  width: 14px;
+  height: 14px;
+}
+.demo.busy .demo-ai svg {
+  animation: spin 0.8s linear infinite;
+}
+.demo-tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline-dark);
+}
+.demo-tones button {
+  padding: 6px 14px;
+  border: 1px solid var(--hairline-dark);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--on-dark-soft);
+  font: 600 13px/1.4 var(--sans);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.demo-tones button:hover {
+  color: var(--on-dark);
+  border-color: var(--on-dark-soft);
+}
+.demo-tones button[aria-pressed="true"] {
+  border-color: var(--on-dark);
+  background: var(--on-dark);
+  color: var(--ink);
+}
+.demo-reply {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: var(--surface-dark);
+}
+.demo-label {
+  color: var(--on-dark-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.demo-draft {
+  min-height: 3.2em;
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+.demo.typing .demo-draft::after,
+.demo.busy .demo-draft::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  background: var(--primary);
+  vertical-align: text-bottom;
+  animation: blink 0.9s steps(2) infinite;
+}
+.demo-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline-dark);
+  color: var(--muted);
+  font-size: 12px;
+}
+.demo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.demo-again {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-dark-elevated);
+  color: var(--on-dark);
+  font: 600 13px/1.4 var(--sans);
+  cursor: pointer;
+}
+.demo-again:hover {
+  background: var(--hairline-dark);
+}
+.demo-send {
+  padding: 6px 16px;
+  border-radius: var(--r-pill);
+  background: var(--on-dark);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+}
+.demo-note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* The two small cards that float over the demo. */
+.mini {
+  position: absolute;
+  top: 0;
+  right: 24px;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  width: 190px;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+  background: var(--canvas);
+  color: var(--body);
+  font-size: 13px;
+  transform: rotate(3deg);
+  animation: bob 6s ease-in-out infinite alternate;
+}
+.mini-label {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.mini-value b {
+  color: var(--ink);
+  font-size: 20px;
+}
+.mini-bar {
+  display: block;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface-strong);
+  overflow: hidden;
+}
+.mini-bar i {
+  display: block;
+  height: 100%;
+  width: 20%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.5s ease;
+}
+.toast {
+  position: absolute;
+  left: -20px;
+  bottom: 0;
+  z-index: 2;
+  padding: 12px 20px;
+  border-radius: var(--r-pill);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(8px) rotate(-2deg);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast.show,
+html:not(.js) .toast {
+  opacity: 1;
+  transform: translateY(0) rotate(-2deg);
+}
+
+/* ---------- numbers under the hero ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 72px 0 0;
+  padding: 40px 0 56px;
+  border-top: 1px solid var(--hairline-dark);
+}
+.stat dt {
+  color: var(--on-dark);
+  font-size: clamp(36px, 4.4vw, 52px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.stat dd {
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+.plans-note {
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---------- things that respond to the pointer ---------- */
+.btn {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn.pending:hover {
+  transform: none;
+}
+.btn.outline:hover {
+  background: var(--on-dark);
+  color: var(--ink);
+}
+.btn.on-dark:hover {
+  background: var(--hairline-dark);
+}
+.btn:not(.primary):not(.outline):not(.on-dark):hover {
+  background: var(--hairline);
+}
+.card,
+.plan {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, opacity 0.6s ease;
+}
+.card:hover,
+.plan:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(10, 11, 13, 0.08);
+}
+.band:not(.dark) .card:hover,
+.plan:not(.featured):hover {
+  border-color: var(--ink);
+}
+.band.dark .card:hover {
+  background: #1d2026;
+  box-shadow: none;
+}
+.card:hover .plate {
+  background: var(--primary);
+  color: var(--on-dark);
+}
+.plate {
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.frame img {
+  transition: transform 0.5s ease;
+}
+.frame.dark:hover img,
+.frame.light:hover img {
+  transform: scale(1.02);
+}
+.faq summary {
+  transition: color 0.15s ease;
+}
+.faq summary:hover {
+  color: var(--primary);
+}
+.faq summary::after {
+  transition: transform 0.2s ease;
+}
+.faq details[open] summary::after {
+  transform: rotate(180deg);
+}
+.faq details[open] p {
+  animation: drop 0.25s ease;
+}
+.footer a {
+  transition: color 0.15s ease;
+}
+
+/* ---------- ease in on scroll (only when the script is running) ---------- */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.js .reveal.in {
+  opacity: 1;
+  transform: none;
+}
+.js .card.reveal.in:hover,
+.js .plan.reveal.in:hover {
+  transform: translateY(-6px);
+  transition-delay: 0s !important;
+}
+.hero h1,
+.hero .lead,
+.hero .actions,
+.hero .fine,
+.hero .badge,
+.hero .stack {
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero h1 {
+  animation-delay: 0.05s;
+}
+.hero .lead {
+  animation-delay: 0.15s;
+}
+.hero .actions {
+  animation-delay: 0.25s;
+}
+.hero .fine {
+  animation-delay: 0.3s;
+}
+.hero .stack {
+  animation-delay: 0.2s;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes bob {
+  to {
+    transform: rotate(3deg) translateY(-10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------- small screens: the moving parts ---------- */
+@media (max-width: 768px) {
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    margin-top: 48px;
+    padding: 32px 0 40px;
+  }
+}
+@media (max-width: 640px) {
+  .stack {
+    padding: 0 0 8px;
+  }
+  .mini {
+    display: none;
+  }
+  .demo {
+    padding: 20px 16px;
+  }
+  .toast,
+  .toast.show {
+    position: static;
+    display: inline-block;
+    margin-top: 12px;
+    transform: none;
   }
 }

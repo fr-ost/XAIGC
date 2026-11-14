@@ -57,6 +57,7 @@ await writeFile(
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
     `  <url><loc>${origin}/</loc></url>\n` +
     `  <url><loc>${origin}/privacy</loc></url>\n` +
+    `  <url><loc>${origin}/terms</loc></url>\n` +
     `</urlset>\n`,
 );
 

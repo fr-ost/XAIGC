@@ -265,7 +265,7 @@ It is the only file you need to edit.
 | `buyUrl` | Where people pay. A payment link, or a page where they can reach you. |
 | `supportUrl` | Where people get help |
 | `trialGenerations` | Must equal the server's `TRIAL_GENERATIONS` (20 unless you changed it) |
-| `plans` | Names, limits and prices. Write prices as you want them shown, for example `price: "$9"`, `period: "per month"`. The limits must equal the server's plans. |
+| `plans` | Names, limits and prices. They are set to Starter $0.99, Pro $1.99 and Agency $4.99 per month. Write prices as you want them shown, for example `price: "$0.99"`, `period: "per month"`. The limits must equal the server's plans. |
 
 Commit and push. Vercel redeploys on every push.
 
@@ -391,15 +391,15 @@ Push to the branch Railway deploys. It rebuilds and restarts by itself, and data
 
 Edit, commit, push. Vercel redeploys.
 
-### The privacy policy
+### The privacy policy and the terms
 
-The policy is written once, in `PRIVACY-POLICY.md`. After changing it:
+The policy is written once, in `PRIVACY-POLICY.md`, and the terms in `TERMS.md`. After changing either:
 
 ```bash
 node scripts/build-privacy.mjs
 ```
 
-That rebuilds `website/privacy.html`. Commit and push both files. If what the extension collects has changed, update the privacy answers in the store dashboard too.
+That rebuilds `website/privacy.html` and `website/terms.html`. Commit and push. If what the extension collects has changed, update the privacy answers in the store dashboard too.
 
 ---
 
@@ -434,7 +434,7 @@ Every server setting, with its default, is described in [`server/.env.example`](
 The code is ready to sell. These parts are yours to add, and none of them are in this repository:
 
 - **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 11.
-- **Terms of service and a refund policy.** Payment providers and the Chrome Web Store both expect them. Add them as pages in `website/` and link them from the footer.
+- **Terms and a refund policy that are really yours.** The site has a terms page, built from `TERMS.md`. It is a sensible starting text, not legal advice: read it, set the refund rule you actually want in section 6, add the country whose law applies, and have it checked before you rely on it. After editing, run `node scripts/build-privacy.mjs`.
 - **A support address** that someone reads.
 - **Your business details** for the store's trader declaration and for invoices.
 
@@ -451,6 +451,6 @@ Run all of them from the top of the repository.
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store |
 | `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address |
-| `node scripts/build-privacy.mjs` | Rebuilds the website's privacy page from `PRIVACY-POLICY.md` |
+| `node scripts/build-privacy.mjs` | Rebuilds the website's privacy and terms pages from `PRIVACY-POLICY.md` and `TERMS.md` |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots |
 | `node store/build-icons.mjs` | Renders `store/icon.svg` into every icon file |

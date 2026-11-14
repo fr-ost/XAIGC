@@ -74,7 +74,8 @@ Data is not sold, rented or shared for advertising.
 - **storage**: saving your settings and the items in section 3.
 - **clipboardWrite**: copying a draft when you choose clipboard mode or copy a quote line.
 - **Access to x.com and twitter.com**: adding the XAICG buttons to posts, reading the post you chose, and typing the draft into the reply box.
-- **Access to the XAICG server**: sending generation requests, and, during a sign-in you started, noticing when the sign-in tab returns to the XAICG server so the sign-in can be completed and the tab closed. The extension does not read your other tabs.
+- **identity**: showing Chrome's Google account prompt when you choose to sign in.
+- **Access to the XAICG server**: sending generation requests and checking your trial and license. The extension does not read your other tabs.
 
 ## 6. Your choices
 

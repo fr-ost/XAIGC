@@ -15,7 +15,6 @@
   <meta property="og:description" content="One click drafts a reply that sounds like you. You read it and post it yourself. Free trial, no API key needed.">
   <meta property="og:image" content="/assets/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="preload" href="/assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body id="top">
@@ -34,6 +33,7 @@
         <a href="#faq">FAQ</a>
       </nav>
       <a class="btn primary small" data-link="store" href="#pricing">Add to Chrome</a>
+      <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
     </header>
   </div>
 
@@ -51,13 +51,53 @@
           <p class="fine">Free trial: <span class="num" data-fill="trial">20</span> generations. No API key, no card.</p>
         </div>
         <div class="stack">
-          <figure class="ui-card">
-            <img src="/assets/shots/reply.png" width="1400" height="1040" alt="A timeline with XAICG's AI Reply and Question buttons on each post. A reply draft has been typed into the reply box, with a note that it should be reviewed before posting.">
-          </figure>
-          <figure class="ui-card float" aria-hidden="true">
-            <img src="/assets/shots/compose.png" width="760" height="2106" alt="">
-          </figure>
+          <div class="mini" aria-hidden="true">
+            <span class="mini-label">Free trial</span>
+            <span class="mini-value"><b class="num" id="demoLeft" data-total="20">16</b> of <span class="num">20</span> left</span>
+            <span class="mini-bar"><i id="demoBar"></i></span>
+          </div>
+          <div class="ui-card demo" id="demo">
+            <div class="demo-post">
+              <span class="demo-av" aria-hidden="true">N</span>
+              <div class="demo-body">
+                <p class="demo-who"><b>Nova Protocol</b> <span>@novaprotocol · 2h</span></p>
+                <p class="demo-text">We just cut bridge fees by 80% for every user, starting Monday. Withdrawals included.</p>
+                <div class="demo-bar">
+                  <span class="demo-stats" aria-hidden="true"><span>38</span><span>112</span><span>906</span></span>
+                  <button type="button" class="demo-ai" id="demoRun"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</button>
+                </div>
+              </div>
+            </div>
+            <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
+              <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
+              <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
+              <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
+              <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
+              <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
+            </div>
+            <div class="demo-reply">
+              <p class="demo-label">Your draft</p>
+              <p class="demo-draft" id="demoDraft" aria-live="polite">Cheaper is nice, but the bridge has to stay up on a busy day for the cut to mean anything.</p>
+              <div class="demo-foot">
+                <span class="num" id="demoCount">88 / 280</span>
+                <span class="demo-actions">
+                  <button type="button" class="demo-again" id="demoAgain">Try another</button>
+                  <span class="demo-send" aria-hidden="true">Reply</span>
+                </span>
+              </div>
+            </div>
+            <p class="demo-note">A live example with sample drafts. Pick a tone, or press AI Reply.</p>
+          </div>
+          <p class="toast" id="demoToast" aria-hidden="true">Draft inserted. Review it before posting.</p>
         </div>
+      </div>
+      <div class="wrap">
+        <dl class="stats">
+          <div class="stat"><dt><span class="num" data-count="3">3</span></dt><dd>drafts from every click</dd></div>
+          <div class="stat"><dt><span class="num" data-count="9">9</span></dt><dd>tones, including Auto</dd></div>
+          <div class="stat"><dt><span class="num" data-count="18">18</span></dt><dd>languages to write in</dd></div>
+          <div class="stat"><dt><span class="num">0</span></dt><dd>posts made without you</dd></div>
+        </dl>
       </div>
     </section>
 
@@ -217,8 +257,9 @@
           <p class="lead">A generation is one request for drafts. Stepping through the drafts you already have is free.</p>
         </div>
         <div id="plans" class="plans">
-          <noscript><p>The free trial includes 20 generations. Paid plans allow from 60 to 600 generations a day on one to five browsers.</p></noscript>
+          <noscript><p>The free trial includes 20 generations. Starter is $0.99 a month, Pro $1.99 and Agency $4.99, for 60 to 600 generations a day on one to five browsers.</p></noscript>
         </div>
+        <p class="plans-note">Prices are in US dollars, per month. Using XAICG means accepting the <a href="/terms">terms</a>.</p>
       </div>
     </section>
 
@@ -305,6 +346,7 @@
           <h3>Legal</h3>
           <ul>
             <li><a href="/privacy">Privacy policy</a></li>
+            <li><a href="/terms">Terms and conditions</a></li>
           </ul>
         </nav>
       </div>
@@ -317,5 +359,6 @@
 
   <script src="/config.js"></script>
   <script src="/site.js"></script>
+  <script src="/motion.js"></script>
 </body>
 </html>

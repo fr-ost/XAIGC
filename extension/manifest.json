@@ -17,7 +17,7 @@
     "https://aigc.uniquelabs.org/*"
   ],
   "oauth2": {
-    "client_id": "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "202381471175-a18meita7gtrlengtnudeqlk26cakmt4.apps.googleusercontent.com",
     "scopes": [
       "openid",
       "email",

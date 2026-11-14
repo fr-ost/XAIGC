@@ -52,9 +52,9 @@ You do not need an OpenAI account or an API key. Install it, sign in with Google
 
 FREE TRIAL AND PLANS
 • Free trial: 20 generations, with every tone and every writing mode. No card needed.
-• Starter: 60 generations a day, one browser
-• Pro: 200 generations a day, two browsers
-• Agency: 600 generations a day, five browsers
+• Starter, $0.99 a month: 60 generations a day, one browser
+• Pro, $1.99 a month: 200 generations a day, two browsers
+• Agency, $4.99 a month: 600 generations a day, five browsers
 A license belongs to your Google account, so on a new computer you sign in and it is there. Licenses are sold at <your-site>.
 
 PRIVACY
@@ -63,6 +63,7 @@ PRIVACY
 • The post's text is sent to the XAICG server and on to OpenAI to write the draft. The server does not save that text or the draft.
 • No advertising, no analytics trackers, no sale of data
 Full policy: <your-site>/privacy
+Terms: <your-site>/terms
 
 ABOUT
 XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
@@ -223,7 +224,7 @@ The extension sends the clicked post's text to our server at https://aigc.unique
 
 - [ ] `node scripts/pack-extension.mjs` ran without complaint (it refuses a build that points at localhost)
 - [ ] The extension, loaded unpacked, can sign in, generate a reply on x.com and activate a license against the live server
-- [ ] `<your-site>/privacy` opens
+- [ ] `<your-site>/privacy` and `<your-site>/terms` open
 - [ ] The reviewer license key in the test instructions works
 - [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
 
