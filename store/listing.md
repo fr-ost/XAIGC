@@ -1,6 +1,13 @@
 # Chrome Web Store listing
 
-Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is. Replace `<your-site>` with the website's address (for example `https://xaicg.example`). The server's address, `https://aigc.uniquelabs.org`, is already filled in.
+Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is.
+
+| | |
+| --- | --- |
+| Store item ID | `lpophlkocboadjhancbdikipnphffgil` |
+| Listing address | `https://chromewebstore.google.com/detail/lpophlkocboadjhancbdikipnphffgil` |
+| Server | `https://aigc.uniquelabs.org` |
+| Website | Replace `<your-site>` everywhere below with your website's address, for example `https://xaicg.example` |
 
 The images are in [`store/assets/`](assets/). Rebuild them with `node store/generate.mjs` after the extension's look changes.
 
@@ -114,7 +121,7 @@ The screenshots show the real extension on a sample timeline with made-up accoun
 ### Single purpose
 
 ```
-XAICG writes draft replies, posts and threads for X (Twitter). The user clicks a button on a post, or types an idea into the popup, and gets a draft to review and post themselves.
+XAICG writes draft comments, replies, posts and threads for X (Twitter). The user clicks a button on a post, or types an idea into the popup, and gets a draft to review and post themselves. It never posts on the user's behalf.
 ```
 
 ### Permission justifications
@@ -122,7 +129,7 @@ XAICG writes draft replies, posts and threads for X (Twitter). The user clicks a
 **storage**
 
 ```
-Stores the user's writing settings (tone, persona, language), their recent drafts so new drafts do not repeat them, the text in the popup's compose window so it is not lost when the popup closes, and the installation's ID and access token for the XAICG server.
+Stores the user's settings (tone, persona, language, whether sound effects are on), their recent drafts so new drafts do not repeat them, the text in the popup's compose window so it is not lost when the popup closes, a cached copy of their plan and remaining allowance, and the installation's ID and access token for the XAICG server. Everything is kept in chrome.storage.local on the user's device.
 ```
 
 **identity**
@@ -197,26 +204,33 @@ Your publisher account will also ask whether you are a **trader** (a requirement
 
 ## 5. Test instructions tab
 
-Reviewers will not sign in with a Google account of their own, so give them a license key. In the admin dashboard, issue one Pro license with the note "Chrome Web Store review" and paste its key below. You can revoke it after approval.
+A reviewer can sign in with any Google account and use the free trial. So that they do not have to, also give them a license key: in the admin dashboard, issue one Pro license with the note "Chrome Web Store review" and paste its key below. You can revoke it after approval.
 
 ```
-XAICG needs no username or password. Please use this license key:
+XAICG needs no username or password. There are two ways to test it.
+
+A. With the free trial: click the XAICG icon in the toolbar and press "Sign in with Google". Chrome shows its own account prompt; any Google account works. This starts a free trial of 20 generations.
+
+B. Without signing in, use this license key:
 
     XAICG-XXXXX-XXXXX-XXXXX-XXXXX
 
-To activate it:
-1. Click the XAICG icon in the toolbar, then Settings.
-2. Under "Plan and license", paste the key and press Activate.
+   1. Click the XAICG icon in the toolbar, then Settings.
+   2. In the plan card, open "I have a license key", paste the key and press Activate.
 
 To test without an X account:
-3. Click the XAICG icon. Type an idea (for example "why small weekly releases beat one big launch") and press "Generate posts". Three drafts appear. The Thread and Rewrite tabs work the same way.
+- Click the XAICG icon. Type an idea (for example "why small weekly releases beat one big launch") and press "Generate posts". Three drafts appear. The Thread and Rewrite tabs work the same way.
 
 To test on X (needs any X account):
-4. Open https://x.com/home. Each post has "AI Reply" and "Question" buttons in its action bar.
-5. Press "AI Reply". X's reply box opens with a draft typed in. Nothing is posted until you press X's own Reply button.
-6. The arrow next to the buttons opens the tone menu.
+- Open https://x.com/home. Each post has "AI Reply" and "Question" buttons in its action bar.
+- Press "AI Reply". X's reply box opens with a draft typed in. Nothing is posted until you press X's own Reply button.
+- The arrow next to the buttons opens the tone menu.
 
-The extension sends the clicked post's text to our server at https://aigc.uniquelabs.org, which returns the draft. No other page content is read.
+Notes for the reviewer:
+- The extension sends the clicked post's text to our server at https://aigc.uniquelabs.org, which returns the draft. No other page content is read.
+- The "identity" permission is used only for the "Sign in with Google" button.
+- The extension plays short sound effects, generated in the browser. They can be turned off in Settings under "On x.com".
+- All code is in the package. Nothing is downloaded or evaluated at run time.
 ```
 
 ---
@@ -229,6 +243,6 @@ The extension sends the clicked post's text to our server at https://aigc.unique
 - [ ] The reviewer license key in the test instructions works
 - [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
 
-After the first upload the dashboard shows the item's ID (32 letters). Set `ALLOWED_ORIGINS=chrome-extension://<that id>` on the server then: see [SETUP.md](../SETUP.md#9-lock-the-api-to-your-extension).
+The server should accept only this extension. On Railway, set `ALLOWED_ORIGINS=chrome-extension://lpophlkocboadjhancbdikipnphffgil`: see [SETUP.md](../SETUP.md#9-lock-the-api-to-your-extension).
 
-When the listing is approved, put its address in `website/config.js` (`chromeStoreUrl`) so the site's buttons read "Add to Chrome".
+The website's "Add to Chrome" buttons already point at the listing address above. Until the listing is approved, that address shows the store's error page.
