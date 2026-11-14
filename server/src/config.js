@@ -1,0 +1,179 @@
+// XAIGC server configuration.
+// Every tunable lives here and is read from environment variables, so the
+// same build runs locally, in tests and on Railway.
+
+export const SERVER_VERSION = "3.0.0";
+
+export const DEFAULT_PLANS = {
+  starter: { label: "Starter", dailyLimit: 60, maxDevices: 1 },
+  pro: { label: "Pro", dailyLimit: 200, maxDevices: 2 },
+  agency: { label: "Agency", dailyLimit: 600, maxDevices: 5 },
+};
+
+// USD per 1M tokens, used only for the cost estimate on the admin dashboard.
+// Override with PRICE_IN_PER_M / PRICE_OUT_PER_M when you change models.
+const MODEL_PRICING = {
+  "gpt-6-luna": { in: 0.1, out: 0.5 },
+  "gpt-6.1-terra": { in: 1.0, out: 5.0 },
+  "gpt-5.6-luna": { in: 0.2, out: 1.2 },
+  "gpt-5.4-mini": { in: 0.75, out: 4.5 },
+  "gpt-5-mini": { in: 0.25, out: 2.0 },
+  "gpt-5-nano": { in: 0.05, out: 0.4 },
+  "gpt-4.1-mini": { in: 0.4, out: 1.6 },
+  "gpt-4.1": { in: 2.0, out: 8.0 },
+  "gpt-4o-mini": { in: 0.15, out: 0.6 },
+  "gpt-4o": { in: 2.5, out: 10.0 },
+};
+
+// The model is a deployment decision, not a code decision: OpenAI retires
+// small models often. Set OPENAI_MODEL to the current cheap, fast model.
+export const DEFAULT_MODEL = "gpt-6-luna";
+
+function int(value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+function flag(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  return /^(1|true|yes|on)$/i.test(String(value).trim());
+}
+
+function list(value) {
+  return String(value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function parsePlans(raw) {
+  if (!raw) return DEFAULT_PLANS;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("PLANS_JSON is not valid JSON.");
+  }
+  const plans = {};
+  for (const [id, p] of Object.entries(parsed || {})) {
+    if (!/^[a-z][a-z0-9_-]{1,30}$/.test(id)) throw new Error(`PLANS_JSON: invalid plan id "${id}".`);
+    const dailyLimit = int(p?.dailyLimit, NaN, { min: 1 });
+    const maxDevices = int(p?.maxDevices, NaN, { min: 1 });
+    if (!Number.isFinite(dailyLimit) || !Number.isFinite(maxDevices)) {
+      throw new Error(`PLANS_JSON: plan "${id}" needs numeric dailyLimit and maxDevices.`);
+    }
+    plans[id] = { label: String(p.label || id), dailyLimit, maxDevices };
+  }
+  if (!Object.keys(plans).length) throw new Error("PLANS_JSON must define at least one plan.");
+  return plans;
+}
+
+function parseTrustProxy(value) {
+  if (value === undefined || value === "") return false;
+  if (/^(true|false)$/i.test(value)) return /^true$/i.test(value);
+  const n = Number(value);
+  if (Number.isInteger(n) && n >= 0) return n;
+  return value; // comma separated CIDR list, passed through to Fastify
+}
+
+export function loadConfig(env = process.env) {
+  const production = env.NODE_ENV === "production";
+  const model = env.OPENAI_MODEL || DEFAULT_MODEL;
+  const pricing = MODEL_PRICING[model] || { in: 0, out: 0 };
+  const trialGenerations = int(env.TRIAL_GENERATIONS, 20, { min: 0, max: 10000 });
+
+  const config = {
+    version: SERVER_VERSION,
+    production,
+    port: int(env.PORT, 8787, { min: 1, max: 65535 }),
+    host: env.HOST || "0.0.0.0",
+    logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
+    // Railway's edge sets X-Real-IP to the caller's address on every public
+    // request, so that is the default in production. Set CLIENT_IP_HEADER=none
+    // to use the socket address, or TRUST_PROXY for X-Forwarded-For setups.
+    trustProxy: parseTrustProxy(env.TRUST_PROXY),
+    clientIpHeader: (env.CLIENT_IP_HEADER ?? (production ? "x-real-ip" : "")).toLowerCase().replace(/^none$/, ""),
+
+    databaseUrl: env.DATABASE_URL || "",
+    databaseSsl: (env.DATABASE_SSL || "").toLowerCase(), // "", "true", "no-verify", "false"
+    pgliteDir: env.PGLITE_DIR || "", // empty = in-memory (dev/test only)
+
+    appSecret: env.APP_SECRET || (production ? "" : "dev-only-secret-change-me"),
+    adminToken: env.ADMIN_TOKEN || "",
+
+    openai: {
+      apiKey: env.OPENAI_API_KEY || "",
+      baseUrl: (env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, ""),
+      model,
+      reasoningEffort: env.OPENAI_REASONING_EFFORT || "", // empty = chosen per model family
+      verifyModelOnBoot: flag(env.OPENAI_VERIFY_MODEL, production),
+      timeoutMs: int(env.OPENAI_TIMEOUT_MS, 25000, { min: 2000, max: 120000 }),
+      moderation: flag(env.MODERATION, true),
+      moderationModel: env.MODERATION_MODEL || "omni-moderation-latest",
+      priceInPerM: Number(env.PRICE_IN_PER_M ?? pricing.in) || 0,
+      priceOutPerM: Number(env.PRICE_OUT_PER_M ?? pricing.out) || 0,
+    },
+
+    plans: parsePlans(env.PLANS_JSON),
+
+    trial: {
+      generations: trialGenerations,
+      // All trial use from one network inside the window is capped here, so
+      // reinstalling or switching X accounts on the same connection runs dry.
+      ipLimit: int(env.TRIAL_IP_LIMIT, trialGenerations * 3, { min: 0 }),
+      ipWindowDays: int(env.TRIAL_IP_WINDOW_DAYS, 30, { min: 1, max: 3650 }),
+      requireHandle: flag(env.TRIAL_REQUIRE_X_ACCOUNT, false),
+    },
+
+    caps: {
+      // Wallet protection: hard ceilings on generations per UTC day.
+      globalDaily: int(env.GLOBAL_DAILY_CAP, 30000, { min: 1 }),
+      trialGlobalDaily: int(env.TRIAL_GLOBAL_DAILY_CAP, 3000, { min: 0 }),
+    },
+
+    limits: {
+      ipPerMinute: int(env.RL_IP_PER_MIN, 90, { min: 1 }),
+      devicePerMinute: int(env.RL_DEVICE_PER_MIN, 12, { min: 1 }),
+      cooldownMs: int(env.COOLDOWN_MS, 1500, { min: 0, max: 600000 }),
+      registerPerIpPerHour: int(env.REGISTER_PER_IP_PER_HOUR, 10, { min: 1 }),
+      devicesPerIpPerDay: int(env.DEVICES_PER_IP_PER_DAY, 15, { min: 1 }),
+      activateFailuresPer15Min: int(env.ACTIVATE_FAILURES_PER_15MIN, 8, { min: 1 }),
+      activationsPer30Days: int(env.ACTIVATIONS_PER_30_DAYS, 10, { min: 1 }),
+      adminFailuresPer15Min: int(env.ADMIN_FAILURES_PER_15MIN, 10, { min: 1 }),
+      bodyBytes: int(env.BODY_LIMIT_BYTES, 32 * 1024, { min: 1024 }),
+    },
+
+    allowedOrigins: list(env.ALLOWED_ORIGINS),
+    minClientVersion: env.MIN_CLIENT_VERSION || "",
+    usageEventRetentionDays: int(env.USAGE_EVENT_RETENTION_DAYS, 60, { min: 1 }),
+
+    links: {
+      buy: env.BUY_URL || "https://uniquelabs.org",
+      support: env.SUPPORT_URL || "https://uniquelabs.org",
+      website: "https://uniquelabs.org",
+    },
+  };
+
+  const problems = [];
+  if (production) {
+    if (!config.databaseUrl) problems.push("DATABASE_URL is required in production (add the Railway Postgres plugin).");
+    if (!config.openai.apiKey) problems.push("OPENAI_API_KEY is required in production.");
+    if (config.appSecret.length < 24) problems.push("APP_SECRET is required in production (use 32+ random characters).");
+  }
+  if (config.adminToken && config.adminToken.length < 24) {
+    problems.push("ADMIN_TOKEN must be at least 24 characters. Leave it unset to disable the admin API.");
+  }
+  for (const origin of config.allowedOrigins) {
+    if (!/^(chrome-extension|moz-extension|https?):\/\/[^/\s]+$/.test(origin)) {
+      problems.push(`ALLOWED_ORIGINS entry "${origin}" is not a valid origin (example: chrome-extension://abcdefghijklmnopabcdefghijklmnop).`);
+    }
+  }
+  if (problems.length) {
+    const err = new Error("Invalid configuration:\n - " + problems.join("\n - "));
+    err.code = "CONFIG_INVALID";
+    throw err;
+  }
+  return config;
+}

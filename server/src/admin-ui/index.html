@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>XAIGC Admin</title>
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">X</span>
+      <div>
+        <strong>XAIGC Admin</strong>
+        <small>A product of Unique Labs</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="modelTag" class="tag" hidden></span>
+      <button id="refresh" class="btn ghost" hidden>Refresh</button>
+      <button id="signOut" class="btn ghost" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="signIn" class="card narrow">
+      <h1>Sign in</h1>
+      <p class="muted">Enter the <code>ADMIN_TOKEN</code> you set on the server. It is kept in this tab only and cleared when you close it.</p>
+      <form id="signInForm">
+        <label for="token">Admin token</label>
+        <input id="token" type="password" autocomplete="off" required>
+        <button class="btn primary" type="submit">Sign in</button>
+        <p id="signInError" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <div id="app" hidden>
+      <section class="stats" id="stats" aria-label="Today"></section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Last 14 days</h2>
+          <span class="muted" id="capNote"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="daysTable">
+            <thead><tr><th>Day (UTC)</th><th class="num">Total</th><th class="num">Licensed</th><th class="num">Trial</th><th class="num">Tokens in</th><th class="num">Tokens out</th><th class="num">Est. cost</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="muted small" id="outcomes"></p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Issue licenses</h2></div>
+        <form id="createForm" class="grid">
+          <div class="field">
+            <label for="cPlan">Plan</label>
+            <select id="cPlan" required></select>
+          </div>
+          <div class="field">
+            <label for="cValidity">Validity</label>
+            <select id="cValidity">
+              <option value="lifetime">Never expires</option>
+              <option value="days" selected>Days, starting at first activation</option>
+              <option value="date">Fixed end date</option>
+            </select>
+          </div>
+          <div class="field" id="cDaysField">
+            <label for="cDays">Days</label>
+            <input id="cDays" type="number" min="1" max="36500" value="30">
+          </div>
+          <div class="field" id="cDateField" hidden>
+            <label for="cDate">End date</label>
+            <input id="cDate" type="date">
+          </div>
+          <div class="field">
+            <label for="cEmail">Customer email <span class="muted">(optional)</span></label>
+            <input id="cEmail" type="email" maxlength="254" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cNote">Note <span class="muted">(optional)</span></label>
+            <input id="cNote" type="text" maxlength="500" placeholder="Order id, reseller, reason">
+          </div>
+          <div class="field">
+            <label for="cDevices">Devices <span class="muted">(blank = plan default)</span></label>
+            <input id="cDevices" type="number" min="1" max="1000">
+          </div>
+          <div class="field">
+            <label for="cDaily">Daily limit <span class="muted">(blank = plan default)</span></label>
+            <input id="cDaily" type="number" min="1" max="1000000">
+          </div>
+          <div class="field">
+            <label for="cCount">How many keys</label>
+            <input id="cCount" type="number" min="1" max="100" value="1" required>
+          </div>
+          <div class="field actions">
+            <button class="btn primary" type="submit">Create</button>
+          </div>
+        </form>
+        <p id="createError" class="error" role="alert"></p>
+        <div id="created" class="created" hidden>
+          <div class="card-head">
+            <strong>New keys</strong>
+            <button id="copyAll" class="btn ghost" type="button">Copy all</button>
+          </div>
+          <p class="muted small">Copy these now. Keys are stored only as a hash and cannot be shown again. If one is lost, rotate it.</p>
+          <ul id="createdList"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Licenses <span class="muted" id="licenseCount"></span></h2>
+          <div class="filters">
+            <input id="search" type="search" placeholder="Search email, note, key or hint" aria-label="Search licenses">
+            <select id="statusFilter" aria-label="Filter by state">
+              <option value="">All states</option>
+              <option value="active">Active</option>
+              <option value="expired">Expired</option>
+              <option value="revoked">Revoked</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="licenseTable">
+            <thead><tr><th>Key</th><th>Plan</th><th>State</th><th>Customer</th><th class="num">Devices</th><th class="num">Today</th><th>Expires</th><th>Created</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prevPage" class="btn ghost" type="button">Previous</button>
+          <span id="pageInfo" class="muted"></span>
+          <button id="nextPage" class="btn ghost" type="button">Next</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="detail">
+    <div class="dialog-head">
+      <h2 id="dTitle">License</h2>
+      <button id="dClose" class="btn ghost" type="button" aria-label="Close">Close</button>
+    </div>
+    <div id="dBody"></div>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <footer>XAIGC · A product of <a href="https://uniquelabs.org" target="_blank" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

@@ -1,135 +1,90 @@
-# Privacy Policy – AI Comment Generator for Twitter/X
+# Privacy Policy: XAIGC, AI Content Generator for X
 
-Last Updated: May 10, 2026
+Last updated: November 14, 2026
 
-AI Comment Generator for Twitter/X ("the extension") respects your privacy and is committed to protecting user data.
+XAIGC ("the extension") is a product of Unique Labs, developed by Shahriar Ahmed. Website: https://uniquelabs.org
 
-This Privacy Policy explains what information is collected, how it is used, and how your data is handled when using the extension.
+This policy explains what the extension and the XAIGC server process, why, and what is kept.
 
----
+## Summary
 
-# 1. Information We Collect
+- XAIGC writes drafts. It never posts, likes, follows or sends anything on your behalf.
+- To write a draft, the text of the post you chose (or the idea or draft you typed) is sent to the XAIGC server and on to OpenAI. The XAIGC server does not save that text or the generated draft.
+- No OpenAI API key is needed from you, and none is stored in the extension.
+- Your X password, direct messages, followers and other account data are never read.
+- No advertising, no analytics trackers, no sale of data.
 
-The extension may process the following information:
+## 1. What is processed when you generate a draft
 
-## OpenAI API Key
+When you press a XAIGC button on a post, or use the compose window, the extension sends the following to the XAIGC server:
 
-Users provide their own OpenAI API key to enable AI-powered comment generation.
+- **The material to write from.** For replies: the post's text, the author's handle, the text of a quoted post, image descriptions and link-card text if present. For original posts, threads and rewrites: the idea or draft you typed.
+- **Your voice settings.** Tone, persona text, length, language and emoji preference.
+- **A few of your recent drafts.** Up to eight, so new drafts do not repeat old ones.
 
-The API key is stored locally in the browser using Chrome extension storage and is used only to send requests directly to OpenAI services.
+The server forwards this to OpenAI to generate the draft, checks the result with OpenAI's moderation service, and returns it to your browser. **The XAIGC server does not store this content in its database and does not write it to its logs.**
 
-## Tweet Content
+## 2. What the XAIGC server stores
 
-When generating replies, the extension reads tweet text and conversation context from Twitter/X pages in order to create relevant AI-generated comments.
+| Data | Form | Purpose |
+| --- | --- | --- |
+| Install ID | One-way hash | Identifies your installation so your trial and license follow it |
+| Access token | One-way hash | Authenticates your installation's requests |
+| IP address | Keyed one-way hash (IPv6 addresses are reduced to their /64 network first) | Limits free-trial abuse and request flooding |
+| X account handle | Hashed in your browser before it is sent, then hashed again with a server key | Stops the free trial being restarted by reinstalling |
+| License key | One-way hash, plus a masked hint such as `XAIGC-ABCDE-*****-*****-**XYZ` | Validates your license |
+| Email address | As provided at purchase, if any | License delivery and support |
+| Usage records | Time, type of request, model, token counts, outcome, installation, license | Enforcing plan limits, billing accuracy, abuse detection |
 
-## Usage Statistics
+Usage records contain no post text and no generated text. Per-request records are deleted after 60 days. Daily totals are kept for accounting.
 
-The extension may locally track:
+Raw IP addresses are held in memory only, for short-lived rate limiting, and are not written to the database.
 
-* generated reply count
-* token usage
-* estimated API costs
-* cooldown timers
-* user preferences and settings
+## 3. What stays in your browser
 
-This information is stored locally on the user's device.
+Stored with Chrome's extension storage on your device:
 
----
+- Your settings (tone, persona, language, output mode)
+- Your last 30 drafts, used to avoid repetition. You can clear them at any time in Settings.
+- Your install ID and access token
+- A cached copy of your plan and remaining allowance
+- The contents of the compose window, so it is not lost when the popup closes
 
-# 2. How Information Is Used
+The install ID is also saved in Chrome's synced storage, so reinstalling on the same Chrome profile keeps your license. Removing the extension deletes the local data.
 
-Collected or processed information is used only for:
+## 4. Who receives data
 
-* generating AI-powered comments
-* improving reply relevance
-* storing extension settings
-* tracking local usage statistics
-* enabling extension functionality
+- **OpenAI** receives the material described in section 1 in order to generate and moderate drafts, together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: https://openai.com/policies/privacy-policy
+- **Our hosting provider** runs the XAIGC server and its database.
 
-The extension does not use collected information for advertising purposes.
+Data is not sold, rented or shared for advertising.
 
----
+## 5. Browser permissions
 
-# 3. Data Sharing
+- **storage**: saving your settings and the items in section 3.
+- **clipboardWrite**: copying a draft when you choose clipboard mode or copy a quote line.
+- **Access to x.com and twitter.com**: adding the XAIGC buttons to posts, reading the post you chose, and typing the draft into the reply box.
+- **Access to the XAIGC server**: sending generation requests.
 
-The extension does not sell, rent, or trade user data.
+## 6. Your choices
 
-Data is only shared with:
+- Use clipboard mode if you do not want the extension to type into X.
+- Clear your reply memory in Settings.
+- Ask for your server-side records to be deleted by contacting us with the install ID shown under Settings, About.
+- Uninstall the extension at any time.
 
-* OpenAI API services when generating replies using the user's own API key
+## 7. Security
 
-No personal data is sold to third parties.
+Traffic between the extension and the XAIGC server is encrypted with HTTPS. Tokens, install IDs and license keys are stored only as hashes. No method of transmission or storage is perfectly secure.
 
----
+## 8. Children
 
-# 4. Local Storage
+XAIGC is not directed at children under 13 and is not intended for anyone below the minimum age required by X.
 
-Most settings and preferences are stored locally in the user's browser using Chrome extension storage APIs.
+## 9. Changes
 
-This may include:
+This policy may be updated. The date at the top shows the latest revision.
 
-* OpenAI API key
-* selected AI model
-* writing tone preferences
-* usage statistics
-* extension settings
+## 10. Contact
 
----
-
-# 5. Third-Party Services
-
-This extension interacts with:
-
-* OpenAI API services
-* Twitter/X webpages
-
-Users are responsible for complying with the terms and policies of OpenAI and Twitter/X.
-
-OpenAI Privacy Policy:
-https://openai.com/policies/privacy-policy
-
-Twitter/X Privacy Policy:
-https://twitter.com/en/privacy
-
----
-
-# 6. Data Security
-
-Reasonable measures are taken to help protect stored information and API credentials.
-
-However, no method of electronic storage or internet transmission is completely secure.
-
-Users are responsible for protecting their own OpenAI API credentials.
-
----
-
-# 7. Children's Privacy
-
-This extension is not intended for children under the age of 13.
-
----
-
-# 8. Changes to This Privacy Policy
-
-This Privacy Policy may be updated from time to time.
-
-Changes will be reflected by updating the "Last Updated" date above.
-
----
-
-# 9. Contact
-
-If you have questions regarding this Privacy Policy, please contact the developer through the Chrome Web Store support page.
-
----
-
-# 10. Summary
-
-AI Comment Generator for Twitter/X:
-
-* does not sell user data
-* uses the user's own OpenAI API key
-* stores settings locally
-* only processes tweet content to generate replies
-* only communicates with OpenAI services for AI generation
-* does not collect unnecessary personal information
+Unique Labs: https://uniquelabs.org

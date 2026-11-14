@@ -1,0 +1,26 @@
+{
+  "name": "xaigc-server",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "XAIGC backend: generation engine, licensing, trial and abuse prevention. A product of Unique Labs.",
+  "author": "Shahriar Ahmed (https://uniquelabs.org)",
+  "homepage": "https://uniquelabs.org",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.4.3",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16"
+  }
+}

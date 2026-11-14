@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XAIGC Settings</title>
+  <link rel="stylesheet" href="ui.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="icons/icon48.png" alt="">
+      <div>
+        <strong>XAIGC</strong>
+        <small>AI Content Generator for X</small>
+      </div>
+    </div>
+    <span id="planBadge" class="badge">…</span>
+  </header>
+
+  <main>
+    <section id="welcome" class="card welcome" hidden>
+      <h1>You're set up</h1>
+      <p>Open <a href="https://x.com" target="_blank" rel="noopener">x.com</a>. Every post now has <b>AI Reply</b> and <b>Question</b> buttons, and the arrow next to them opens tones. Drafts are typed into the reply box for you to review. Nothing is posted until you press Reply.</p>
+      <p>For original posts and threads, click the XAIGC icon in the toolbar.</p>
+    </section>
+
+    <section id="license" class="card">
+      <div class="card-head">
+        <h2>Plan and license</h2>
+        <button id="refresh" class="btn sm" type="button">Refresh</button>
+      </div>
+
+      <div class="quota-line">
+        <span><b id="quotaLeft">–</b> <span id="quotaLabel" class="muted">generations left</span></span>
+        <span id="quotaSub" class="muted small"></span>
+      </div>
+      <div id="quotaBar" class="bar"><i></i></div>
+      <p id="notice" class="notice" hidden></p>
+
+      <dl id="licenseInfo" class="facts" hidden>
+        <div class="wide"><dt>License</dt><dd id="licHint" class="mono"></dd></div>
+        <div><dt>Plan</dt><dd id="licPlan"></dd></div>
+        <div><dt>Valid until</dt><dd id="licExpires"></dd></div>
+        <div><dt>Devices</dt><dd id="licDevices"></dd></div>
+      </dl>
+
+      <form id="activateForm" class="activate">
+        <label for="licenseKey">License key</label>
+        <div class="inline">
+          <input id="licenseKey" type="text" class="mono" placeholder="XAIGC-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false" maxlength="80">
+          <button id="activate" class="btn primary" type="submit">Activate</button>
+        </div>
+      </form>
+      <p id="licenseStatus" class="status" role="status" aria-live="polite"></p>
+      <div id="replaceBox" class="replace" hidden>
+        <p>This license is already in use on its maximum number of devices. You can move it here by signing out the device that has been idle longest.</p>
+        <button id="replace" class="btn" type="button">Move the license to this browser</button>
+      </div>
+
+      <div class="card-foot">
+        <a id="buy" class="btn primary" target="_blank" rel="noopener">Get a license</a>
+        <button id="deactivate" class="btn danger" type="button" hidden>Remove license from this browser</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Your voice</h2>
+        <span id="saved" class="status" role="status" aria-live="polite"></span>
+      </div>
+      <p class="muted lead">These apply to everything XAIGC writes. Changes save automatically.</p>
+
+      <div class="grid">
+        <div>
+          <label for="tone">Default tone</label>
+          <select id="tone">
+            <option value="auto">Auto: fit each post</option>
+            <option value="casual">Casual</option>
+            <option value="witty">Witty</option>
+            <option value="supportive">Supportive</option>
+            <option value="skeptical">Skeptical</option>
+            <option value="analytical">Analytical</option>
+            <option value="blunt">Blunt</option>
+            <option value="technical">Technical</option>
+            <option value="professional">Professional</option>
+          </select>
+        </div>
+        <div>
+          <label for="length">Reply length</label>
+          <select id="length">
+            <option value="short">Short · 4 to 12 words</option>
+            <option value="medium">Medium · 8 to 22 words</option>
+            <option value="long">Long · 18 to 40 words</option>
+          </select>
+        </div>
+        <div>
+          <label for="language">Language</label>
+          <select id="language">
+            <option value="en">English</option>
+            <option value="auto">Match the post's language</option>
+            <option value="es">Spanish</option>
+            <option value="pt">Portuguese</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="tr">Turkish</option>
+            <option value="id">Indonesian</option>
+            <option value="ru">Russian</option>
+            <option value="ar">Arabic</option>
+            <option value="hi">Hindi</option>
+            <option value="bn">Bengali</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </div>
+        <div>
+          <label for="emoji">Emoji</label>
+          <select id="emoji">
+            <option value="auto">Only if the post has them</option>
+            <option value="none">Never</option>
+            <option value="allow">At most one</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="persona">
+        <label for="persona">Persona <span class="muted">(optional)</span></label>
+        <textarea id="persona" maxlength="600" placeholder="Describe how you sound. For example: skeptical crypto trader. Short, sharp, focused on fees and real adoption. No hype."></textarea>
+        <div class="persona-meta">
+          <span class="muted small">Plain words work best. This shapes style and attitude, not facts.</span>
+          <span id="personaCount" class="muted small">0 / 600</span>
+        </div>
+        <div class="chips" id="presets" aria-label="Persona presets">
+          <button type="button" class="chip" data-persona="Skeptical crypto trader. Short, sharp, focused on fees, speed and real adoption. No hype words.">Skeptical trader</button>
+          <button type="button" class="chip" data-persona="Founder voice: opinionated, blunt, slightly dry. One real point per reply, no fluff, no praise.">Blunt founder</button>
+          <button type="button" class="chip" data-persona="Friendly developer. Casual but precise. Often notes a real edge case or asks one specific technical question.">Developer</button>
+          <button type="button" class="chip" data-persona="Witty and slightly sarcastic, never mean. Quick punchy reactions and light humor.">Witty</button>
+          <button type="button" class="chip" data-persona="Calm and analytical. Picks one concrete detail and adds a small grounded observation.">Analytical</button>
+          <button type="button" class="chip" data-persona="Supportive but realistic. Acknowledges the effort, then adds one practical concern or suggestion.">Supportive realist</button>
+          <button type="button" class="chip" data-persona="">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>On x.com</h2></div>
+      <fieldset>
+        <legend class="label">Where drafts go</legend>
+        <label class="choice"><input type="radio" name="outputMode" value="insert"> <span><b>Type into the reply box</b><br><span class="muted small">XAIGC opens the reply box and fills it in. You review and post.</span></span></label>
+        <label class="choice"><input type="radio" name="outputMode" value="clipboard"> <span><b>Copy to the clipboard</b><br><span class="muted small">Nothing on the page is touched. Paste wherever you like.</span></span></label>
+      </fieldset>
+      <label class="choice"><input type="checkbox" id="showQuestionButton"> <span><b>Show the Question button</b><br><span class="muted small">Adds a second button that drafts a short, specific question.</span></span></label>
+      <div class="card-foot">
+        <button id="clearMemory" class="btn" type="button">Clear reply memory</button>
+        <span id="memoryStatus" class="status" role="status" aria-live="polite"></span>
+      </div>
+      <p class="muted small">XAIGC remembers your last 30 drafts on this device so new ones don't repeat them.</p>
+    </section>
+
+    <section class="card about">
+      <div class="card-head"><h2>About</h2></div>
+      <dl class="facts">
+        <div><dt>Version</dt><dd id="version"></dd></div>
+        <div class="wide"><dt>Install ID</dt><dd id="deviceId" class="mono"></dd></div>
+        <div><dt>Support</dt><dd><a id="support" href="https://uniquelabs.org" target="_blank" rel="noopener">uniquelabs.org</a></dd></div>
+      </dl>
+      <p class="muted small">Quote your install ID when contacting support. XAIGC sends the text of the post you are replying to, and your settings above, to the XAIGC server to write a draft. It never posts for you and does not read your messages or account data.</p>
+    </section>
+  </main>
+
+  <footer class="credit">XAIGC · A product of <a href="https://uniquelabs.org" target="_blank" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

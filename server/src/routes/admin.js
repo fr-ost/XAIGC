@@ -1,0 +1,284 @@
+// Admin API and dashboard. Disabled entirely (404) unless ADMIN_TOKEN is set.
+
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+import { errors } from "../errors.js";
+import { num } from "../db/index.js";
+import { safeEqual } from "../services/crypto.js";
+import { setDeviceBlocked } from "../services/devices.js";
+import {
+  createLicense,
+  getLicenseDetail,
+  licenseState,
+  listLicenses,
+  planFor,
+  resetLicenseDevices,
+  rotateLicenseKey,
+  updateLicense,
+} from "../services/licenses.js";
+import { utcDay } from "../services/quota.js";
+
+const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "admin-ui");
+const UI_FILES = {
+  "": ["index.html", "text/html; charset=utf-8"],
+  "admin.js": ["admin.js", "text/javascript; charset=utf-8"],
+  "admin.css": ["admin.css", "text/css; charset=utf-8"],
+};
+const UI_CSP =
+  "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+const iso = (v) => (v ? new Date(v).toISOString() : null);
+const uuidParam = { type: "object", required: ["id"], properties: { id: { type: "string", format: "uuid" } } };
+const nullableInt = (min, max) => ({ type: ["integer", "null"], minimum: min, maximum: max });
+
+function serializeLicense(config, row) {
+  const plan = planFor(config, row);
+  return {
+    id: row.id,
+    hint: row.key_hint,
+    plan: row.plan,
+    planLabel: plan.label,
+    state: licenseState(row),
+    email: row.email,
+    note: row.note,
+    maxDevices: plan.maxDevices,
+    dailyLimit: plan.dailyLimit,
+    overrides: { maxDevices: row.max_devices, dailyLimit: row.daily_limit },
+    expiresAt: iso(row.expires_at),
+    durationDays: row.duration_days,
+    firstActivatedAt: iso(row.first_activated_at),
+    createdAt: iso(row.created_at),
+    devicesUsed: row.devices_used === undefined ? undefined : num(row.devices_used),
+    usedToday: row.used_today === undefined ? undefined : num(row.used_today),
+  };
+}
+
+export async function registerAdminRoutes(app, { config, db, limiters, clock }) {
+  if (!config.adminToken) {
+    app.log.warn("ADMIN_TOKEN is not set: the admin API and dashboard are disabled.");
+    return;
+  }
+
+  /* ------------------------------ dashboard ------------------------------- */
+
+  const assets = {};
+  for (const [route, [file, type]] of Object.entries(UI_FILES)) {
+    assets[route] = { body: await readFile(path.join(UI_DIR, file)), type };
+  }
+  const serve = (route) => async (req, reply) => {
+    reply.header("Content-Security-Policy", UI_CSP).header("Cache-Control", "no-cache").type(assets[route].type);
+    return assets[route].body;
+  };
+  app.get("/admin", serve(""));
+  app.get("/admin/admin.js", serve("admin.js"));
+  app.get("/admin/admin.css", serve("admin.css"));
+
+  /* --------------------------------- auth --------------------------------- */
+
+  async function requireAdmin(req) {
+    const bucket = `admin:${req.net.group}`;
+    const state = limiters.adminFail.check(bucket);
+    if (!state.ok) throw errors.tooMany("too_many_attempts", "Too many failed admin sign-ins. Try again later.", state.retryAfterMs);
+    const match = String(req.headers.authorization || "").match(/^Bearer\s+(\S+)$/i);
+    if (!match || !safeEqual(match[1], config.adminToken)) {
+      limiters.adminFail.take(bucket);
+      throw errors.unauthorized("Admin token is missing or wrong.");
+    }
+  }
+
+  const admin = { preValidation: requireAdmin };
+
+  /* -------------------------------- stats --------------------------------- */
+
+  app.get("/admin/api/stats", admin, async () => {
+    const day = utcDay(clock());
+    const [devices, licenses, series, statuses] = await Promise.all([
+      db.query(
+        `SELECT count(*)::int AS total,
+                (count(*) FILTER (WHERE created_at > now() - interval '24 hours'))::int AS new24h,
+                (count(*) FILTER (WHERE last_seen_at > now() - interval '24 hours'))::int AS active24h,
+                (count(*) FILTER (WHERE license_id IS NOT NULL))::int AS licensed,
+                (count(*) FILTER (WHERE blocked))::int AS blocked
+         FROM devices`,
+      ),
+      db.query(
+        `SELECT count(*)::int AS total,
+                (count(*) FILTER (WHERE status = 'active' AND (expires_at IS NULL OR expires_at > now())))::int AS active,
+                (count(*) FILTER (WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= now()))::int AS expired,
+                (count(*) FILTER (WHERE status = 'revoked'))::int AS revoked
+         FROM licenses`,
+      ),
+      db.query(
+        `SELECT day, subject, count, tokens_in, tokens_out FROM usage_daily
+         WHERE subject IN ('global', 'global:trial') ORDER BY day DESC LIMIT 28`,
+      ),
+      db.query(
+        `SELECT status, count(*)::int AS n FROM usage_events
+         WHERE ts > now() - interval '24 hours' GROUP BY status ORDER BY n DESC`,
+      ),
+    ]);
+
+    const byDay = new Map();
+    for (const r of series.rows) {
+      const d = byDay.get(r.day) || { day: r.day, total: 0, trial: 0, tokensIn: 0, tokensOut: 0 };
+      if (r.subject === "global") {
+        d.total = num(r.count);
+        d.tokensIn = num(r.tokens_in);
+        d.tokensOut = num(r.tokens_out);
+      } else d.trial = num(r.count);
+      byDay.set(r.day, d);
+    }
+    const cost = (d) => (d.tokensIn / 1e6) * config.openai.priceInPerM + (d.tokensOut / 1e6) * config.openai.priceOutPerM;
+    const days = [...byDay.values()].sort((a, b) => (a.day < b.day ? 1 : -1)).map((d) => ({ ...d, paid: d.total - d.trial, costUsd: cost(d) }));
+    const today = days.find((d) => d.day === day) || { day, total: 0, trial: 0, paid: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 };
+
+    const pick = (row, keys) => Object.fromEntries(keys.map((k) => [k, num(row[k.toLowerCase()])]));
+    return {
+      today,
+      days,
+      devices: pick(devices.rows[0], ["total", "new24h", "active24h", "licensed", "blocked"]),
+      licenses: pick(licenses.rows[0], ["total", "active", "expired", "revoked"]),
+      outcomes24h: statuses.rows.map((r) => ({ status: r.status, count: num(r.n) })),
+      model: config.openai.model,
+      caps: config.caps,
+      trial: config.trial,
+      priced: config.openai.priceInPerM > 0 || config.openai.priceOutPerM > 0,
+    };
+  });
+
+  app.get("/admin/api/plans", admin, async () => ({
+    plans: Object.entries(config.plans).map(([id, p]) => ({ id, ...p })),
+  }));
+
+  /* ------------------------------- licenses ------------------------------- */
+
+  app.get(
+    "/admin/api/licenses",
+    {
+      ...admin,
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            q: { type: "string", maxLength: 120 },
+            status: { type: "string", enum: ["", "active", "expired", "revoked"] },
+            limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+            offset: { type: "integer", minimum: 0, default: 0 },
+          },
+        },
+      },
+    },
+    async (req) => {
+      const { q = "", status = "", limit, offset } = req.query;
+      const result = await listLicenses(db, { q: q.trim(), status, limit, offset, day: utcDay(clock()) });
+      return { total: result.total, licenses: result.licenses.map((row) => serializeLicense(config, row)) };
+    },
+  );
+
+  app.post(
+    "/admin/api/licenses",
+    {
+      ...admin,
+      schema: {
+        body: {
+          type: "object",
+          required: ["plan"],
+          additionalProperties: false,
+          properties: {
+            plan: { type: "string", maxLength: 32 },
+            email: { type: "string", maxLength: 254 },
+            note: { type: "string", maxLength: 500 },
+            days: nullableInt(1, 36500),
+            expiresAt: { type: ["string", "null"], maxLength: 40 },
+            maxDevices: nullableInt(1, 1000),
+            dailyLimit: nullableInt(1, 1000000),
+            count: { type: "integer", minimum: 1, maximum: 100, default: 1 },
+          },
+        },
+      },
+    },
+    async (req) => {
+      const { count, ...input } = req.body;
+      const created = [];
+      for (let i = 0; i < count; i++) {
+        const { license, key } = await createLicense(db, config, input);
+        // The only time the full key exists outside the customer's hands.
+        created.push({ ...serializeLicense(config, license), key });
+      }
+      return { licenses: created };
+    },
+  );
+
+  app.get("/admin/api/licenses/:id", { ...admin, schema: { params: uuidParam } }, async (req) => {
+    const detail = await getLicenseDetail(db, req.params.id, { day: utcDay(clock()) });
+    return {
+      license: serializeLicense(config, detail.license),
+      devices: detail.devices.map((d) => ({
+        id: d.id,
+        activatedAt: iso(d.activated_at),
+        lastSeenAt: iso(d.last_seen_at),
+        createdAt: iso(d.created_at),
+        clientVersion: d.client_version,
+        totalGenerations: num(d.total_generations),
+        blocked: d.blocked,
+      })),
+      events: detail.events.map((e) => ({ ts: iso(e.ts), type: e.type, deviceId: e.device_id, detail: e.detail })),
+      usage: detail.usage,
+      networks24h: detail.networks24h,
+    };
+  });
+
+  app.patch(
+    "/admin/api/licenses/:id",
+    {
+      ...admin,
+      schema: {
+        params: uuidParam,
+        body: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            status: { type: "string", enum: ["active", "revoked"] },
+            plan: { type: "string", maxLength: 32 },
+            expiresAt: { type: ["string", "null"], maxLength: 40 },
+            maxDevices: nullableInt(1, 1000),
+            dailyLimit: nullableInt(1, 1000000),
+            email: { type: ["string", "null"], maxLength: 254 },
+            note: { type: ["string", "null"], maxLength: 500 },
+          },
+        },
+      },
+    },
+    async (req) => ({ license: serializeLicense(config, await updateLicense(db, config, req.params.id, req.body)) }),
+  );
+
+  app.post("/admin/api/licenses/:id/rotate", { ...admin, schema: { params: uuidParam } }, async (req) => {
+    const { license, key } = await rotateLicenseKey(db, req.params.id);
+    return { license: serializeLicense(config, license), key };
+  });
+
+  app.post("/admin/api/licenses/:id/reset-devices", { ...admin, schema: { params: uuidParam } }, async (req) => ({
+    released: await resetLicenseDevices(db, req.params.id),
+  }));
+
+  /* -------------------------------- devices ------------------------------- */
+
+  app.post(
+    "/admin/api/devices/:id/block",
+    {
+      ...admin,
+      schema: {
+        params: uuidParam,
+        body: {
+          type: "object",
+          required: ["blocked"],
+          additionalProperties: false,
+          properties: { blocked: { type: "boolean" }, reason: { type: "string", maxLength: 300 } },
+        },
+      },
+    },
+    async (req) => ({ device: await setDeviceBlocked(db, req.params.id, req.body.blocked, req.body.reason) }),
+  );
+}

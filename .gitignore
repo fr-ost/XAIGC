@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# local embedded dev database
+server/.data/
+
+# packaged extension builds
+*.zip
+*.crx
+*.pem
