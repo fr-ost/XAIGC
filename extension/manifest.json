@@ -13,7 +13,7 @@
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
-    "http://localhost:8787/*"
+    "https://aigc.uniquelabs.org/*"
   ],
   "background": {
     "service_worker": "background.js",

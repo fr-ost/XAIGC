@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is. Replace `<your-site>` with the website's address (for example `https://xaigc.example`) and `<your-server>` with the server's.
+Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is. Replace `<your-site>` with the website's address (for example `https://xaigc.example`). The server's address, `https://aigc.uniquelabs.org`, is already filled in.
 
 The images are in [`store/assets/`](assets/). Rebuild them with `node store/generate.mjs` after the extension's look changes.
 
@@ -129,12 +129,12 @@ Stores the user's writing settings (tone, persona, language), their recent draft
 Copies a draft to the clipboard when the user presses a Copy button, when they choose "Copy a quote-post line", or when they have chosen clipboard mode in settings instead of having drafts typed into the reply box.
 ```
 
-**Host permissions** (`https://x.com/*`, `https://twitter.com/*`, `<your-server>/*`)
+**Host permissions** (`https://x.com/*`, `https://twitter.com/*`, `https://aigc.uniquelabs.org/*`)
 
 ```
 x.com and twitter.com: the extension adds its AI Reply and Question buttons to posts on these pages, reads the text of the one post the user clicked, and types the draft into the site's reply box. It runs on no other site.
 
-<your-server>: this is XAIGC's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's free trial and license there.
+https://aigc.uniquelabs.org: this is XAIGC's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's free trial and license there.
 ```
 
 ### Remote code
@@ -208,7 +208,7 @@ To test on X (needs any X account):
 5. Press "AI Reply". X's reply box opens with a draft typed in. Nothing is posted until you press X's own Reply button.
 6. The arrow next to the buttons opens the tone menu.
 
-The extension sends the clicked post's text to our server at <your-server>, which returns the draft. No other page content is read.
+The extension sends the clicked post's text to our server at https://aigc.uniquelabs.org, which returns the draft. No other page content is read.
 ```
 
 ---

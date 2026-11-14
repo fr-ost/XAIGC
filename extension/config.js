@@ -5,7 +5,7 @@
 // repository root: it updates this file and the host permission in
 // manifest.json together.
 
-export const API_BASE = "http://localhost:8787";
+export const API_BASE = "https://aigc.uniquelabs.org";
 
 export const CLIENT_VERSION = chrome.runtime.getManifest().version;
 
