@@ -4,7 +4,7 @@
   "short_name": "XAICG",
   "version": "3.1.2",
   "description": "AI comments and replies for X (Twitter) in your own voice, plus questions, posts and threads. A product of Unique Labs.",
-  "homepage_url": "https://uniquelabs.org",
+  "homepage_url": "https://xaicg.uniquelabs.org",
   "minimum_chrome_version": "111",
   "permissions": [
     "storage",

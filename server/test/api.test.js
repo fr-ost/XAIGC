@@ -270,7 +270,7 @@ describe("free trial", () => {
     assert.equal(over.status, 402);
     assert.equal(over.body.error.code, "trial_ended");
     assert.equal(over.body.error.account.quota.remaining, 0);
-    assert.equal(over.body.error.account.links.buy, "https://uniquelabs.org");
+    assert.equal(over.body.error.account.links.buy, "https://xaicg.uniquelabs.org/#pricing");
   });
 
   test("reinstalling does not reset the trial for the same X account", async () => {

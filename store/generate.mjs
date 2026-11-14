@@ -227,24 +227,36 @@ async function shot(n, spec, data, act) {
 console.log(`XAICG ${VERSION}: store screenshots`);
 
 await shot(1, {
-  headline: "Reply in your own voice, in one click",
+  badge: "One click",
+  headline: "Reply on X in *your own voice*",
   sub: "XAICG drafts the reply and types it into the box. You read it, then you post it.",
-  frames: [{ name: "x", src: TIMELINE, width: 1152, height: 540 }],
+  points: ["Typed straight into X's reply box", "Sounds like you, not like an AI", "Nothing is ever posted for you"],
+  frames: [{ name: "x", src: TIMELINE, width: 660, height: 560, x: 40, y: 122 }],
+  callouts: [
+    { text: "3 drafts from every click", icon: "3", x: 380, y: 78, rotate: 3 },
+    { text: "Try another, free", icon: "↻", x: 36, y: 668, rotate: -3, dark: true },
+  ],
 }, TRIAL, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
 
 await shot(2, {
-  headline: "Pick a tone when you want one",
-  sub: "Casual, witty, skeptical, technical and more. Or leave it on Auto and let each post decide.",
-  frames: [{ name: "x", src: TIMELINE, width: 1152, height: 540 }],
+  badge: "9 tones",
+  headline: "A tone for *every moment*",
+  sub: "Leave it on Auto and each post decides. Or pick the one you want.",
+  chips: ["!Auto", "Casual", "Witty", "Supportive", "Skeptical", "Analytical", "Blunt", "Technical", "Professional"],
+  frames: [{ name: "x", src: TIMELINE, width: 660, height: 600, x: 40, y: 100 }],
+  callouts: [{ text: "Asks a sharp question too", icon: "?", x: 30, y: 60, rotate: -3 }],
 }, TRIAL, (page) => openTones(page.frameLocator('iframe[name="x"]')));
 
 await shot(3, {
-  headline: "Posts and threads from a rough idea",
+  badge: "Compose",
+  headline: "Posts and threads from *a rough idea*",
   sub: "Say what it should be about. Copy a draft, or open it in X ready to post.",
+  points: ["Posts in three lengths", "Threads of three to eight posts", "Rewrites that keep your facts"],
   frames: [
-    { name: "posts", src: POPUP, width: 380, height: 620, chrome: "popup" },
-    { name: "thread", src: POPUP, width: 380, height: 620, chrome: "popup" },
+    { name: "posts", src: POPUP, width: 380, height: 640, chrome: "popup", x: 10, y: 96, rotate: -4, tilt: -6, scale: 0.94, z: 2 },
+    { name: "thread", src: POPUP, width: 380, height: 640, chrome: "popup", x: 318, y: 132, rotate: 4, tilt: -10, scale: 0.94, z: 1 },
   ],
+  callouts: [{ text: "From one line of an idea", icon: "✦", x: 250, y: 44, rotate: 3, dark: true }],
 }, PRO, async (page) => {
   // Start at the compose card, so the idea and the drafts it produced both show.
   await scrollFrameTo(page, "posts", ".compose");
@@ -252,18 +264,24 @@ await shot(3, {
 });
 
 await shot(4, {
-  headline: "Make it sound like you",
-  sub: "Describe your voice once. Set the tone, length, language and emoji for everything it writes.",
-  frames: [{ name: "voice", src: OPTIONS, width: 860, height: 560 }],
+  badge: "Your voice",
+  headline: "Make it *sound like you*",
+  sub: "Describe how you write once. It shapes every reply, post and thread.",
+  points: ["A persona in your own words", "Reply length, language and emoji", "18 languages to write in"],
+  frames: [{ name: "voice", src: OPTIONS, width: 800, height: 600, x: 10, y: 96, scale: 0.86, tilt: -11 }],
+  callouts: [{ text: "Remembers your last drafts, so it never repeats", icon: "✓", x: 150, y: 690, rotate: -2 }],
 }, PRO, (page) => scrollFrameTo(page, "voice", "section:has(#persona)", 18));
 
 await shot(5, {
-  headline: "A free trial, then a license that follows you",
-  sub: "Sign in with Google. Your plan is there on every browser you use, with no key to type.",
+  badge: "Free trial · 20 generations",
+  headline: "Start free. Your plan *follows you*",
+  sub: "Sign in with Google and it is there on every browser you use. No key to type, no API key to find.",
+  chips: ["Starter $0.99", "!Pro $1.99", "Agency $4.99"],
   frames: [
-    { name: "account", src: OPTIONS, width: 740, height: 560 },
-    { name: "posts", src: POPUP, width: 380, height: 620, chrome: "popup" },
+    { name: "account", src: OPTIONS, width: 760, height: 600, x: -6, y: 70, scale: 0.8, tilt: -10, z: 1 },
+    { name: "posts", src: POPUP, width: 380, height: 520, chrome: "popup", x: 330, y: 250, scale: 0.9, rotate: 3, tilt: -8, z: 2 },
   ],
+  callouts: [{ text: "per month", x: 0, y: 0, rotate: 0, hidden: true }].filter((c) => !c.hidden),
 }, PRO);
 
 console.log("promo tiles");

@@ -187,7 +187,7 @@ export function loadConfig(env = process.env) {
     usageEventRetentionDays: int(env.USAGE_EVENT_RETENTION_DAYS, 60, { min: 1 }),
 
     links: {
-      buy: env.BUY_URL || "https://uniquelabs.org",
+      buy: env.BUY_URL || "https://xaicg.uniquelabs.org/#pricing",
       support: env.SUPPORT_URL || "https://uniquelabs.org",
       website: "https://uniquelabs.org",
     },

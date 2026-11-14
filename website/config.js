@@ -10,6 +10,7 @@ window.XAICG_SITE = {
   chromeStoreUrl: "https://chromewebstore.google.com/detail/lpophlkocboadjhancbdikipnphffgil",
 
   // Where people buy a license, and where they get help.
+  // Where people buy a license. Until there is a checkout, this is where they reach you.
   buyUrl: "https://uniquelabs.org",
   supportUrl: "https://uniquelabs.org",
 

@@ -7,7 +7,7 @@ Everything the developer dashboard asks for, in the order it asks. Text in code 
 | Store item ID | `lpophlkocboadjhancbdikipnphffgil` |
 | Listing address | `https://chromewebstore.google.com/detail/lpophlkocboadjhancbdikipnphffgil` |
 | Server | `https://aigc.uniquelabs.org` |
-| Website | Replace `<your-site>` everywhere below with your website's address, for example `https://xaicg.example` |
+| Website | `https://xaicg.uniquelabs.org` |
 
 The images are in [`store/assets/`](assets/). Rebuild them with `node store/generate.mjs` after the extension's look changes.
 
@@ -63,15 +63,15 @@ FREE TRIAL AND PLANS
 • Starter, $0.99 a month: 60 generations a day, one browser
 • Pro, $1.99 a month: 200 generations a day, two browsers
 • Agency, $4.99 a month: 600 generations a day, five browsers
-A license belongs to your Google account, so on a new computer you sign in and it is there. Licenses are sold at <your-site>.
+A license belongs to your Google account, so on a new computer you sign in and it is there. Licenses are sold at https://xaicg.uniquelabs.org.
 
 PRIVACY
 • XAICG reads only the post you click, and nothing else on the page
 • It never reads your direct messages, followers or password
 • The post's text is sent to the XAICG server and on to OpenAI to write the draft. The server does not save that text or the draft.
 • No advertising, no analytics trackers, no sale of data
-Full policy: <your-site>/privacy
-Terms: <your-site>/terms
+Full policy: https://xaicg.uniquelabs.org/privacy
+Terms: https://xaicg.uniquelabs.org/terms
 
 ABOUT
 XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
@@ -109,8 +109,8 @@ The screenshots show the real extension on a sample timeline with made-up accoun
 
 | Field | Value |
 | --- | --- |
-| Homepage URL | `<your-site>` |
-| Support URL | `<your-site>` or your support page |
+| Homepage URL | `https://xaicg.uniquelabs.org` |
+| Support URL | `https://xaicg.uniquelabs.org` or your support page |
 | Official URL | Optional. Needs the site verified in Google Search Console. |
 | Mature content | No |
 
@@ -183,7 +183,7 @@ These are true of the code as it stands: the only third party that receives anyt
 ### Privacy policy URL
 
 ```
-<your-site>/privacy
+https://xaicg.uniquelabs.org/privacy
 ```
 
 That page is generated from `PRIVACY-POLICY.md`. If you change how data is handled, change the policy, run `node scripts/build-privacy.mjs`, and update the answers above to match.
@@ -239,7 +239,7 @@ Notes for the reviewer:
 
 - [ ] `node scripts/pack-extension.mjs` ran without complaint (it refuses a build that points at localhost)
 - [ ] The extension, loaded unpacked, can sign in, generate a reply on x.com and activate a license against the live server
-- [ ] `<your-site>/privacy` and `<your-site>/terms` open
+- [ ] `https://xaicg.uniquelabs.org/privacy` and `https://xaicg.uniquelabs.org/terms` open
 - [ ] The reviewer license key in the test instructions works
 - [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
 

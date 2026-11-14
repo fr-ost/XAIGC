@@ -43,7 +43,7 @@ export function describeAccount(account) {
     barClass: pct >= 90 ? "bad" : pct >= 70 ? "warn" : "",
     notice,
     signInRequired,
-    buyUrl: account.links?.buy || "https://uniquelabs.org",
+    buyUrl: account.links?.buy || "https://xaicg.uniquelabs.org/#pricing",
     supportUrl: account.links?.support || "https://uniquelabs.org",
   };
 }
