@@ -187,29 +187,6 @@ fieldset {
   gap: 12px;
   justify-items: start;
 }
-/* Sign in with Google button, following Google's branding guidelines
-   (white fill, grey outline, the "G" mark, Google's pill shape). */
-.gsi {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 44px;
-  padding: 0 20px 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid #747775;
-  background: #ffffff;
-  color: #1f1f1f;
-  font: 500 14px/20px Roboto, var(--sans);
-  letter-spacing: 0.25px;
-  cursor: pointer;
-}
-.gsi:active {
-  background: #f8faff;
-}
-.gsi:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 .who {
   display: flex;
   align-items: center;
@@ -265,4 +242,43 @@ fieldset {
 }
 .avatar {
   animation: pop 0.4s ease both;
+}
+
+/* The license key stays folded away until someone has one. */
+.have-key summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.have-key summary::-webkit-details-marker {
+  display: none;
+}
+.have-key summary::before {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 500;
+}
+.have-key[open] summary::before {
+  content: "\2212";
+}
+.have-key summary:hover {
+  color: var(--ink);
+}
+.have-key form {
+  margin-top: 16px;
+  animation: rise 0.25s ease both;
+}
+.plan-body {
+  display: grid;
 }

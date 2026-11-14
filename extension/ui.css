@@ -370,6 +370,38 @@ input[type="checkbox"]:focus-visible {
   text-decoration: underline;
 }
 
+/* Sign in with Google button, following Google's branding guidelines
+   (white fill, grey outline, the "G" mark, Google's pill shape). */
+.gsi {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 20px 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid #747775;
+  background: #ffffff;
+  color: #1f1f1f;
+  font: 500 14px/20px Roboto, var(--sans);
+  letter-spacing: 0.25px;
+  cursor: pointer;
+}
+.gsi:active {
+  background: #f8faff;
+}
+.gsi:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.problem {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 13px;
+  border-left: 3px solid var(--down);
+}
+
 /* ---- motion: shared by the popup and the settings page ---- */
 .btn,
 .chip,

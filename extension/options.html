@@ -30,7 +30,7 @@
     </section>
 
     <section id="account" class="card" hidden>
-      <div class="card-head"><h2>Account</h2></div>
+      <div class="card-head"><h2 id="accountTitle">Account</h2></div>
       <div id="signedOut" class="stack">
         <p id="signInWhy" class="muted"></p>
         <button id="googleSignIn" class="gsi" type="button">
@@ -52,16 +52,20 @@
 
     <section id="license" class="card">
       <div class="card-head">
-        <h2>Plan and license</h2>
+        <h2 id="planTitle">Your free trial</h2>
         <button id="refresh" class="btn sm" type="button">Refresh</button>
       </div>
+      <p id="planLead" class="muted lead"></p>
+      <p id="serverProblem" class="problem" role="alert" hidden></p>
 
-      <div class="quota-line">
-        <span><b id="quotaLeft">–</b> <span id="quotaLabel" class="muted">generations left</span></span>
-        <span id="quotaSub" class="muted small"></span>
+      <div id="planBody" class="plan-body">
+        <div class="quota-line">
+          <span><b id="quotaLeft">–</b> <span id="quotaLabel" class="muted">generations left</span></span>
+          <span id="quotaSub" class="muted small"></span>
+        </div>
+        <div id="quotaBar" class="bar"><i></i></div>
+        <p id="notice" class="notice" hidden></p>
       </div>
-      <div id="quotaBar" class="bar"><i></i></div>
-      <p id="notice" class="notice" hidden></p>
 
       <dl id="licenseInfo" class="facts" hidden>
         <div class="wide"><dt>License</dt><dd id="licHint" class="mono"></dd></div>
@@ -70,25 +74,30 @@
         <div><dt>Devices</dt><dd id="licDevices"></dd></div>
       </dl>
 
-      <form id="activateForm" class="activate">
-        <label for="licenseKey">License key</label>
-        <div class="inline">
-          <input id="licenseKey" type="text" class="mono" placeholder="XAICG-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false" maxlength="80">
-          <button id="activate" class="btn primary" type="submit">Activate</button>
-        </div>
-      </form>
-      <p id="licenseStatus" class="status" role="status" aria-live="polite"></p>
       <div id="accountLicenseBox" class="replace" hidden>
         <p id="accountLicenseText"></p>
         <button id="attachLicense" class="btn primary" type="button">Use it on this browser</button>
       </div>
+
+      <!-- A license is for later. It stays folded away until someone has one. -->
+      <details id="haveKey" class="have-key">
+        <summary>I have a license key</summary>
+        <form id="activateForm" class="activate">
+          <label for="licenseKey">License key</label>
+          <div class="inline">
+            <input id="licenseKey" type="text" class="mono" placeholder="XAICG-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false" maxlength="80">
+            <button id="activate" class="btn primary" type="submit">Activate</button>
+          </div>
+        </form>
+      </details>
+      <p id="licenseStatus" class="status" role="status" aria-live="polite"></p>
       <div id="replaceBox" class="replace" hidden>
         <p>This license is already in use on its maximum number of devices. You can move it here by signing out the device that has been idle longest.</p>
         <button id="replace" class="btn" type="button">Move the license to this browser</button>
       </div>
 
       <div class="card-foot">
-        <a id="buy" class="btn primary" target="_blank" rel="noopener">Get a license</a>
+        <a id="buy" class="btn" target="_blank" rel="noopener">See plans</a>
         <button id="deactivate" class="btn danger" type="button" hidden>Remove license from this browser</button>
       </div>
     </section>

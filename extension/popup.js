@@ -47,9 +47,17 @@ function showAccount(account) {
   if (!d) return;
   buyUrl = d.buyUrl;
   const upgrade = $("upgrade");
+  const spent = d.trial && !d.signInRequired && d.left === 0;
   upgrade.hidden = !d.trial || d.signInRequired;
   upgrade.href = buyUrl;
-  $("signIn").hidden = !d.signInRequired;
+  upgrade.textContent = spent ? "Get a license" : "See plans";
+  upgrade.className = spent ? "btn sm primary" : "btn sm";
+  // Until someone has signed in there is no trial to count: offer the
+  // sign-in instead of an empty meter.
+  $("start").hidden = !d.signInRequired;
+  $("usage").hidden = d.signInRequired;
+  $("startCount").textContent = String(account.quota?.limit || 20);
+  $("problem").hidden = true;
 }
 
 function applyMode() {
@@ -205,8 +213,27 @@ $("copyAll").addEventListener("click", async () => {
   setTimeout(() => ($("copyAll").textContent = "Copy thread"), 1400);
 });
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
-// Signing in happens on the settings page, where there is room to explain it.
-$("signIn").addEventListener("click", () => send("xaicg:open-options", { section: "account" }).then(() => window.close(), () => {}));
+// Chrome shows its own Google account prompt. If that prompt takes the focus
+// and closes this popup, the sign-in still finishes in the background, and
+// the popup shows the trial the next time it is opened.
+$("startSignIn").addEventListener("click", async () => {
+  const button = $("startSignIn");
+  const say = (message, kind = "") => {
+    $("startStatus").textContent = message;
+    $("startStatus").className = `status ${kind}`.trim();
+  };
+  button.disabled = true;
+  say("Waiting for Google…");
+  try {
+    const { account } = await send("xaicg:signin");
+    showAccount(account);
+    sfx("done");
+  } catch (err) {
+    say(err.message, err.code === "sign_in_cancelled" ? "" : "error");
+  } finally {
+    button.disabled = false;
+  }
+});
 
 (async function init() {
   const stored = await chrome.storage.local.get(["popupState", "account", "settings"]);
@@ -223,6 +250,10 @@ $("signIn").addEventListener("click", () => send("xaicg:open-options", { section
     const { account } = await send("xaicg:account", { refresh: true });
     showAccount(account);
   } catch (err) {
-    if (!stored.account) setStatus(err.message, "error");
+    if (!stored.account) {
+      $("problem").textContent = `${err.message} Your free trial will show here once the server answers.`;
+      $("problem").hidden = false;
+      $("usage").hidden = true; // nothing to count without the server
+    }
   }
 })();

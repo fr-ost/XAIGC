@@ -107,3 +107,32 @@ footer {
   border-color: var(--ink);
   transform: translateY(-2px);
 }
+
+/* First run: the trial offer comes before everything else. */
+.start {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  border-color: var(--surface-dark);
+  background: var(--surface-dark);
+  color: var(--on-dark-soft);
+}
+.start h2 {
+  color: var(--on-dark);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+}
+.start .muted {
+  color: var(--on-dark-soft);
+}
+.start b {
+  color: var(--on-dark);
+}
+.start .status {
+  color: var(--on-dark-soft);
+}
+.start .status.error {
+  color: #ff8a93;
+}
