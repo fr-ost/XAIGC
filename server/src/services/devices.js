@@ -73,11 +73,19 @@ export async function registerDevice(db, config, { installId, clientVersion, ipH
   throw new Error("device registration failed");
 }
 
+// A device row as the rest of the server sees it:
+//   device.license  the bound license (or null). `owner_blocked` is added to
+//                   it: a license whose owning account is blocked is unusable
+//                   on every browser, however the seat was obtained.
+//   device.user     the signed-in account (or null).
 const DEVICE_SELECT = `
   SELECT d.*,
-         CASE WHEN l.id IS NULL THEN NULL ELSE to_jsonb(l) END AS license,
+         CASE WHEN l.id IS NULL THEN NULL
+              ELSE to_jsonb(l) || jsonb_build_object(
+                'owner_blocked', COALESCE((SELECT o.blocked FROM users o WHERE o.id = l.user_id), false)) END AS license,
          CASE WHEN u.id IS NULL THEN NULL
-              ELSE jsonb_build_object('id', u.id, 'email', u.email, 'name', u.name, 'blocked', u.blocked) END AS "user"
+              ELSE jsonb_build_object('id', u.id, 'email', u.email, 'name', u.name, 'blocked', u.blocked,
+                                      'email_current', u.email_current, 'trial_key', u.trial_key) END AS "user"
   FROM devices d
   LEFT JOIN licenses l ON l.id = d.license_id
   LEFT JOIN users u ON u.id = d.user_id`;

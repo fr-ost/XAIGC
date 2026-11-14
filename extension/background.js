@@ -137,8 +137,18 @@ async function request(path, { method = "GET", body, auth = true, retried = fals
 
 /* -------------------------------- actions -------------------------------- */
 
+// Looking at the account is read-only on the server. If the signed-in account
+// has a license with a free seat that is not on this browser yet (for example
+// one that was just issued to the user's email), ask for it.
 async function refreshAccount() {
   const res = await request("/v1/me");
+  if (res.account?.accountLicense?.reason === "available") {
+    try {
+      return (await request("/v1/license/attach", { method: "POST", body: {} })).account;
+    } catch {
+      /* keep the read-only view; the settings page offers the license explicitly */
+    }
+  }
   return res.account;
 }
 
@@ -222,19 +232,27 @@ const SIGN_IN_WINDOW_MS = 15 * 60_000;
 const finishing = new Set();
 
 async function startSignIn() {
-  const { url } = await request("/v1/auth/google/start", { method: "POST" });
-  await chrome.storage.session.set({ signInStartedAt: Date.now() });
+  const { url, done } = await request("/v1/auth/google/start", { method: "POST" });
+  // The worker can only see the tab come back on the server it talks to. If
+  // the server announces a different public address, say so now instead of
+  // leaving the user on a page that never closes.
+  if (done && !String(done).startsWith(AUTH_DONE_URL)) {
+    throw new ApiError("server_misconfigured", `Sign-in is not set up correctly: the server's PUBLIC_URL (${new URL(done).origin}) is not the address this extension uses (${new URL(API_BASE).origin}).`);
+  }
+  const tab = await chrome.tabs.create({ url });
+  await chrome.storage.session.set({ signIn: { tabId: tab.id, startedAt: Date.now() } });
   await local.set({ signInStatus: { state: "pending", at: Date.now() } });
-  await chrome.tabs.create({ url });
   return {};
 }
 
+// Only the tab this worker opened for the sign-in counts. Any other page
+// that shows up at the done address (a stray link, another site opening it)
+// is ignored and cannot use up or cancel the real attempt.
 async function finishSignIn(tabId, url) {
+  const { signIn } = await chrome.storage.session.get("signIn");
+  if (!signIn || signIn.tabId !== tabId || Date.now() - signIn.startedAt > SIGN_IN_WINDOW_MS) return;
   const code = new URLSearchParams(new URL(url).hash.slice(1)).get("code");
   if (!code || finishing.has(code)) return;
-  // Only if this browser actually started a sign-in a moment ago.
-  const { signInStartedAt } = await chrome.storage.session.get("signInStartedAt");
-  if (!signInStartedAt || Date.now() - signInStartedAt > SIGN_IN_WINDOW_MS) return;
   finishing.add(code);
   try {
     await request("/v1/auth/google/complete", { method: "POST", body: { code } });
@@ -243,12 +261,21 @@ async function finishSignIn(tabId, url) {
   } catch (err) {
     await local.set({ signInStatus: { state: "error", message: err.message || "Sign-in did not finish.", at: Date.now() } });
   } finally {
-    await chrome.storage.session.remove("signInStartedAt");
+    await chrome.storage.session.remove("signIn");
   }
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.url && changeInfo.url.startsWith(AUTH_DONE_URL)) finishSignIn(tabId, changeInfo.url);
+});
+
+// If the user closes the sign-in tab, stop waiting for it.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const { signIn } = await chrome.storage.session.get("signIn");
+  if (signIn?.tabId !== tabId) return;
+  await chrome.storage.session.remove("signIn");
+  const { signInStatus } = await local.get("signInStatus");
+  if (signInStatus?.state === "pending") await local.set({ signInStatus: { state: "cancelled", at: Date.now() } });
 });
 
 const handlers = {
@@ -260,7 +287,7 @@ const handlers = {
   "xaigc:account": async (msg) => ({ account: msg.refresh ? await refreshAccount() : await cachedAccount() }),
   "xaigc:activate": (msg) => request("/v1/license/activate", { method: "POST", body: { key: String(msg.key || ""), replaceOldest: msg.replaceOldest === true } }),
   "xaigc:deactivate": () => request("/v1/license/deactivate", { method: "POST" }),
-  "xaigc:attach-license": () => request("/v1/license/attach", { method: "POST" }),
+  "xaigc:attach-license": (msg) => request("/v1/license/attach", { method: "POST", body: { replaceOldest: msg.replaceOldest === true } }),
   "xaigc:signin": () => startSignIn(),
   "xaigc:signout": () => request("/v1/auth/signout", { method: "POST" }),
   "xaigc:clear-memory": async () => {

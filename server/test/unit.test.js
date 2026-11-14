@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { loadConfig } from "../src/config.js";
+import { connectionStringFor } from "../src/db/index.js";
 import { ipGroup, safeEqual } from "../src/services/crypto.js";
 import { createActivityGate, createLimiter } from "../src/services/ratelimit.js";
 import { generateLicenseKey, hashKey, keyHint, licenseState, normalizeKey } from "../src/services/licenses.js";
@@ -47,6 +48,18 @@ test("config: PLANS_JSON overrides the plan table and is validated", () => {
   assert.deepEqual(Object.keys(cfg.plans), ["solo"]);
   assert.throws(() => loadConfig({ PLANS_JSON: "{" }), /PLANS_JSON/);
   assert.throws(() => loadConfig({ PLANS_JSON: JSON.stringify({ solo: { dailyLimit: "x" } }) }), /PLANS_JSON/);
+});
+
+test("database TLS: an explicit setting is not overridden by ?sslmode= in the URL", () => {
+  const url = "postgres://u:p@db.example.com:5432/postgres?sslmode=no-verify&application_name=xaigc";
+  const plain = loadConfig({ DATABASE_URL: url });
+  assert.equal(connectionStringFor(plain), url, "left alone when nothing is configured explicitly");
+  for (const env of [{ DATABASE_SSL: "true" }, { DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\\nx\\n-----END CERTIFICATE-----" }, { DATABASE_SSL: "no-verify" }]) {
+    const cleaned = new URL(connectionStringFor(loadConfig({ DATABASE_URL: url, ...env })));
+    assert.equal(cleaned.searchParams.get("sslmode"), null, JSON.stringify(env));
+    assert.equal(cleaned.searchParams.get("application_name"), "xaigc", "other parameters are kept");
+    assert.equal(cleaned.host, "db.example.com:5432");
+  }
 });
 
 /* ---------------------------------- crypto -------------------------------- */

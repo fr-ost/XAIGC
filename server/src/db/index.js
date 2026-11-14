@@ -26,10 +26,26 @@ function sslOption(config) {
   return undefined; // defer to the connection string (Railway's private network uses none)
 }
 
+// node-postgres lets TLS parameters in the connection string override the
+// `ssl` option, so "?sslmode=..." pasted along with a hosted database's URL
+// would silently replace DATABASE_SSL / DATABASE_SSL_CA (even downgrade a
+// pinned certificate to no verification). When TLS is configured explicitly,
+// those parameters are removed from the URL so the explicit setting applies.
+export function connectionStringFor(config) {
+  if (!sslOption(config)) return config.databaseUrl;
+  try {
+    const url = new URL(config.databaseUrl);
+    for (const key of ["sslmode", "ssl", "sslcert", "sslkey", "sslrootcert", "uselibpqcompat"]) url.searchParams.delete(key);
+    return url.toString();
+  } catch {
+    return config.databaseUrl;
+  }
+}
+
 async function createPgDb(config, logger) {
   const { default: pg } = await import("pg");
   const pool = new pg.Pool({
-    connectionString: config.databaseUrl,
+    connectionString: connectionStringFor(config),
     ssl: sslOption(config),
     max: config.databasePoolMax,
     idleTimeoutMillis: 30_000,

@@ -221,7 +221,7 @@ export async function createTestApp(env = {}) {
       return t.completeSignIn(device, back.completion);
     },
     signOut: (device) => call("POST", "/v1/auth/signout", { token: device.token, ip: device.ip }),
-    attach: (device) => call("POST", "/v1/license/attach", { token: device.token, ip: device.ip }),
+    attach: (device, body = {}) => call("POST", "/v1/license/attach", { token: device.token, ip: device.ip, body }),
     activate: (device, key, extra = {}) => call("POST", "/v1/license/activate", { token: device.token, ip: device.ip, body: { key, ...extra } }),
     deactivate: (device) => call("POST", "/v1/license/deactivate", { token: device.token, ip: device.ip }),
     admin: (method, path, body) => call(method, `/admin/api${path}`, { token: ADMIN_TOKEN, body, ip: "198.51.100.7" }),

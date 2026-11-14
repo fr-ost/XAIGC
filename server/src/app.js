@@ -120,8 +120,8 @@ export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl
 
     // With an allowlist configured, only the published extension may make
     // state-changing calls. GET is exempt: Chrome sends no Origin header on
-    // an extension's GET requests, and GET /v1/me only reads the caller's
-    // own account with its device token.
+    // an extension's GET requests. That is safe because GET /v1/me changes
+    // nothing: it only describes the caller's own account.
     if (route.startsWith("/v1/") && req.method !== "GET" && config.allowedOrigins.length) {
       const origin = req.headers.origin || "";
       if (!config.allowedOrigins.includes(origin)) {

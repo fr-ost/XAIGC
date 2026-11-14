@@ -227,6 +227,7 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
           properties: {
             plan: { type: "string", maxLength: 32 },
             email: { type: "string", maxLength: 254 },
+            userId: { type: "string", format: "uuid" }, // issue to this account (its email is used)
             note: { type: "string", maxLength: 500 },
             days: nullableInt(1, 36500),
             expiresAt: { type: ["string", "null"], maxLength: 40 },

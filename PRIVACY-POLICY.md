@@ -11,7 +11,7 @@ This policy explains what the extension and the XAIGC server process, why, and w
 - XAIGC writes drafts. It never posts, likes, follows or sends anything on your behalf.
 - To write a draft, the text of the post you chose (or the idea or draft you typed) is sent to the XAIGC server and on to OpenAI. The XAIGC server does not save that text or the generated draft.
 - No OpenAI API key is needed from you, and none is stored in the extension.
-- If you sign in with Google, XAIGC receives your name and email address and nothing else from your Google account.
+- If you sign in with Google, XAIGC keeps your Google account ID, name and email address, and nothing else from your Google account.
 - Your X password, direct messages, followers and other account data are never read.
 - No advertising, no analytics trackers, no sale of data.
 
@@ -35,6 +35,7 @@ The server forwards this to OpenAI to generate the draft, checks the result with
 | X account handle | Hashed in your browser before it is sent, then hashed again with a server key | Stops the free trial being restarted by reinstalling |
 | License key | One-way hash, plus a masked hint such as `XAIGC-ABCDE-*****-*****-**XYZ` | Validates your license |
 | Google account | Google's account ID, your email address and your name, as provided by Google when you sign in | Your XAIGC account: one free trial per person, and a license that follows you between browsers |
+| Free-trial count | A number stored under a keyed one-way hash of your Google account ID | One free trial per person. Kept even if the account is deleted, so the trial cannot be restarted. |
 | Email address | As provided at purchase, if any | License delivery and support |
 | Usage records | Time, type of request, model, token counts, outcome, installation, license | Enforcing plan limits, billing accuracy, abuse detection |
 
@@ -44,7 +45,7 @@ Raw IP addresses are held in memory only, for short-lived rate limiting, and are
 
 ### Signing in with Google
 
-Signing in is handled by Google. XAIGC asks only for your basic profile (`openid`, `email`, `profile`): it receives your Google account ID, your email address and your name. It does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. No Google access token is stored. You can remove XAIGC's access at any time at https://myaccount.google.com/permissions and sign out in the extension's settings.
+Signing in is handled by Google. XAIGC asks only for your basic profile (`openid`, `email`, `profile`). Google's answer contains your Google account ID, email address, name, profile picture address and language; XAIGC keeps the first three and discards the rest. It does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. No Google access token is stored. You can remove XAIGC's access at any time at https://myaccount.google.com/permissions and sign out in the extension's settings.
 
 ## 3. What stays in your browser
 
@@ -54,6 +55,7 @@ Stored with Chrome's extension storage on your device:
 - Your last 30 drafts, used to avoid repetition. You can clear them at any time in Settings.
 - Your install ID and access token
 - A one-way hash of your X handle (never the handle itself)
+- If you are signed in, your name and email address, as part of the cached plan below
 - A cached copy of your plan and remaining allowance
 - The contents of the compose window, so it is not lost when the popup closes
 
@@ -72,14 +74,14 @@ Data is not sold, rented or shared for advertising.
 - **storage**: saving your settings and the items in section 3.
 - **clipboardWrite**: copying a draft when you choose clipboard mode or copy a quote line.
 - **Access to x.com and twitter.com**: adding the XAIGC buttons to posts, reading the post you chose, and typing the draft into the reply box.
-- **Access to the XAIGC server**: sending generation requests.
+- **Access to the XAIGC server**: sending generation requests, and, during a sign-in you started, noticing when the sign-in tab returns to the XAIGC server so the sign-in can be completed and the tab closed. The extension does not read your other tabs.
 
 ## 6. Your choices
 
 - Use clipboard mode if you do not want the extension to type into X.
 - Clear your reply memory in Settings.
 - Sign out, or use a license key without signing in at all.
-- Ask for your account and server-side records to be deleted by contacting us with your account email, or the install ID shown under Settings, About.
+- Ask for your account to be deleted by contacting us with your account email, or the install ID shown under Settings, About. Deleting an account erases your Google account ID, name and email address, including the email on any license. What remains carries none of those: the free-trial count described above, your license itself (usable with its key), and usage records.
 - Uninstall the extension at any time.
 
 ## 7. Security

@@ -4,7 +4,7 @@
 
   const $ = (id) => document.getElementById(id);
   const PAGE = 50;
-  const state = { token: sessionStorage.getItem("xaigc_admin") || "", offset: 0, total: 0, userOffset: 0, userTotal: 0, plans: [], openId: null };
+  const state = { token: sessionStorage.getItem("xaigc_admin") || "", offset: 0, total: 0, userOffset: 0, userTotal: 0, plans: [], openId: null, issueFor: null };
 
   // h("td", { class: "num" }, "text", childNode)
   function h(tag, attrs, ...children) {
@@ -227,10 +227,11 @@
       h("div", { class: "row-actions" },
         button("Issue a license to this user", async () => {
           $("detail").close();
+          state.issueFor = { id: u.id, email: u.email };
           $("cEmail").value = u.email;
           $("issueCard").scrollIntoView({ behavior: "smooth", block: "start" });
           $("cPlan").focus({ preventScroll: true });
-          toast("Choose a plan and press Create. It appears in their extension straight away.");
+          toast("Choose a plan and press Create. It reaches their extension on their next click, if a seat is free.");
         }),
         u.blocked
           ? button("Unblock", async () => {
@@ -246,7 +247,8 @@
               await refresh();
             }, "danger"),
         button("Delete user", async () => {
-          if (!confirm(`Delete ${u.email}? Their browsers are signed out and their account record is erased. Licenses they own are kept as key-only licenses.`)) return;
+          const warning = u.blocked ? "\n\nThis user is BLOCKED. Deleting the account also deletes the block: they could sign up again. Keep blocked users instead." : "";
+          if (!confirm(`Delete ${u.email}?\n\nErased: their Google account ID, name and email, including the email on their licenses, which become key-only. Their browsers are signed out.\n\nKept: their free-trial count (so it cannot be restarted) and anonymous usage records.${warning}`)) return;
           await api(`/users/${id}`, { method: "DELETE" });
           $("detail").close();
           toast("User deleted");
@@ -345,7 +347,11 @@
     $("createError").textContent = "";
     const mode = $("cValidity").value;
     const body = { plan: $("cPlan").value, count: Number($("cCount").value) || 1 };
-    if ($("cEmail").value.trim()) body.email = $("cEmail").value.trim();
+    const email = $("cEmail").value.trim();
+    // Coming from "Issue a license to this user": send the account itself,
+    // so the license goes to exactly that user and not to a look-alike address.
+    if (state.issueFor && email === state.issueFor.email) body.userId = state.issueFor.id;
+    else if (email) body.email = email;
     if ($("cNote").value.trim()) body.note = $("cNote").value.trim();
     if ($("cDevices").value) body.maxDevices = Number($("cDevices").value);
     if ($("cDaily").value) body.dailyLimit = Number($("cDaily").value);
@@ -364,6 +370,7 @@
       );
       $("copyAll").onclick = () => copy(keys.join("\n"), `${keys.length} key${keys.length === 1 ? "" : "s"} copied`);
       $("created").hidden = false;
+      state.issueFor = null;
       state.offset = 0;
       await Promise.all([loadLicenses(), loadUsers(), loadStats()]);
     } catch (err) {

@@ -46,8 +46,9 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
     if (clock() - new Date(device.last_seen_at).getTime() > 10 * 60_000) {
       await touchDevice(db, device.id, { ipHash: req.net.hash, clientVersion: clientVersion(req) });
     }
-    // A signed-in browser picks up its account's license here, so a license
-    // issued or granted while the user was away shows up on their next look.
+    // Read-only. If the signed-in account has a license that is not on this
+    // browser, it is reported in account.accountLicense and the extension
+    // asks for it with POST /v1/license/attach.
     const { account } = await resolveAccount(db, config, { device, ipHash: req.net.hash, now: clock(), log: req.log });
     return { deviceId: device.id, account };
   });
@@ -99,20 +100,39 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
     },
   );
 
-  // Move the signed-in account's license to this browser, signing out the
-  // browser that has been idle longest if every seat is taken. No key needed:
-  // the account owns the license.
-  app.post("/v1/license/attach", { preValidation: requireDevice }, async (req) => {
-    const device = req.device;
-    if (!device.user) throw errors.forbidden("sign_in_required", "Sign in with Google first.");
-    const { attached, waiting } = await attachAccountLicense(db, config, { device, explicit: true, ipHash: req.net.hash });
-    if (!attached && waiting?.error) throw waiting.error;
-    if (!attached && licenseStateOf(device) !== "active") {
-      throw new ApiError(404, "no_account_license", "This account does not have an active license.");
-    }
-    const fresh = await getDevice(db, device.id);
-    return { ok: true, account: await buildAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock() }) };
-  });
+  // Put the signed-in account's license on this browser. No key needed: the
+  // license was issued to this account. With replaceOldest, a full license
+  // gives up the seat of the browser that has been idle longest; without it,
+  // a full license answers 409 device_limit and nothing changes.
+  app.post(
+    "/v1/license/attach",
+    {
+      preValidation: requireDevice,
+      schema: {
+        body: {
+          type: ["object", "null"],
+          additionalProperties: false,
+          properties: { replaceOldest: { type: "boolean" } },
+        },
+      },
+    },
+    async (req) => {
+      const device = req.device;
+      if (!device.user) throw errors.forbidden("sign_in_required", "Sign in with Google first.");
+      const { attached, waiting } = await attachAccountLicense(db, config, {
+        device,
+        explicit: true,
+        replaceOldest: req.body?.replaceOldest === true,
+        ipHash: req.net.hash,
+      });
+      if (!attached && waiting?.error) throw waiting.error;
+      if (!attached && licenseStateOf(device) !== "active") {
+        throw new ApiError(404, "no_account_license", "This account does not have an active license.");
+      }
+      const fresh = await getDevice(db, device.id);
+      return { ok: true, account: await buildAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock() }) };
+    },
+  );
 
   app.post("/v1/license/deactivate", { preValidation: requireDevice }, async (req) => {
     await deactivateDevice(db, { device: req.device, ipHash: req.net.hash });

@@ -36,7 +36,7 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 - **Try another** steps through alternative drafts the server already returned, without spending another generation.
 - **Compose studio** in the toolbar popup: original posts, threads and rewrites of a draft.
 - A persona description, default tone, reply length, language and emoji preference that apply to everything.
-- **Sign in with Google.** One free trial per Google account, and a license that follows the account: on a new browser the user signs in and is licensed, with no key to type.
+- **Sign in with Google.** One free trial per Google account, and a license that follows the account it was issued to: on a new browser the user signs in and is licensed, with no key to type.
 - A license key still works on its own, for customers who prefer not to sign in.
 
 ## Deploying the server on Railway
@@ -79,7 +79,9 @@ The server needs one Postgres database and nothing else. It creates and upgrades
 
 On Supabase, use the session pooler rather than the direct connection (which is IPv6-only without an add-on) or the transaction pooler (port `6543`, meant for serverless functions).
 
-Every table has row level security enabled with no policies. The server connects as the table owner and is unaffected; everything else is refused. This matters on Supabase, where tables in the `public` schema are otherwise readable through the project's auto-generated API. You can look at the data in Supabase's table editor, but make changes through the admin dashboard: keys, tokens and addresses are stored as hashes and cannot be edited by hand.
+Every table has row level security enabled with no policies. The server connects as the table owner and is unaffected. This matters on Supabase, where tables in the `public` schema are otherwise readable through the project's auto-generated API with its public (anon) key: with RLS on, that key gets nothing. Row level security does not restrain privileged credentials (the database password, or Supabase's `service_role` key), so keep those secret as you would for any database. You can look at the data in Supabase's table editor, but make changes through the admin dashboard: keys, tokens and addresses are stored as hashes and cannot be edited by hand.
+
+If you set `DATABASE_SSL` or `DATABASE_SSL_CA`, they take precedence over any `sslmode=` in the connection string.
 
 ## Google sign-in
 
@@ -93,13 +95,15 @@ Sign-in is off until you give the server Google credentials. With it on, people 
    | --- | --- |
    | `GOOGLE_CLIENT_ID` | the client ID |
    | `GOOGLE_CLIENT_SECRET` | the client secret |
-   | `PUBLIC_URL` | `https://<your-domain>` (on Railway this defaults to the generated domain; set it when you use a custom domain) |
+   | `PUBLIC_URL` | `https://<your-domain>`. It must be the same address the extension uses (the one you gave `set-api-url`). On Railway it defaults to the generated domain; set it when you use a custom domain. |
 
 4. Redeploy. The extension's settings page now shows **Sign in with Google**.
 
 Set `TRIAL_REQUIRE_SIGN_IN=false` if you would rather keep signing in optional.
 
-How it works: the extension opens Google in a normal tab, Google returns to the server, and the server reads the account's ID, name and verified email. Nothing else is requested from Google and no Google token is stored. The sign-in only takes effect when the same browser that started it presents a one-time code together with its own device token, so a sign-in link sent to someone else does nothing.
+How it works: the extension opens Google in a normal tab and Google returns to the server with the account's basic profile (the `openid`, `email` and `profile` scopes). The server keeps the account ID, name and verified email, discards the rest, and stores no Google token. The sign-in only takes effect when the same browser that started it presents a one-time code together with its own device token, so a sign-in link sent to someone else does nothing.
+
+Who owns a license: the Google account whose verified email the license was issued to, and nobody else. Typing a key gives that browser a seat; it never makes the signed-in account the owner. So someone who was given one seat, or who got hold of a key, cannot move the license around or keep it after you rotate the key.
 
 ## Connecting the extension
 
@@ -125,8 +129,10 @@ Open `https://<your-domain>/admin` and sign in with `ADMIN_TOKEN`.
 - **Keys are shown once.** Only a hash is stored, so a leaked database cannot be turned into working keys. If a customer loses a key, use Rotate key.
 - **Manage**: revoke or restore, extend, change limits, release devices, block an install, and see per-license usage and history.
 - **Dashboard**: generations today, estimated OpenAI cost, active licenses, installs, users.
-- **Users**: everyone who has signed in, with their plan, trial use, browsers and generations. Search, filter, block (takes effect on all of their browsers at once), delete (for data deletion requests), and issue a license to a user.
-- **Licenses by email**: put the customer's email on a license and it becomes theirs the moment they sign in with that Google account. If they already have an account, it is active on their next click. The key is only a fallback.
+- **Users**: everyone who has signed in, with their plan, trial use, browsers and generations. Search, filter, and issue a license to a user.
+  - **Block** shuts the user out on all of their browsers at once and disables the licenses they own everywhere, including by key.
+  - **Delete** is for data deletion requests. It erases the account's Google ID, name and email, including the email on their licenses (which become key-only), and signs their browsers out. It keeps their free-trial count under a keyed hash, so the trial cannot be restarted, and usage records that carry no name or email. Deleting a blocked user removes the block, so block abusers rather than deleting them.
+- **Licenses by email**: put the customer's email on a license and it becomes theirs the moment they sign in with that Google account. If they already have an account, it is active on their next click, provided a seat is free and they have not removed it from that browser. The key is only a fallback. Changing the email on a license moves it to the new person.
 
 Built-in plans (change them with `PLANS_JSON`, or override limits per license):
 
@@ -151,8 +157,9 @@ Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/li
 | A runaway OpenAI bill | Hard global caps on generations per day, and a time budget per generation. Failures are refunded, but a failure the model was already paid for is refunded only a few times an hour per install and network, so no input can be looped to spend money for free. |
 | Harmful output | Safety rules in the system prompt, OpenAI moderation on every result, and a pseudonymous per-user id sent to OpenAI so misuse is attributed to one user. |
 | Stolen credentials | Device tokens, install IDs and license keys are stored only as hashes. IPs and X accounts are stored only as keyed hashes. Reinstalling rotates the device token. |
+| Taking over someone's license | A license is owned only by the Google account whose verified email it was issued to. A key gives a seat, never ownership, and an account whose address has since moved to another Google account can no longer claim it. Moving a license to another browser happens only when its owner asks. |
 | Account takeover through sign-in | The sign-in completes only when the browser that started it presents a one-time code plus its own device token. States and codes are single use and expire in ten minutes. Google's response is checked for issuer, audience, nonce, expiry and a verified email. |
-| Abusive users | Block a user from the dashboard and every browser they are signed in on is refused immediately. |
+| Abusive users | Block a user from the dashboard: every browser they are signed in on is refused immediately, and the licenses they own stop working everywhere, including on browsers that only have the key. |
 | Admin takeover | Constant-time token comparison, throttling of wrong tokens (the correct token is never locked out), and the admin surface does not exist unless `ADMIN_TOKEN` is set. |
 
 Quota counters are reserved in Postgres before the model is called, inside one transaction, so parallel requests cannot overspend a limit.
@@ -207,7 +214,7 @@ All responses are JSON. Errors have the shape `{"error":{"code":"...","message":
 - Rate limits are per process. If you run several replicas, each enforces its own. Trial, daily and global limits live in Postgres and stay exact.
 - Per-request usage records are pruned after 60 days (`USAGE_EVENT_RETENTION_DAYS`). They never contain post text or generated text.
 - Client addresses come from `X-Real-IP` on Railway. On any other host nothing is assumed and the socket address is used, so set `CLIENT_IP_HEADER` to a header your platform overwrites with the caller's address (never one a client can set freely). The admin dashboard header shows what the server sees for you.
-- Reinstalling the extension creates a new install. A signed-in customer just signs in again and their license comes back. A customer using only a key enters it again; if the old install still holds a seat, the settings page offers to move the license to the current browser.
+- Reinstalling the extension creates a new install. A customer whose license was issued to their email just signs in again and it comes back. A customer using only a key enters it again; if the old install still holds a seat, the settings page offers to move the license to the current browser.
 - The Google client secret stays on the server. If it leaks, rotate it in Google Cloud Console and update `GOOGLE_CLIENT_SECRET`; signed-in users are not affected.
 
 ## License

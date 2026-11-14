@@ -58,12 +58,21 @@ async function main() {
   const pruner = setInterval(prune, 6 * 60 * 60 * 1000);
   pruner.unref();
 
+  // An abandoned sign-in holds the Google identity it was parked with. Clear
+  // expired ones on a timer rather than waiting for the next sign-in.
+  const pruneSignIns = () =>
+    db.query("DELETE FROM auth_flows WHERE expires_at < now()").catch((err) => app.log.warn({ err }, "sign-in pruning failed"));
+  pruneSignIns();
+  const signInPruner = setInterval(pruneSignIns, 5 * 60 * 1000);
+  signInPruner.unref();
+
   let closing = false;
   const shutdown = async (signal) => {
     if (closing) return;
     closing = true;
     app.log.info({ signal }, "shutting down");
     clearInterval(pruner);
+    clearInterval(signInPruner);
     try {
       await app.close();
       await db.close();

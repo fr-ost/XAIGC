@@ -7,32 +7,58 @@ import { errors } from "../errors.js";
 import { num } from "../db/index.js";
 
 // Create the account on first sign-in, refresh email and name afterwards.
-export async function upsertGoogleUser(q, { sub, email, name }) {
-  const { rows } = await q.query(
-    `INSERT INTO users (id, google_sub, email, name) VALUES ($1, $2, $3, $4)
-     ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, last_login_at = now()
-     RETURNING *, (xmax = 0) AS created`,
-    [randomUUID(), sub, email, name],
-  );
-  return rows[0];
+//
+// `trialKey` is a keyed hash of the Google account id. The trial counter
+// hangs off it instead of the row id, so an account that is deleted and comes
+// back does not get a second free trial.
+//
+// Google guarantees an address belongs to one account at a time, so whichever
+// account just signed in with it is the current holder: any other row still
+// carrying that address has a stale copy and can no longer claim licenses
+// issued to it.
+export async function upsertGoogleUser(db, { sub, email, name }, trialKey) {
+  return db.tx(async (t) => {
+    const { rows } = await t.query(
+      `INSERT INTO users (id, google_sub, email, name, trial_key) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (google_sub) DO UPDATE SET
+         email = EXCLUDED.email, name = EXCLUDED.name, email_current = true, last_login_at = now()
+       RETURNING *, (xmax = 0) AS created`,
+      [randomUUID(), sub, email, name, trialKey],
+    );
+    await t.query("UPDATE users SET email_current = false WHERE lower(email) = lower($1) AND id <> $2 AND email_current", [
+      email,
+      rows[0].id,
+    ]);
+    return rows[0];
+  });
 }
 
-// Sign a browser out. A license that belongs to the account leaves with it;
-// one that was activated on this browser with a key stays.
+async function releaseSeat(t, device, detail, ipHash) {
+  await t.query("UPDATE devices SET license_id = NULL, activated_at = NULL, seat_source = NULL WHERE id = $1", [device.id]);
+  await t.query(
+    "INSERT INTO license_events (license_id, device_id, type, detail, ip_hash) VALUES ($1, $2, 'deactivated', $3, $4)",
+    [device.license_id, device.id, detail, ipHash],
+  );
+}
+
+// Point a browser at an account. If it was signed in as someone else and
+// holds a seat that came with that other account, the seat goes back first.
+export async function signInDevice(db, device, user, { ipHash = null } = {}) {
+  await db.tx(async (t) => {
+    if (device.license_id && device.seat_source === "account" && device.user_id && device.user_id !== user.id) {
+      await releaseSeat(t, device, "another account signed in", ipHash);
+    }
+    await t.query("UPDATE devices SET user_id = $1, detached_license_id = NULL WHERE id = $2", [user.id, device.id]);
+  });
+}
+
+// Sign a browser out. A seat that came with the account leaves with it; a
+// seat someone got by typing the key on this browser stays.
 export async function signOutDevice(db, device, { ipHash = null } = {}) {
   if (!device.user_id) return false;
   await db.tx(async (t) => {
-    const owned = device.license && device.license.user_id === device.user_id;
-    await t.query(
-      `UPDATE devices SET user_id = NULL${owned ? ", license_id = NULL, activated_at = NULL" : ""} WHERE id = $1`,
-      [device.id],
-    );
-    if (owned) {
-      await t.query(
-        "INSERT INTO license_events (license_id, device_id, type, detail, ip_hash) VALUES ($1, $2, 'deactivated', 'signed out', $3)",
-        [device.license.id, device.id, ipHash],
-      );
-    }
+    if (device.license_id && device.seat_source === "account") await releaseSeat(t, device, "signed out", ipHash);
+    await t.query("UPDATE devices SET user_id = NULL WHERE id = $1", [device.id]);
   });
   return true;
 }
@@ -49,7 +75,7 @@ const USER_COLUMNS = `
   (SELECT l.plan FROM licenses l
      WHERE l.user_id = u.id AND l.status = 'active' AND (l.expires_at IS NULL OR l.expires_at > now())
      ORDER BY l.created_at DESC LIMIT 1) AS plan,
-  COALESCE((SELECT t.used FROM trial_counters t WHERE t.key = 'user:' || u.id::text), 0) AS trial_used`;
+  COALESCE((SELECT t.used FROM trial_counters t WHERE t.key = 'user:' || u.trial_key), 0) AS trial_used`;
 
 export async function listUsers(db, { q = "", filter = "", limit = 50, offset = 0 }) {
   const where = [];
@@ -102,19 +128,35 @@ export async function setUserBlocked(db, id, blocked, reason) {
   return rows[0];
 }
 
-// Remove an account (for example on a data deletion request). Their browsers
-// are signed out. Licenses they owned stay valid as key-only licenses but are
-// released from every browser, and their trial record is erased.
+// Remove an account (for example on a data deletion request).
+//
+// Erased: the account row (Google id, email, name) and the email address on
+// every license it owned, which become key-only licenses. Their browsers are
+// signed out and give back the seats that came with the account.
+//
+// Kept on purpose: the trial counter, which is keyed by a hash of the Google
+// id and holds a number, so the same Google account cannot collect a new free
+// trial by being deleted. Devices and usage rows remain too; they carry no
+// name, email or Google id.
+//
+// A block is part of the account row, so deleting a blocked account lifts the
+// block. Block abusers; do not delete them.
 export async function deleteUser(db, id) {
   return db.tx(async (t) => {
     const found = await t.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [id]);
     if (!found.rows[0]) throw errors.notFound("User not found.");
-    await t.query(
-      `UPDATE devices SET license_id = NULL, activated_at = NULL
-       WHERE user_id = $1 AND license_id IN (SELECT id FROM licenses WHERE user_id = $1)`,
-      [id],
-    );
-    await t.query("DELETE FROM trial_counters WHERE key = $1", [`user:${id}`]);
+    // Lock the owned licenses first: attaching one takes the same lock, so a
+    // sign-in racing this delete cannot leave a seat bound to a signed-out browser.
+    const owned = await t.query("SELECT id FROM licenses WHERE user_id = $1 ORDER BY id FOR UPDATE", [id]);
+    const ids = owned.rows.map((r) => r.id);
+    if (ids.length) {
+      await t.query(
+        `UPDATE devices SET license_id = NULL, activated_at = NULL, seat_source = NULL
+         WHERE license_id = ANY($1::uuid[]) AND seat_source = 'account'`,
+        [ids],
+      );
+      await t.query("UPDATE licenses SET email = NULL, updated_at = now() WHERE id = ANY($1::uuid[])", [ids]);
+    }
     await t.query("DELETE FROM users WHERE id = $1", [id]); // devices.user_id and licenses.user_id become NULL
     return true;
   });

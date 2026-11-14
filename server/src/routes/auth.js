@@ -20,11 +20,11 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { ApiError, errors } from "../errors.js";
-import { randomToken, sha256 } from "../services/crypto.js";
+import { hmac, randomToken, sha256 } from "../services/crypto.js";
 import { getDevice } from "../services/devices.js";
 import { exchangeCode, googleAuthUrl, GoogleAuthError } from "../services/google.js";
 import { resolveAccount } from "../services/session.js";
-import { signOutDevice, upsertGoogleUser } from "../services/users.js";
+import { signInDevice, signOutDevice, upsertGoogleUser } from "../services/users.js";
 
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "auth-ui");
 const PAGE_CSP = "default-src 'none'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
@@ -97,7 +97,9 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
         "INSERT INTO auth_flows (state_hash, device_id, nonce, expires_at) VALUES ($1, $2, $3, now() + make_interval(mins => $4))",
         [sha256(state), device.id, nonce, FLOW_MINUTES],
       );
-      return { url: googleAuthUrl(config, { state, nonce }) };
+      // `done` is where the browser will land afterwards. The extension can
+      // only finish the sign-in on a host it talks to, so it checks this.
+      return { url: googleAuthUrl(config, { state, nonce }), done: `${config.publicUrl}/auth/done` };
     });
 
     app.get(
@@ -172,20 +174,17 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
         const identity = flow.rows[0]?.identity;
         if (!identity) throw errors.badRequest("That sign-in has expired or was started in another browser. Try again.", "sign_in_expired");
 
-        const user = await upsertGoogleUser(db, identity);
+        // The trial counter hangs off a keyed hash of the Google id, so it
+        // survives the account being deleted and created again.
+        const user = await upsertGoogleUser(db, identity, hmac(config.appSecret, `gsub:${identity.sub}`));
         if (user.blocked) throw errors.forbidden("account_blocked", "This account has been blocked. Contact support.");
-        await db.query("UPDATE devices SET user_id = $1, auto_attach = true WHERE id = $2", [user.id, device.id]);
-        // A key that was activated on this browser before signing in now
-        // belongs to the account, so it follows the user to other browsers.
-        if (device.license_id) {
-          await db.query("UPDATE licenses SET user_id = $1, updated_at = now() WHERE id = $2 AND user_id IS NULL AND status = 'active'", [
-            user.id,
-            device.license_id,
-          ]);
-        }
+        // Signing in changes who this browser belongs to and nothing else. In
+        // particular it does not make the account the owner of a license that
+        // happens to be active here.
+        await signInDevice(db, device, user, { ipHash: req.net.hash });
 
         const fresh = await getDevice(db, device.id);
-        const { account } = await resolveAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock(), log: req.log });
+        const { account } = await resolveAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock(), attach: true, log: req.log });
         return { ok: true, created: Boolean(user.created), account };
       },
     );

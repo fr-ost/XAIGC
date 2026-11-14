@@ -33,10 +33,10 @@ export function resolveEntitlement(config, license, now = Date.now()) {
 // The trial is one allowance counted against every identity we have for the
 // caller: the install, the Google account, the X account and the network.
 // Whichever runs out first ends it. The order is fixed (see reserve()).
-function trialKeys(config, { deviceId, userId = null, ipHash, xhHash, now }) {
+function trialKeys(config, { deviceId, userKey = null, ipHash, xhHash, now }) {
   const ipCutoff = new Date(now - config.trial.ipWindowDays * 86_400_000).toISOString();
   const keys = [{ key: `dev:${deviceId}`, limit: config.trial.generations, cutoff: EPOCH, type: "device" }];
-  if (userId) keys.push({ key: `user:${userId}`, limit: config.trial.generations, cutoff: EPOCH, type: "user" });
+  if (userKey) keys.push({ key: `user:${userKey}`, limit: config.trial.generations, cutoff: EPOCH, type: "user" });
   if (xhHash) keys.push({ key: `xh:${xhHash}`, limit: config.trial.generations, cutoff: EPOCH, type: "account" });
   if (ipHash) keys.push({ key: `ip:${ipHash}`, limit: config.trial.ipLimit, cutoff: ipCutoff, type: "network" });
   return keys;
@@ -88,7 +88,7 @@ class Denied extends Error {
 export async function reserve(db, config, { device, entitlement, ipHash, xhHash, now = Date.now() }) {
   const day = utcDay(now);
   const licensed = entitlement.mode === "license";
-  const trial = licensed ? [] : trialKeys(config, { deviceId: device.id, userId: device.user_id, ipHash, xhHash, now });
+  const trial = licensed ? [] : trialKeys(config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash, now });
   const daily = licensed
     ? [{ subject: `lic:${entitlement.license.id}`, limit: entitlement.dailyLimit, reason: "daily_limit" }]
     : [{ subject: "global:trial", limit: config.caps.trialGlobalDaily, reason: "trial_capacity" }];
@@ -139,8 +139,8 @@ export async function reserve(db, config, { device, entitlement, ipHash, xhHash,
 
 // Read-only view of the trial allowance. `remaining` is the tightest of the
 // device, X-account and network counters.
-export async function trialStatus(db, config, { deviceId, userId = null, ipHash, xhHash, now = Date.now() }) {
-  const keys = trialKeys(config, { deviceId, userId, ipHash, xhHash, now });
+export async function trialStatus(db, config, { deviceId, userKey = null, ipHash, xhHash, now = Date.now() }) {
+  const keys = trialKeys(config, { deviceId, userKey, ipHash, xhHash, now });
   const { rows } = await db.query("SELECT key, used, window_start FROM trial_counters WHERE key = ANY($1::text[])", [
     keys.map((k) => k.key),
   ]);
@@ -171,9 +171,11 @@ export async function licenseUsageToday(db, licenseId, day) {
 //   user            who is signed in on this browser, or null
 //   auth.google     whether this server offers Google sign-in
 //   auth.signInRequired  true when this browser must sign in before it can generate
-//   accountLicense  a license the signed-in account owns that is not on this
-//                   browser because its seats are taken (`waiting` from
-//                   attachAccountLicense), so the UI can offer to move it here
+//   accountLicense  a license belonging to the signed-in account that is not
+//                   on this browser (`waiting` from the license service):
+//                   reason "available" (a seat is free), "device_limit"
+//                   (seats taken, can be moved here) or "detached" (the user
+//                   removed it here)
 export async function buildAccount(db, config, { device, ipHash, xhHash = null, now = Date.now(), waiting = null }) {
   const license = device.license || null;
   const entitlement = resolveEntitlement(config, license, now);
@@ -228,7 +230,7 @@ export async function buildAccount(db, config, { device, ipHash, xhHash = null, 
     };
   }
 
-  const trial = await trialStatus(db, config, { deviceId: device.id, userId: device.user_id, ipHash, xhHash: xhHash || device.xh_hash, now });
+  const trial = await trialStatus(db, config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash: xhHash || device.xh_hash, now });
   return {
     ...base,
     plan: "trial",

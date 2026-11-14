@@ -185,10 +185,12 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
       const now = clock();
       // A signed-in browser with no license of its own takes its account's
       // license first, so one granted a moment ago works on the very next click.
+      let waiting = null;
       if (device.user && resolveEntitlement(config, device.license, now).mode === "trial") {
         try {
-          const { attached } = await attachAccountLicense(db, config, { device, ipHash: req.net.hash });
-          if (attached) device = (await getDevice(db, device.id)) || device;
+          const result = await attachAccountLicense(db, config, { device, ipHash: req.net.hash });
+          waiting = result.waiting;
+          if (result.attached) device = (await getDevice(db, device.id)) || device;
         } catch (err) {
           req.log.warn({ err }, "could not attach the account's license");
         }
@@ -214,7 +216,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
 
       const reservation = await reserve(db, config, { device, entitlement, ipHash: req.net.hash, xhHash, now });
       if (!reservation.ok) {
-        const account = await buildAccount(db, config, { device, ipHash: req.net.hash, xhHash, now });
+        const account = await buildAccount(db, config, { device, ipHash: req.net.hash, xhHash, now, waiting });
         await recordEvent(req, { ...event, status: `denied:${reservation.reason}` });
         throw quotaError(reservation.reason, account);
       }
@@ -271,7 +273,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
       }
       await recordEvent(req, { ...event, status: "ok", latencyMs, tokensIn: result.tokensIn, tokensOut: result.tokensOut });
 
-      const account = await buildAccount(db, config, { device, ipHash: req.net.hash, xhHash, now: clock() });
+      const account = await buildAccount(db, config, { device, ipHash: req.net.hash, xhHash, now: clock(), waiting });
       const payload = { id: `gen_${randomUUID()}`, kind: input.kind, account };
       if (result.thread) payload.thread = result.thread;
       else payload.variants = result.variants;

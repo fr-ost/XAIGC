@@ -67,15 +67,22 @@ function showSignIn(account) {
       : "Signing in is optional. It keeps your license with your Google account, so a new browser only needs you to sign in.";
   }
 
-  const waiting = account.accountLicense;
+  showAccountLicense(account.accountLicense);
+}
+
+// A license that belongs to the signed-in account but is not on this browser.
+// Taking a free seat needs no warning. Taking a seat from another browser is
+// only ever done after the text says so and the user clicks again.
+let attachReplaces = false;
+function showAccountLicense(waiting, forceFull = false) {
   $("accountLicenseBox").hidden = !waiting;
-  if (waiting) {
-    const moving = waiting.reason !== "detached";
-    $("accountLicenseText").textContent = moving
-      ? `Your account has a ${waiting.plan} license, but it is in use on ${waiting.devicesUsed} of ${waiting.maxDevices} browsers. You can move it here; the browser that has been idle longest will be signed out of it.`
-      : `Your account has a ${waiting.plan} license that is not in use on this browser.`;
-    $("attachLicense").textContent = moving ? "Move the license to this browser" : "Use it on this browser";
-  }
+  if (!waiting) return;
+  const full = forceFull || waiting.reason === "device_limit";
+  attachReplaces = full;
+  $("accountLicenseText").textContent = full
+    ? `Your account has a ${waiting.plan} license, but every one of its ${waiting.maxDevices} seat${waiting.maxDevices === 1 ? " is" : "s are"} in use. You can move it here: the browser that has been idle longest will lose it.`
+    : `Your account has a ${waiting.plan} license that is not in use on this browser.`;
+  $("attachLicense").textContent = full ? "Move the license to this browser" : "Use it on this browser";
 }
 
 function setSignInStatus(message, kind = "") {
@@ -200,11 +207,19 @@ $("signOut").addEventListener("click", async () => {
 $("attachLicense").addEventListener("click", async () => {
   $("attachLicense").disabled = true;
   try {
-    const { account } = await send("xaigc:attach-license");
+    const { account } = await send("xaigc:attach-license", { replaceOldest: attachReplaces });
     showAccount(account);
     setLicenseStatus(`License active on this browser. You're on ${account.planLabel}.`, "good");
   } catch (err) {
-    setLicenseStatus(err.message, "error");
+    if (err.code === "device_limit") {
+      // The seats filled up since this page was drawn. Explain, and let the
+      // next click be the one that moves it.
+      const { account } = await chrome.storage.local.get("account");
+      showAccountLicense({ ...(account?.accountLicense || {}), plan: account?.accountLicense?.plan || "", maxDevices: err.maxDevices }, true);
+      setLicenseStatus(err.message, "error");
+    } else {
+      setLicenseStatus(err.message, "error");
+    }
   } finally {
     $("attachLicense").disabled = false;
   }
@@ -217,6 +232,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const status = changes.signInStatus?.newValue;
   if (status?.state === "done") setSignInStatus("You're signed in.", "good");
   else if (status?.state === "error") setSignInStatus(status.message, "error");
+  else if (status?.state === "cancelled") setSignInStatus("Sign-in was cancelled.");
 });
 
 for (const id of ["tone", "length", "language", "emoji"]) {

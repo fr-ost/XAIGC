@@ -238,6 +238,13 @@ describe("sign in with Google", () => {
     }
   });
 
+  test("start tells the extension where the browser will land", async () => {
+    const d = await t.install();
+    const { res } = await t.startSignIn(d);
+    assert.equal(res.body.done, "http://localhost:8787/auth/done");
+    assert.deepEqual(Object.keys(res.body).sort(), ["done", "url"]);
+  });
+
   test("starting and finishing need the install's own token", async () => {
     assert.equal((await t.call("POST", "/v1/auth/google/start")).status, 401);
     assert.equal((await t.call("POST", "/v1/auth/google/complete", { body: { code: "ac_0123456789" } })).status, 401);
@@ -306,56 +313,13 @@ describe("sign-in configuration", () => {
 
 /* -------------------------- licenses and accounts -------------------------- */
 
-describe("licenses follow the account", () => {
+describe("licenses follow the account they were issued to", () => {
   let t;
   before(async () => (t = await createTestApp(GOOGLE)));
   after(() => t.close());
 
-  test("a key activated while signed in belongs to the account and follows it", async () => {
-    const gina = person("gina");
-    const lic = await t.license({ maxDevices: 2 });
-    const laptop = await t.install();
-    await t.signIn(laptop, gina);
-    assert.equal((await t.activate(laptop, lic.key)).status, 200);
-    const detail = await t.admin("GET", `/licenses/${lic.id}`);
-    assert.equal(detail.body.license.owner.email, "gina@example.com");
-
-    // A second browser: just sign in. No key.
-    const desktop = await t.install();
-    const signedIn = await t.signIn(desktop, gina);
-    assert.equal(signedIn.body.account.licensed, true);
-    assert.equal(signedIn.body.account.plan, "pro");
-    assert.equal(signedIn.body.account.license.devicesUsed, 2);
-    assert.equal((await t.generate(desktop)).status, 200);
-
-    // A third browser: seats are full, so nothing is taken from anyone...
-    const tablet = await t.install();
-    const full = await t.signIn(tablet, gina);
-    assert.equal(full.body.account.licensed, false);
-    assert.deepEqual(
-      { plan: full.body.account.accountLicense.plan, used: full.body.account.accountLicense.devicesUsed, max: full.body.account.accountLicense.maxDevices, reason: full.body.account.accountLicense.reason },
-      { plan: "Pro", used: 2, max: 2, reason: "device_limit" },
-    );
-    // ...until the user asks to move it here.
-    await t.db.query("UPDATE devices SET last_seen_at = now() - interval '9 days' WHERE id = $1", [laptop.deviceId]);
-    const moved = await t.attach(tablet);
-    assert.equal(moved.status, 200);
-    assert.equal(moved.body.account.licensed, true);
-    assert.equal(moved.body.account.accountLicense, null);
-    assert.equal((await t.me(laptop)).body.account.licensed, false, "the browser idle longest gave up its seat");
-    assert.equal((await t.me(desktop)).body.account.licensed, true);
-  });
-
-  test("a key entered before signing in is linked when the user signs in", async () => {
-    const lic = await t.license();
-    const d = await t.install();
-    assert.equal((await t.activate(d, lic.key)).status, 200, "a key works without an account");
-    assert.equal((await t.generate(d)).status, 200, "and licensed use never requires signing in");
-    await t.signIn(d, person("hank"));
-    assert.equal((await t.admin("GET", `/licenses/${lic.id}`)).body.license.owner.email, "hank@example.com");
-    const other = await t.install();
-    assert.equal((await t.signIn(other, person("hank"))).body.account.licensed, true);
-  });
+  const owner = async (lic) => (await t.admin("GET", `/licenses/${lic.id}`)).body.license.owner;
+  const seat = async (d) => (await t.db.query("SELECT seat_source FROM devices WHERE id = $1", [d.deviceId])).rows[0].seat_source;
 
   test("a license issued to an email is there when that person signs up", async () => {
     const lic = await t.license({ email: "Ivy@Example.com", days: 30 });
@@ -365,7 +329,43 @@ describe("licenses follow the account", () => {
     assert.equal(res.body.account.licensed, true, "no key was ever typed");
     assert.equal(res.body.account.license.hint, lic.hint);
     assert.ok(res.body.account.license.expiresAt, "the 30 days started at this first use");
-    assert.equal((await t.admin("GET", `/licenses/${lic.id}`)).body.license.owner.email, "ivy@example.com");
+    assert.equal((await owner(lic)).email, "ivy@example.com");
+    assert.equal(await seat(d), "account");
+  });
+
+  test("it follows the account to other browsers, within its seats", async () => {
+    const gina = person("gina");
+    const lic = await t.license({ email: gina.email, maxDevices: 2 });
+    const laptop = await t.install();
+    const desktop = await t.install();
+    const tablet = await t.install();
+    assert.equal((await t.signIn(laptop, gina)).body.account.licensed, true);
+    const second = await t.signIn(desktop, gina);
+    assert.equal(second.body.account.licensed, true, "just signed in, no key");
+    assert.equal(second.body.account.license.devicesUsed, 2);
+
+    // Third browser: seats are full, so nothing is taken from anyone...
+    const full = await t.signIn(tablet, gina);
+    assert.equal(full.body.account.licensed, false);
+    assert.deepEqual(
+      { plan: full.body.account.accountLicense.plan, used: full.body.account.accountLicense.devicesUsed, max: full.body.account.accountLicense.maxDevices, reason: full.body.account.accountLicense.reason },
+      { plan: "Pro", used: 2, max: 2, reason: "device_limit" },
+    );
+    // ...not even when asked, unless the user says to replace a browser.
+    const refused = await t.attach(tablet);
+    assert.equal(refused.status, 409);
+    assert.equal(refused.body.error.code, "device_limit");
+    assert.equal((await t.me(laptop)).body.account.licensed, true);
+    assert.equal((await t.me(desktop)).body.account.licensed, true);
+
+    await t.db.query("UPDATE devices SET last_seen_at = now() - interval '9 days' WHERE id = $1", [laptop.deviceId]);
+    const moved = await t.attach(tablet, { replaceOldest: true });
+    assert.equal(moved.status, 200);
+    assert.equal(moved.body.account.licensed, true);
+    assert.equal(moved.body.account.accountLicense, null);
+    assert.equal((await t.me(laptop)).body.account.licensed, false, "the browser idle longest gave up its seat");
+    assert.equal((await t.me(desktop)).body.account.licensed, true);
+    assert.equal((await owner(lic)).email, gina.email);
   });
 
   test("a license granted to an existing user works on their very next click", async () => {
@@ -382,14 +382,122 @@ describe("licenses follow the account", () => {
     assert.equal(res.body.account.plan, "pro");
   });
 
-  test("another person's email does not claim a license", async () => {
-    await t.license({ email: "kim@example.com" });
+  test("looking at the account changes nothing; the license is taken with a POST", async () => {
+    const kai = person("kai");
     const d = await t.install();
-    const res = await t.signIn(d, person("not-kim"));
-    assert.equal(res.body.account.licensed, false);
+    await t.signIn(d, kai);
+    const lic = await t.license({ email: kai.email, days: 30 });
+    const me = await t.me(d);
+    assert.equal(me.body.account.licensed, false);
+    assert.equal(me.body.account.accountLicense.reason, "available");
+    const row = await t.db.query("SELECT first_activated_at, expires_at FROM licenses WHERE id = $1", [lic.id]);
+    assert.equal(row.rows[0].first_activated_at, null, "a GET did not start the 30 days");
+    assert.equal(row.rows[0].expires_at, null);
+    assert.equal(await seat(d), null, "and did not take a seat");
+    const attached = await t.attach(d);
+    assert.equal(attached.status, 200);
+    assert.equal(attached.body.account.licensed, true);
+    assert.ok(attached.body.account.license.expiresAt);
   });
 
-  test("removing a license from a browser sticks until the user brings it back", async () => {
+  test("a key gives a seat, never ownership", async () => {
+    // Signed in, then the key.
+    const lic = await t.license({ maxDevices: 2 });
+    const d = await t.install();
+    await t.signIn(d, person("lou"));
+    assert.equal((await t.activate(d, lic.key)).body.account.licensed, true);
+    assert.equal(await owner(lic), null);
+    assert.equal(await seat(d), "key");
+
+    // The key first, then signing in.
+    const e = await t.install();
+    assert.equal((await t.activate(e, lic.key)).status, 200, "a key works without an account");
+    assert.equal((await t.generate(e)).status, 200, "and licensed use never requires signing in");
+    await t.signIn(e, person("mel"));
+    assert.equal(await owner(lic), null, "signing in on a licensed browser does not make you its owner");
+
+    // So neither account can take the license anywhere without the key.
+    const elsewhere = await t.install();
+    assert.equal((await t.signIn(elsewhere, person("mel"))).body.account.licensed, false);
+    const grab = await t.attach(elsewhere);
+    assert.equal(grab.status, 404);
+    assert.equal(grab.body.error.code, "no_account_license");
+  });
+
+  test("holding one seat of someone's license gives no way to take the others", async () => {
+    // The buyer activates a two-seat key on their own browser and on a
+    // colleague's. Neither is signed in. Then the colleague signs in.
+    const lic = await t.license({ maxDevices: 2, email: "buyer@example.com" });
+    const buyer = await t.install();
+    const colleague = await t.install();
+    await t.activate(buyer, lic.key);
+    await t.activate(colleague, lic.key);
+    await t.signIn(colleague, person("colleague"));
+    assert.equal(await owner(lic), null);
+
+    const home = await t.install();
+    await t.signIn(home, person("colleague"));
+    assert.equal((await t.attach(home, { replaceOldest: true })).status, 404, "no key, no ownership, no seat");
+    assert.equal((await t.me(buyer)).body.account.licensed, true, "the buyer's browser is untouched");
+
+    // The admin rotates the key and releases every browser. The colleague's
+    // access ends there; only the real owner comes back.
+    const rotated = await t.admin("POST", `/licenses/${lic.id}/rotate`);
+    await t.admin("POST", `/licenses/${lic.id}/reset-devices`);
+    assert.equal((await t.me(colleague)).body.account.licensed, false);
+    assert.equal((await t.generate(colleague)).body.account?.licensed ?? false, false);
+    assert.equal((await t.attach(colleague)).status, 404);
+    assert.equal((await t.activate(colleague, lic.key)).status, 404, "the old key is dead");
+
+    const real = await t.signIn(buyer, { sub: "google-sub-buyer", email: "buyer@example.com", name: "Buyer" });
+    assert.equal(real.body.account.licensed, true, "the account it was issued to gets it back by signing in");
+    assert.equal((await owner(lic)).email, "buyer@example.com");
+    assert.equal((await t.activate(await t.install(), rotated.body.key)).status, 200, "and the new key works");
+  });
+
+  test("a license issued to one person is not captured by whoever enters the key first", async () => {
+    const lic = await t.license({ email: "kim@example.com", maxDevices: 2 });
+    const other = await t.install();
+    await t.signIn(other, person("not-kim"));
+    assert.equal((await t.activate(other, lic.key)).status, 200, "the key still gives them a seat");
+    assert.equal(await owner(lic), null);
+    const kim = await t.install();
+    const res = await t.signIn(kim, person("kim"));
+    assert.equal(res.body.account.licensed, true);
+    assert.equal((await owner(lic)).email, "kim@example.com");
+  });
+
+  test("another person's email does not claim a license", async () => {
+    await t.license({ email: "nina@example.com" });
+    const d = await t.install();
+    const res = await t.signIn(d, person("not-nina"));
+    assert.equal(res.body.account.licensed, false);
+    assert.equal(res.body.account.accountLicense, null);
+  });
+
+  test("an address that moved to another Google account takes its licenses with it", async () => {
+    // Account A held shared@ and is still signed in somewhere. The address
+    // then moves to account B, which signs in.
+    const stale = await t.install();
+    await t.signIn(stale, { sub: "sub-old-holder", email: "shared@example.com", name: "Old Holder" });
+    const current = await t.install();
+    await t.signIn(current, { sub: "sub-new-holder", email: "shared@example.com", name: "New Holder" });
+
+    const lic = await t.license({ email: "shared@example.com" });
+    const linked = await t.db.query("SELECT u.google_sub FROM licenses l JOIN users u ON u.id = l.user_id WHERE l.id = $1", [lic.id]);
+    assert.equal(linked.rows[0].google_sub, "sub-new-holder", "linked to the account that holds the address now");
+    assert.equal((await t.me(stale)).body.account.accountLicense, null);
+    assert.equal((await t.attach(stale)).status, 404, "the old holder's lingering session gets nothing");
+    assert.equal((await t.generate(current)).body.account.licensed, true);
+
+    // Even an unowned license addressed to it cannot be claimed by the stale row.
+    await t.db.query("UPDATE licenses SET user_id = NULL WHERE id = $1", [lic.id]);
+    await t.db.query("UPDATE devices SET license_id = NULL, seat_source = NULL WHERE license_id = $1", [lic.id]);
+    assert.equal((await t.attach(stale)).status, 404);
+    assert.equal((await t.attach(current)).status, 200);
+  });
+
+  test("removing a license from a browser sticks, for that license only", async () => {
     const lee = person("lee");
     const lic = await t.license({ email: lee.email });
     const d = await t.install();
@@ -399,38 +507,84 @@ describe("licenses follow the account", () => {
     assert.equal(off.body.account.licensed, false);
     assert.equal(off.body.account.accountLicense.reason, "detached");
     assert.equal((await t.me(d)).body.account.licensed, false, "it does not hop straight back");
-    assert.equal((await t.generate(d)).body.account?.licensed ?? false, false);
+    const gen = await t.generate(d);
+    assert.equal(gen.status, 200, "the free trial is still there");
+    assert.equal(gen.body.account.licensed, false);
+    assert.equal(gen.body.account.accountLicense.reason, "detached", "and the offer to bring it back is not lost");
 
+    // A different license issued to the same person is not held back by that.
+    await t.admin("PATCH", `/licenses/${lic.id}`, { status: "revoked" });
+    const fresh = await t.license({ email: lee.email, plan: "agency" });
+    const next = await t.generate(d);
+    assert.equal(next.body.account.licensed, true);
+    assert.equal(next.body.account.license.hint, fresh.hint);
+
+    // And the removed one comes back when asked for.
+    await t.admin("PATCH", `/licenses/${fresh.id}`, { status: "revoked" });
+    await t.admin("PATCH", `/licenses/${lic.id}`, { status: "active" });
+    await t.deactivate(d);
+    assert.equal((await t.me(d)).body.account.accountLicense.reason, "available", "the one removed just now was the revoked one");
     const back = await t.attach(d);
-    assert.equal(back.status, 200);
-    assert.equal(back.body.account.licensed, true);
     assert.equal(back.body.account.license.hint, lic.hint);
   });
 
-  test("signing out takes the account's license with it, but not a key-only one", async () => {
+  test("signing out takes back a seat that came with the account, not one from a key", async () => {
     const max = person("max");
-    await t.license({ email: max.email });
-    const d = await t.install();
-    await t.signIn(d, max);
-    assert.equal((await t.me(d)).body.account.licensed, true);
-    const out = await t.signOut(d);
+    const lic = await t.license({ email: max.email, maxDevices: 2 });
+    const byAccount = await t.install();
+    await t.signIn(byAccount, max);
+    assert.equal(await seat(byAccount), "account");
+    const out = await t.signOut(byAccount);
     assert.equal(out.body.account.licensed, false);
     assert.equal(out.body.account.user, null);
 
-    // A team key used by someone who is not its owner stays put on sign-out.
-    const team = await t.license({ maxDevices: 3 });
-    const owner = await t.install();
-    await t.signIn(owner, person("team-owner"));
-    await t.activate(owner, team.key);
-    const member = await t.install();
-    await t.signIn(member, person("team-member"));
-    assert.equal((await t.activate(member, team.key)).status, 200, "a key still works for another account, within its seats");
-    assert.equal((await t.admin("GET", `/licenses/${team.id}`)).body.license.owner.email, "team-owner@example.com");
-    const memberOut = await t.signOut(member);
-    assert.equal(memberOut.body.account.licensed, true, "the member's seat came from the key, not from their account");
+    // Key first, then sign in, then sign out: the browser keeps what the key gave it.
+    const byKey = await t.install();
+    await t.activate(byKey, lic.key);
+    await t.signIn(byKey, max);
+    assert.equal(await seat(byKey), "key");
+    const stays = await t.signOut(byKey);
+    assert.equal(stays.body.account.licensed, true);
+    assert.equal((await t.generate(byKey)).status, 200, "and it can still generate, signed out");
   });
 
-  test("attach needs a signed-in account that owns a license", async () => {
+  test("signing in as someone else gives back the first account's seat", async () => {
+    const ann = person("ann");
+    await t.license({ email: ann.email });
+    const d = await t.install();
+    assert.equal((await t.signIn(d, ann)).body.account.licensed, true);
+    const other = await t.signIn(d, person("ben"));
+    assert.equal(other.body.account.user.email, "ben@example.com");
+    assert.equal(other.body.account.licensed, false, "ben does not inherit ann's license");
+    assert.equal((await t.signOut(d)).body.account.licensed, false);
+  });
+
+  test("blocking an account disables the licenses it owns, on every browser and by key", async () => {
+    const zed = person("zed");
+    const lic = await t.license({ email: zed.email, maxDevices: 3 });
+    const signedIn = await t.install();
+    await t.signIn(signedIn, zed);
+    const keyOnly = await t.install();
+    await t.activate(keyOnly, lic.key);
+    assert.equal((await t.generate(keyOnly)).status, 200);
+
+    const user = (await t.admin("GET", "/users?q=zed@")).body.users[0];
+    await t.admin("POST", `/users/${user.id}/block`, { blocked: true });
+    assert.equal((await t.generate(signedIn)).status, 403);
+    const viaKey = (await t.me(keyOnly)).body.account;
+    assert.equal(viaKey.licensed, false, "a browser that only ever had the key loses the license too");
+    assert.equal(viaKey.notice, "license_revoked");
+    const fresh = await t.install();
+    const again = await t.activate(fresh, lic.key);
+    assert.equal(again.status, 403, "and the key cannot be activated anywhere new");
+    assert.equal(again.body.error.code, "license_revoked");
+
+    await t.admin("POST", `/users/${user.id}/block`, { blocked: false });
+    assert.equal((await t.me(keyOnly)).body.account.licensed, true);
+    assert.equal((await t.activate(fresh, lic.key)).status, 200);
+  });
+
+  test("attach needs a signed-in account that has a license", async () => {
     const d = await t.install();
     const anon = await t.attach(d);
     assert.equal(anon.status, 403);
@@ -441,16 +595,50 @@ describe("licenses follow the account", () => {
     assert.equal(none.body.error.code, "no_account_license");
   });
 
-  test("a revoked or expired account license is not attached", async () => {
+  test("a revoked or expired account license is not offered or attached", async () => {
     const pat = person("pat");
     const lic = await t.license({ email: pat.email });
     await t.admin("PATCH", `/licenses/${lic.id}`, { status: "revoked" });
     const d = await t.install();
     assert.equal((await t.signIn(d, pat)).body.account.licensed, false);
     await t.admin("PATCH", `/licenses/${lic.id}`, { status: "active", expiresAt: new Date(Date.now() - 1000).toISOString() });
-    assert.equal((await t.me(d)).body.account.licensed, false);
+    assert.equal((await t.me(d)).body.account.accountLicense, null);
+    assert.equal((await t.attach(d)).status, 404);
     await t.admin("PATCH", `/licenses/${lic.id}`, { expiresAt: null });
-    assert.equal((await t.me(d)).body.account.licensed, true, "and comes back once it is valid again");
+    assert.equal((await t.me(d)).body.account.accountLicense.reason, "available");
+    assert.equal((await t.generate(d)).body.account.licensed, true, "and comes back once it is valid again");
+  });
+
+  test("re-addressing a license moves it to the new person", async () => {
+    const from = person("from");
+    const to = person("to");
+    const lic = await t.license({ email: from.email });
+    const a = await t.install();
+    await t.signIn(a, from);
+    assert.equal((await t.me(a)).body.account.licensed, true);
+    const b = await t.install();
+    await t.signIn(b, to);
+
+    const res = await t.admin("PATCH", `/licenses/${lic.id}`, { email: to.email });
+    assert.equal(res.body.license.owner, null, "ownership is released until the new person turns up");
+    assert.equal((await t.me(a)).body.account.licensed, false, "the old owner's account seat is gone");
+    assert.equal((await t.generate(b)).body.account.licensed, true);
+    assert.equal((await owner(lic)).email, to.email);
+    // Editing only the note leaves ownership alone.
+    await t.admin("PATCH", `/licenses/${lic.id}`, { note: "changed hands" });
+    assert.equal((await owner(lic)).email, to.email);
+  });
+
+  test("the dashboard can issue a license straight to a user", async () => {
+    const d = await t.install();
+    await t.signIn(d, person("vip"));
+    const user = (await t.admin("GET", "/users?q=vip@")).body.users[0];
+    const res = await t.admin("POST", "/licenses", { plan: "pro", userId: user.id });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.licenses[0].owner.id, user.id);
+    assert.equal(res.body.licenses[0].email, "vip@example.com");
+    assert.equal((await t.generate(d)).body.account.licensed, true);
+    assert.equal((await t.admin("POST", "/licenses", { plan: "pro", userId: "00000000-0000-4000-8000-000000000000" })).status, 400);
   });
 });
 
@@ -555,25 +743,42 @@ describe("managing users", () => {
     assert.equal((await t.admin("PATCH", `/licenses/${lic.id}`, { userId: "00000000-0000-4000-8000-000000000000" })).status, 400, "an owner cannot be set by hand");
   });
 
-  test("deleting a user signs them out everywhere and erases their record", async () => {
+  test("deleting a user erases who they are, not what they used", async () => {
     const sam = person("sam");
-    const lic = await t.license({ email: sam.email });
+    const lic = await t.license({ email: sam.email, maxDevices: 2 });
     const d = await t.install();
     await t.signIn(d, sam);
     assert.equal((await t.me(d)).body.account.licensed, true);
-    await t.license({ email: "unrelated@example.com" });
+    const keyBrowser = await t.install();
+    await t.activate(keyBrowser, lic.key);
+    // Use the whole trial on another browser of theirs first.
+    await t.admin("PATCH", `/licenses/${lic.id}`, { status: "revoked" });
+    for (let i = 0; i < 3; i++) assert.equal((await t.generate(d)).status, 200);
+    await t.admin("PATCH", `/licenses/${lic.id}`, { status: "active" });
+    await t.generate(d);
     const s = await find("sam@");
 
     const res = await t.admin("DELETE", `/users/${s.id}`);
     assert.equal(res.status, 200);
     assert.equal((await t.db.query("SELECT 1 FROM users WHERE id = $1", [s.id])).rows.length, 0);
-    assert.equal((await t.db.query("SELECT 1 FROM trial_counters WHERE key = $1", [`user:${s.id}`])).rows.length, 0);
+    const everything = JSON.stringify((await t.db.query("SELECT to_jsonb(l) AS l FROM licenses l")).rows);
+    assert.ok(!everything.includes("sam@example.com"), "their email is gone from the licenses too");
     const me = (await t.me(d)).body.account;
     assert.equal(me.user, null);
-    assert.equal(me.licensed, false, "their license left the browser with the account");
+    assert.equal(me.licensed, false, "the seat that came with the account went with it");
+    assert.equal((await t.me(keyBrowser)).body.account.licensed, true, "a seat from the key stays: the license itself is not destroyed");
     const kept = await t.admin("GET", `/licenses/${lic.id}`);
     assert.equal(kept.body.license.owner, null);
-    assert.equal(kept.body.license.state, "active", "the license itself is not destroyed");
+    assert.equal(kept.body.license.email, null);
+    assert.equal(kept.body.license.state, "active");
+
+    // The same Google account coming back is a new user, without a new free
+    // trial and without the license (it is key-only now).
+    const back = await t.signIn(d, sam);
+    assert.equal(back.body.created, true);
+    assert.equal(back.body.account.licensed, false);
+    assert.equal(back.body.account.quota.remaining, 0, "deleting an account does not reset its free trial");
+    assert.equal((await t.generate(d)).status, 402);
     assert.equal((await t.admin("DELETE", `/users/${s.id}`)).status, 404);
   });
 });
