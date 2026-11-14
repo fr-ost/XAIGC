@@ -126,6 +126,38 @@ async function createPgliteDb(config) {
   };
 }
 
+// Errors that mean "the database is not reachable yet", as opposed to "the
+// settings are wrong". Only these are worth waiting out.
+const NOT_READY_CODES = new Set([
+  "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ETIMEDOUT", "ECONNRESET", "EHOSTUNREACH", "ENETUNREACH",
+  "57P03", // the database system is starting up
+  "57P01", // admin shutdown (restarting)
+  "53300", // too many connections
+]);
+const notReady = (err) =>
+  NOT_READY_CODES.has(err?.code) ||
+  /timeout exceeded when trying to connect|Connection terminated/i.test(String(err?.message || "")) ||
+  (Array.isArray(err?.errors) && err.errors.some(notReady)); // AggregateError from a dual-stack connect
+
+// Wait for the database to accept connections. On a first deploy the server
+// and its Postgres start together, and the server is usually faster; on some
+// platforms the private network also needs a moment. Waiting here turns that
+// race into a few log lines instead of a crash loop. A wrong password or
+// database name is not waited on: it fails at once with the real error.
+export async function waitForDatabase(db, { attempts = 20, delayMs = 2000, logger = null, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await db.query("SELECT 1");
+      if (attempt > 1) logger?.info({ attempts: attempt }, "database is reachable");
+      return attempt;
+    } catch (err) {
+      if (!notReady(err) || attempt >= attempts) throw err;
+      logger?.warn({ attempt, of: attempts, reason: err.code || err.message }, "database not reachable yet, waiting");
+      await sleep(delayMs);
+    }
+  }
+}
+
 export async function migrate(db, logger) {
   await db.exec(
     "CREATE TABLE IF NOT EXISTS schema_migrations (id text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())",

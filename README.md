@@ -77,7 +77,9 @@ The server needs one Postgres database and nothing else. It creates and upgrades
 | Supabase | Project, **Connect**, **Session pooler** string (port `5432`, host `aws-...pooler.supabase.com`) | `DATABASE_SSL=no-verify`, and `DATABASE_POOL_MAX=5` on small plans. |
 | Any other Postgres | Its connection string | `DATABASE_SSL=true` if it requires TLS. |
 
-On Supabase, use the session pooler rather than the direct connection (which is IPv6-only without an add-on) or the transaction pooler (port `6543`, meant for serverless functions).
+Railway Postgres is the simplest choice: it lives in the same project as the server, on its private network, with nothing to configure. The server waits up to about 40 seconds for the database when it boots, so on a first deploy it does not matter which of the two starts first.
+
+On Supabase, use the session pooler rather than the direct connection (which is IPv6-only without an add-on) or the transaction pooler (port `6543`, meant for serverless functions). A free Supabase account is limited to two active projects.
 
 Every table has row level security enabled with no policies. The server connects as the table owner and is unaffected. This matters on Supabase, where tables in the `public` schema are otherwise readable through the project's auto-generated API with its public (anon) key: with RLS on, that key gets nothing. Row level security does not restrain privileged credentials (the database password, or Supabase's `service_role` key), so keep those secret as you would for any database. You can look at the data in Supabase's table editor, but make changes through the admin dashboard: keys, tokens and addresses are stored as hashes and cannot be edited by hand.
 

@@ -2,7 +2,7 @@
 // A product of Unique Labs (https://uniquelabs.org). Developed by Shahriar Ahmed.
 
 import { loadConfig } from "./config.js";
-import { createDb, migrate } from "./db/index.js";
+import { createDb, migrate, waitForDatabase } from "./db/index.js";
 import { createOpenAI } from "./engine/openai.js";
 import { createEngine } from "./engine/index.js";
 import { buildApp } from "./app.js";
@@ -24,6 +24,7 @@ async function main() {
   };
 
   const db = await createDb(config, bootLog);
+  await waitForDatabase(db, { logger: bootLog });
   await migrate(db, bootLog);
 
   const openai = createOpenAI(config, { logger: bootLog });

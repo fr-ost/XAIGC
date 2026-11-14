@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { loadConfig } from "../src/config.js";
-import { connectionStringFor } from "../src/db/index.js";
+import { connectionStringFor, waitForDatabase } from "../src/db/index.js";
 import { ipGroup, safeEqual } from "../src/services/crypto.js";
 import { createActivityGate, createLimiter } from "../src/services/ratelimit.js";
 import { generateLicenseKey, hashKey, keyHint, licenseState, normalizeKey } from "../src/services/licenses.js";
@@ -60,6 +60,48 @@ test("database TLS: an explicit setting is not overridden by ?sslmode= in the UR
     assert.equal(cleaned.searchParams.get("application_name"), "xaigc", "other parameters are kept");
     assert.equal(cleaned.host, "db.example.com:5432");
   }
+});
+
+test("boot waits for a database that is still starting, but not for wrong settings", async () => {
+  const failing = (errors) => {
+    let calls = 0;
+    return {
+      get calls() {
+        return calls;
+      },
+      query: async () => {
+        const err = errors[calls++];
+        if (err) throw err;
+        return { rows: [] };
+      },
+    };
+  };
+  const code = (c) => Object.assign(new Error(c), { code: c });
+  const sleeps = [];
+  const sleep = async (ms) => void sleeps.push(ms);
+
+  // Refused, then DNS not ready, then "starting up", then fine.
+  const starting = failing([code("ECONNREFUSED"), code("ENOTFOUND"), code("57P03")]);
+  assert.equal(await waitForDatabase(starting, { sleep, delayMs: 5 }), 4);
+  assert.deepEqual(sleeps, [5, 5, 5]);
+
+  // Node reports a dual-stack connection failure as an AggregateError.
+  const dual = failing([Object.assign(new Error("all failed"), { errors: [code("ECONNREFUSED"), code("ENETUNREACH")] })]);
+  assert.equal(await waitForDatabase(dual, { sleep }), 2);
+  const slow = failing([new Error("timeout exceeded when trying to connect")]);
+  assert.equal(await waitForDatabase(slow, { sleep }), 2);
+
+  // A wrong password is a settings problem: fail immediately, with that error.
+  const wrongPassword = failing([code("28P01"), null]);
+  await assert.rejects(() => waitForDatabase(wrongPassword, { sleep }), (err) => err.code === "28P01");
+  assert.equal(wrongPassword.calls, 1);
+  const noDatabase = failing([code("3D000")]);
+  await assert.rejects(() => waitForDatabase(noDatabase, { sleep }), (err) => err.code === "3D000");
+
+  // It does give up eventually, with the last real error.
+  const never = failing(Array(10).fill(code("ECONNREFUSED")));
+  await assert.rejects(() => waitForDatabase(never, { sleep, attempts: 3 }), (err) => err.code === "ECONNREFUSED");
+  assert.equal(never.calls, 3);
 });
 
 /* ---------------------------------- crypto -------------------------------- */
