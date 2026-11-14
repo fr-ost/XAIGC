@@ -1,6 +1,7 @@
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
+import { SERVER_VERSION } from "../src/config.js";
 import { ADMIN_TOKEN, chatResponse, createTestApp, EXT_ORIGIN, newInstallId, nextIp, openaiError, xh } from "./helpers.js";
 
 const DAY = 86_400_000;
@@ -15,7 +16,8 @@ describe("basics", () => {
   test("health and root", async () => {
     const health = await t.call("GET", "/health");
     assert.equal(health.status, 200);
-    assert.deepEqual(health.body, { ok: true, version: "3.0.0" });
+    assert.deepEqual(health.body, { ok: true, version: SERVER_VERSION });
+    assert.match(SERVER_VERSION, /^\d+\.\d+\.\d+$/);
     const root = await t.call("GET", "/");
     assert.equal(root.body.website, "https://uniquelabs.org");
     assert.equal(root.body.developer, "Shahriar Ahmed");

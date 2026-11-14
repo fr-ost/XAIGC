@@ -2,7 +2,10 @@
 // Every tunable lives here and is read from environment variables, so the
 // same build runs locally, in tests and on Railway.
 
-export const SERVER_VERSION = "3.0.0";
+import { readFileSync } from "node:fs";
+
+// The version lives in package.json (set it with scripts/set-version.mjs).
+export const SERVER_VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 export const DEFAULT_PLANS = {
   starter: { label: "Starter", dailyLimit: 60, maxDevices: 1 },

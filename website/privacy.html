@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | XAIGC</title>
+  <meta name="description" content="What XAIGC processes, what it keeps and why, in plain language.">
+  <meta name="theme-color" content="#0a0f1f">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="page-head">
+    <header class="nav wrap">
+      <a class="logo" href="/" aria-label="XAIGC home"><img src="/assets/icon-128.png" width="36" height="36" alt=""><span>XAIGC</span></a>
+      <nav aria-label="Main">
+        <a href="/#features">Features</a>
+        <a href="/#how">How it works</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+      <a class="btn small light" data-link="store" href="/#pricing">Add to Chrome</a>
+    </header>
+    <div class="wrap narrow"><h1>Privacy Policy</h1></div>
+  </div>
+  <!-- Generated from PRIVACY-POLICY.md by scripts/build-privacy.mjs. Edit that file, not this one. -->
+  <main id="main" class="wrap narrow prose">
+    <p><strong>XAIGC, AI Content Generator for X</strong></p>
+    <p>Last updated: November 14, 2026</p>
+    <p>XAIGC (&quot;the extension&quot;) is a product of Unique Labs, developed by Shahriar Ahmed. Website: <a href="https://uniquelabs.org" rel="noopener">uniquelabs.org</a></p>
+    <p>This policy explains what the extension and the XAIGC server process, why, and what is kept.</p>
+    <h2>Summary</h2>
+    <ul><li>XAIGC writes drafts. It never posts, likes, follows or sends anything on your behalf.</li><li>To write a draft, the text of the post you chose (or the idea or draft you typed) is sent to the XAIGC server and on to OpenAI. The XAIGC server does not save that text or the generated draft.</li><li>No OpenAI API key is needed from you, and none is stored in the extension.</li><li>If you sign in with Google, XAIGC keeps your Google account ID, name and email address, and nothing else from your Google account.</li><li>Your X password, direct messages, followers and other account data are never read.</li><li>No advertising, no analytics trackers, no sale of data.</li></ul>
+    <h2>1. What is processed when you generate a draft</h2>
+    <p>When you press a XAIGC button on a post, or use the compose window, the extension sends the following to the XAIGC server:</p>
+    <ul><li><strong>The material to write from.</strong> For replies: the post's text, the author's handle, the text of a quoted post, image descriptions and link-card text if present. For original posts, threads and rewrites: the idea or draft you typed.</li><li><strong>Your voice settings.</strong> Tone, persona text, length, language and emoji preference.</li><li><strong>A few of your recent drafts.</strong> Up to eight, so new drafts do not repeat old ones.</li></ul>
+    <p>The server forwards this to OpenAI to generate the draft, checks the result with OpenAI's moderation service, and returns it to your browser. <strong>The XAIGC server does not store this content in its database and does not write it to its logs.</strong></p>
+    <h2>2. What the XAIGC server stores</h2>
+    <div class="table-scroll"><table><thead><tr><th scope="col">Data</th><th scope="col">Form</th><th scope="col">Purpose</th></tr></thead><tbody><tr><td>Install ID</td><td>One-way hash</td><td>Identifies your installation so your trial and license follow it</td></tr><tr><td>Access token</td><td>One-way hash</td><td>Authenticates your installation's requests</td></tr><tr><td>IP address</td><td>Keyed one-way hash (IPv6 addresses are reduced to their /64 network first)</td><td>Limits free-trial abuse and request flooding</td></tr><tr><td>X account handle</td><td>Hashed in your browser before it is sent, then hashed again with a server key</td><td>Stops the free trial being restarted by reinstalling</td></tr><tr><td>License key</td><td>One-way hash, plus a masked hint such as <code>XAIGC-ABCDE-*****-*****-**XYZ</code></td><td>Validates your license</td></tr><tr><td>Google account</td><td>Google's account ID, your email address and your name, as provided by Google when you sign in</td><td>Your XAIGC account: one free trial per person, and a license that follows you between browsers</td></tr><tr><td>Free-trial count</td><td>A number stored under a keyed one-way hash of your Google account ID</td><td>One free trial per person. Kept even if the account is deleted, so the trial cannot be restarted.</td></tr><tr><td>Email address</td><td>As provided at purchase, if any</td><td>License delivery and support</td></tr><tr><td>Usage records</td><td>Time, type of request, model, token counts, outcome, installation, license</td><td>Enforcing plan limits, billing accuracy, abuse detection</td></tr></tbody></table></div>
+    <p>Usage records contain no post text and no generated text. Per-request records are deleted after 60 days. Daily totals are kept for accounting.</p>
+    <p>Raw IP addresses are held in memory only, for short-lived rate limiting, and are not written to the database.</p>
+    <h3>Signing in with Google</h3>
+    <p>Signing in is handled by Google. XAIGC asks only for your basic profile (<code>openid</code>, <code>email</code>, <code>profile</code>). Google's answer contains your Google account ID, email address, name, profile picture address and language; XAIGC keeps the first three and discards the rest. It does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. No Google access token is stored. You can remove XAIGC's access at any time at <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a> and sign out in the extension's settings.</p>
+    <h2>3. What stays in your browser</h2>
+    <p>Stored with Chrome's extension storage on your device:</p>
+    <ul><li>Your settings (tone, persona, language, output mode)</li><li>Your last 30 drafts, used to avoid repetition. You can clear them at any time in Settings.</li><li>Your install ID and access token</li><li>A one-way hash of your X handle (never the handle itself)</li><li>If you are signed in, your name and email address, as part of the cached plan below</li><li>A cached copy of your plan and remaining allowance</li><li>The contents of the compose window, so it is not lost when the popup closes</li></ul>
+    <p>None of this is synced to other devices. Removing the extension deletes it.</p>
+    <h2>4. Who receives data</h2>
+    <ul><li><strong>OpenAI</strong> receives the material described in section 1 in order to generate and moderate drafts, together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: <a href="https://openai.com/policies/privacy-policy" rel="noopener">openai.com/policies/privacy-policy</a></li><li><strong>Google</strong> handles sign-in if you choose to sign in, under its own privacy policy: <a href="https://policies.google.com/privacy" rel="noopener">policies.google.com/privacy</a></li><li><strong>Our hosting and database providers</strong> run the XAIGC server and store the records in section 2.</li></ul>
+    <p>Data is not sold, rented or shared for advertising.</p>
+    <h2>5. Browser permissions</h2>
+    <ul><li><strong>storage</strong>: saving your settings and the items in section 3.</li><li><strong>clipboardWrite</strong>: copying a draft when you choose clipboard mode or copy a quote line.</li><li><strong>Access to x.com and twitter.com</strong>: adding the XAIGC buttons to posts, reading the post you chose, and typing the draft into the reply box.</li><li><strong>Access to the XAIGC server</strong>: sending generation requests, and, during a sign-in you started, noticing when the sign-in tab returns to the XAIGC server so the sign-in can be completed and the tab closed. The extension does not read your other tabs.</li></ul>
+    <h2>6. Your choices</h2>
+    <ul><li>Use clipboard mode if you do not want the extension to type into X.</li><li>Clear your reply memory in Settings.</li><li>Sign out, or use a license key without signing in at all.</li><li>Ask for your account to be deleted by contacting us with your account email, or the install ID shown under Settings, About. Deleting an account erases your Google account ID, name and email address, including the email on any license. What remains carries none of those: the free-trial count described above, your license itself (usable with its key), and usage records.</li><li>Uninstall the extension at any time.</li></ul>
+    <h2>7. Security</h2>
+    <p>Traffic between the extension and the XAIGC server is encrypted with HTTPS. Tokens, install IDs and license keys are stored only as hashes. No method of transmission or storage is perfectly secure.</p>
+    <h2>8. Children</h2>
+    <p>XAIGC is not directed at children under 13 and is not intended for anyone below the minimum age required by X.</p>
+    <h2>9. Changes</h2>
+    <p>This policy may be updated. The date at the top shows the latest revision.</p>
+    <h2>10. Contact</h2>
+    <p>Unique Labs: <a href="https://uniquelabs.org" rel="noopener">uniquelabs.org</a></p>
+  </main>
+  <footer class="footer">
+    <div class="wrap footer-row">
+      <a class="logo" href="/"><img src="/assets/icon-128.png" width="28" height="28" alt=""><span>XAIGC</span></a>
+      <nav aria-label="Footer">
+        <a href="/privacy">Privacy</a>
+        <a data-link="support" href="https://uniquelabs.org">Support</a>
+        <a href="https://uniquelabs.org" rel="noopener">uniquelabs.org</a>
+      </nav>
+    </div>
+    <div class="wrap">
+      <p>A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a>. Developed by Shahriar Ahmed.</p>
+      <p>© <span data-fill="year">2026</span> Unique Labs. XAIGC is not affiliated with or endorsed by X Corp. X and Twitter are trademarks of their owner.</p>
+    </div>
+  </footer>
+  <script src="/config.js"></script>
+  <script src="/site.js"></script>
+</body>
+</html>

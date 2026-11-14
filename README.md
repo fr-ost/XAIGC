@@ -6,6 +6,8 @@ Replies, questions, quote lines, posts and threads for X (Twitter), written in t
 
 Version 3 is a full reboot. The old extension called OpenAI from the browser with each user's own API key. Now the extension is a thin client and everything that matters runs on a server you control: the writing engine, the OpenAI key, licensing, the free trial and abuse prevention.
 
+**Setting it up for the first time? Follow [SETUP.md](SETUP.md).** It goes step by step from empty accounts to a published extension: server, database, Google sign-in, website and the Chrome Web Store. This README is the reference.
+
 ```
  Chrome extension (extension/)                 XAIGC server (server/)                OpenAI
  ┌───────────────────────────┐   HTTPS    ┌──────────────────────────────┐        ┌────────┐
@@ -22,12 +24,25 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 
 | Path | What it is |
 | --- | --- |
-| `extension/` | The Chrome extension (Manifest V3). Load this folder unpacked, or zip it for the Chrome Web Store. |
+| `SETUP.md` | The step-by-step setup guide. |
+| `extension/` | The Chrome extension (Manifest V3). Load this folder unpacked, or package it for the Chrome Web Store. |
 | `server/` | Node.js API: engine, licensing, trial, quotas, admin. |
 | `server/test/` | The test suite. Runs on an embedded Postgres or a real one. |
+| `website/` | The product website. Plain files, no build step. Deploys to Vercel with Root Directory `website`. |
+| `store/` | Chrome Web Store material: `assets/` (screenshots, promo tiles, icon), `listing.md` (the text for every dashboard field) and the generator that makes the images from the real extension. |
 | `Dockerfile` | Server image. Railway picks it up automatically. |
-| `scripts/set-api-url.mjs` | Points the extension at your deployed server. |
-| `PRIVACY-POLICY.md` | Privacy policy matching what the code does. |
+| `PRIVACY-POLICY.md` | Privacy policy matching what the code does. The website's privacy page is built from it. |
+
+Helper scripts, run from the top of the repository:
+
+| Command | What it does |
+| --- | --- |
+| `node scripts/set-api-url.mjs <server address>` | Points the extension at your deployed server. |
+| `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together. |
+| `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store. Refuses a build that points at localhost. |
+| `node scripts/set-site-url.mjs <site address>` | Tells the website its own address, for link previews and the sitemap. |
+| `node scripts/build-privacy.mjs` | Rebuilds `website/privacy.html` from `PRIVACY-POLICY.md`. |
+| `node store/generate.mjs` | Rebuilds the store images and the website's screenshots. Needs Playwright. |
 
 ## What users get
 
@@ -58,7 +73,7 @@ Railway was chosen over Vercel because this backend wants a long-running process
    | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From Google, to switch on sign-in (see below). Optional. |
 
 4. **Expose it.** Settings, Networking, Generate Domain. Set the health check path to `/health`.
-5. **Check it.** Open `https://<your-domain>/health`. It should return `{"ok":true,"version":"3.0.0"}`. The schema is created on first boot.
+5. **Check it.** Open `https://<your-domain>/health`. It should return `{"ok":true,"version":"3.1.2"}`. The schema is created on first boot.
 6. **Check that the server sees real client addresses.** Sign in at `https://<your-domain>/admin`. The header shows `You: <address> via x-real-ip`. That address should be your own public IP. If it is a private address (`10.x`, `100.64.x`, `192.168.x`), every user is sharing one rate-limit bucket: set `CLIENT_IP_HEADER` to the header your host fills in with the caller's address.
 
 The server refuses to start in production if a required variable is missing, if `OPENAI_API_KEY` is rejected, or if `OPENAI_MODEL` does not exist for your key. Railway then keeps the previous healthy deployment running, and the deploy log says exactly what to fix.
@@ -116,12 +131,24 @@ Who owns a license: the Google account whose verified email the license was issu
    ```
 
 2. Load it: open `chrome://extensions`, turn on Developer mode, Load unpacked, choose the `extension/` folder.
-3. To publish, zip the contents of `extension/` and upload the zip to the Chrome Web Store.
-4. After publishing, lock the API to your extension. Copy the extension ID from `chrome://extensions` and set this on the server:
+3. To publish, run `node scripts/pack-extension.mjs` and upload `dist/xaigc-extension-<version>.zip` to the Chrome Web Store. The listing text, the privacy answers and the images are in [`store/`](store/listing.md).
+4. Lock the API to your extension. The store's developer dashboard shows the item's ID as soon as the zip is uploaded. Set this on the server:
 
    ```
    ALLOWED_ORIGINS=chrome-extension://<your-extension-id>
    ```
+
+   An unpacked copy has a different ID (shown at `chrome://extensions`). To keep testing with one, list both IDs, separated by a comma.
+
+## The website
+
+`website/` is the product site: plain HTML, CSS and one small script, with no build step and no dependencies.
+
+1. In Vercel, import this repository and set **Root Directory** to `website`. Leave the build settings empty.
+2. Edit `website/config.js`: the Chrome Web Store address (the buttons read "Coming soon" until it is set), where people buy, and the plans and prices. Keep the numbers equal to what the server enforces.
+3. Run `node scripts/set-site-url.mjs https://your-site.example` once the site has its address, so link previews and the sitemap use full addresses.
+
+`website/vercel.json` turns on clean addresses (`/privacy`) and sets a strict content security policy. The screenshots on the site are captures of the real extension, made by `node store/generate.mjs`.
 
 ## Selling and managing licenses
 

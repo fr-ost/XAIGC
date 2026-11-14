@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "XAIGC - AI Content Generator for X",
   "short_name": "XAIGC",
-  "version": "3.0.0",
+  "version": "3.1.2",
   "description": "AI replies, questions, posts and threads for X (Twitter) in your own voice. A product of Unique Labs.",
   "homepage_url": "https://uniquelabs.org",
   "minimum_chrome_version": "111",

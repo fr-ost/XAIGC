@@ -1,6 +1,6 @@
 {
   "name": "xaigc-server",
-  "version": "3.0.0",
+  "version": "3.1.2",
   "private": true,
   "type": "module",
   "description": "XAIGC backend: generation engine, licensing, trial and abuse prevention. A product of Unique Labs.",
