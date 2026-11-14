@@ -1,10 +1,10 @@
-// XAIGC admin dashboard. Plain DOM, no framework, no inline script (strict CSP).
+// XAICG admin dashboard. Plain DOM, no framework, no inline script (strict CSP).
 (() => {
   "use strict";
 
   const $ = (id) => document.getElementById(id);
   const PAGE = 50;
-  const state = { token: sessionStorage.getItem("xaigc_admin") || "", offset: 0, total: 0, userOffset: 0, userTotal: 0, plans: [], openId: null, issueFor: null };
+  const state = { token: sessionStorage.getItem("xaicg_admin") || "", offset: 0, total: 0, userOffset: 0, userTotal: 0, plans: [], openId: null, issueFor: null };
 
   // h("td", { class: "num" }, "text", childNode)
   function h(tag, attrs, ...children) {
@@ -80,7 +80,7 @@
 
   function signOut(message) {
     state.token = "";
-    sessionStorage.removeItem("xaigc_admin");
+    sessionStorage.removeItem("xaicg_admin");
     showSignedIn(false);
     $("signInError").textContent = message || "";
     $("token").value = "";
@@ -531,7 +531,7 @@
   $("signInForm").addEventListener("submit", (event) => {
     event.preventDefault();
     state.token = $("token").value.trim();
-    sessionStorage.setItem("xaigc_admin", state.token);
+    sessionStorage.setItem("xaicg_admin", state.token);
     $("signInError").textContent = "";
     start();
   });

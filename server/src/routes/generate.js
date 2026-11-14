@@ -114,7 +114,7 @@ function quotaError(reason, account) {
     case "trial_capacity":
       return new ApiError(503, "trial_busy", "Free trial capacity is used up for today. Try again tomorrow, or activate a license.", { account });
     case "capacity":
-      return new ApiError(503, "capacity", "XAIGC is at capacity for today. Try again later.", { account });
+      return new ApiError(503, "capacity", "XAICG is at capacity for today. Try again later.", { account });
     default:
       return errors.paymentRequired("trial_ended", "Your free trial is used up. Activate a license to keep generating.", { account });
   }
@@ -131,7 +131,7 @@ function engineError(err) {
     case "upstream_timeout":
       return new ApiError(504, "upstream_timeout", "The AI provider took too long. Try again.");
     case "upstream_auth":
-      return new ApiError(503, "service_unavailable", "XAIGC is temporarily unavailable. Try again later.");
+      return new ApiError(503, "service_unavailable", "XAICG is temporarily unavailable. Try again later.");
     default:
       return new ApiError(502, "upstream_error", "The AI provider had a problem. Try again.");
   }
@@ -164,7 +164,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
   app.post("/v1/generate", { preValidation: requireDevice, schema: { body: bodySchema } }, async (req) => {
     let device = req.device;
     if (config.minClientVersion && olderThan(req.headers["x-xaigc-client"], config.minClientVersion)) {
-      throw new ApiError(426, "update_required", "This version of XAIGC is out of date. Update the extension to keep generating.");
+      throw new ApiError(426, "update_required", "This version of XAICG is out of date. Update the extension to keep generating.");
     }
     const input = normalize(req.body);
 

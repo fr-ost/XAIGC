@@ -1,4 +1,4 @@
-// XAIGC server entry point.
+// XAICG server entry point.
 // A product of Unique Labs (https://uniquelabs.org). Developed by Shahriar Ahmed.
 
 import { loadConfig } from "./config.js";
@@ -87,7 +87,7 @@ async function main() {
   await app.listen({ port: config.port, host: config.host });
   app.log.info(
     { version: config.version, database: db.kind, model: config.openai.model, admin: Boolean(config.adminToken) },
-    "XAIGC server ready",
+    "XAICG server ready",
   );
 }
 

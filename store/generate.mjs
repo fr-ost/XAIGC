@@ -43,7 +43,7 @@ const trialAccount = {
 };
 const proAccount = {
   plan: "pro", planLabel: "Pro", licensed: true, notice: null, accountLicense: null, user, auth, links,
-  license: { hint: "XAIGC-7K2QM-*****-*****-**VNE", state: "active", plan: "Pro", expiresAt: "2027-06-30T00:00:00.000Z", devicesUsed: 1, maxDevices: 2 },
+  license: { hint: "XAICG-7K2QM-*****-*****-**VNE", state: "active", plan: "Pro", expiresAt: "2027-06-30T00:00:00.000Z", devicesUsed: 1, maxDevices: 2 },
   quota: { scope: "day", limit: 200, used: 38, remaining: 162, resetsAt: "2027-01-01T00:00:00.000Z" },
 };
 
@@ -186,7 +186,7 @@ async function open({ width, height, scale = 1, data }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, colorScheme: "light", reducedMotion: "reduce" });
   // Runs in every frame before the page's own scripts. An iframe picks its
   // own storage overrides by name.
-  await context.addInitScript(`(() => { const p = ${JSON.stringify(data)}; const mine = p.frames[window.name] || {}; window.__XAIGC_PREVIEW = { ...p, storage: { ...p.storage, ...mine } }; })();\n${shim}`);
+  await context.addInitScript(`(() => { const p = ${JSON.stringify(data)}; const mine = p.frames[window.name] || {}; window.__XAICG_PREVIEW = { ...p, storage: { ...p.storage, ...mine } }; })();\n${shim}`);
   const page = await context.newPage();
   page.on("pageerror", (err) => console.warn("  page error:", err.message));
   return { context, page };
@@ -206,12 +206,12 @@ const OPTIONS = `${BASE}/extension/options.html`;
 
 // Drive the sample timeline: draft a reply into the box, or open the tone menu.
 async function draftReply(target) {
-  await target.locator("article").first().locator(".xaigc-btn.ai").click();
-  await target.locator(".xaigc-regen").waitFor();
+  await target.locator("article").first().locator(".xaicg-btn.ai").click();
+  await target.locator(".xaicg-regen").waitFor();
 }
 async function openTones(target) {
-  await target.locator("article").first().locator(".xaigc-btn.more").click();
-  await target.locator(".xaigc-menu").waitFor();
+  await target.locator("article").first().locator(".xaicg-btn.more").click();
+  await target.locator(".xaicg-menu").waitFor();
 }
 
 async function shot(n, spec, data, act) {
@@ -224,11 +224,11 @@ async function shot(n, spec, data, act) {
   await context.close();
 }
 
-console.log(`XAIGC ${VERSION}: store screenshots`);
+console.log(`XAICG ${VERSION}: store screenshots`);
 
 await shot(1, {
   headline: "Reply in your own voice, in one click",
-  sub: "XAIGC drafts the reply and types it into the box. You read it, then you post it.",
+  sub: "XAICG drafts the reply and types it into the box. You read it, then you post it.",
   frames: [{ name: "x", src: TIMELINE, width: 1152, height: 540 }],
 }, TRIAL, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
 
@@ -283,8 +283,8 @@ await copyFile(path.join(ROOT, "extension", "icons", "icon128.png"), path.join(S
 console.log("website screenshots (2x)");
 const SHOTS = path.join(SITE_OUT, "shots");
 
-for (const [name, act, height] of [["reply", draftReply, 520], ["tones", openTones, 600]]) {
-  const { context, page } = await open({ width: 1040, height, scale: 2, data: TRIAL });
+for (const [name, act, height] of [["reply", draftReply, 520], ["tones", openTones, 640]]) {
+  const { context, page } = await open({ width: 700, height, scale: 2, data: TRIAL });
   await page.goto(TIMELINE);
   await act(page);
   await settle(page);
@@ -306,7 +306,11 @@ for (const [name, state] of [["compose", popupPosts], ["thread", popupThread]]) 
   await page.goto(OPTIONS);
   await page.locator("#signedIn").waitFor();
   await settle(page);
+  // The site shows this card on a white band and the account cards on a soft
+  // grey one, so each is captured on the background it will sit on.
+  await page.evaluate(() => (document.body.style.background = "#ffffff"));
   await save(path.join(SHOTS, "voice.png"), await page.locator("#persona").locator("xpath=ancestor::section").screenshot({ type: "png" }));
+  await page.evaluate(() => (document.body.style.background = ""));
   // Bounding boxes are relative to the viewport and the capture above scrolled it; a full-page clip is not.
   const scrollY = await page.evaluate(() => window.scrollY);
   const a = await page.locator("#account").boundingBox();

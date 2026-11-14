@@ -1,21 +1,13 @@
+/* Sign-in result page, in the product's design system. */
 :root {
-  color-scheme: light dark;
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --border: #e2e5ea;
-  --text: #0f1419;
-  --muted: #5b6672;
-  --bad: #c0362c;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1116;
-    --surface: #161a21;
-    --border: #2a303b;
-    --text: #e8ebf0;
-    --muted: #97a1ad;
-    --bad: #f07f76;
-  }
+  color-scheme: light;
+  --canvas: #ffffff;
+  --surface-soft: #f7f7f7;
+  --hairline: #dee1e6;
+  --ink: #0a0b0d;
+  --body: #5b616e;
+  --muted: #7c828a;
+  --down: #cf202f;
 }
 * { box-sizing: border-box; }
 body {
@@ -23,34 +15,38 @@ body {
   min-height: 100vh;
   display: grid;
   place-content: center;
-  gap: 16px;
+  gap: 24px;
   padding: 24px 16px;
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: 400 16px/1.5 -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 .card {
-  width: min(440px, calc(100vw - 32px));
-  padding: 28px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  width: min(480px, calc(100vw - 32px));
+  padding: 48px 32px;
+  border-radius: 24px;
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
   text-align: center;
 }
-.card.bad { border-color: var(--bad); }
 .logo {
-  width: 44px;
-  height: 44px;
-  margin: 0 auto 14px;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  background: var(--text);
-  color: var(--surface);
-  font-weight: 800;
-  font-size: 20px;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 24px;
 }
-h1 { margin: 0 0 8px; font-size: 20px; letter-spacing: -0.01em; }
-p { margin: 0; color: var(--muted); }
-footer { text-align: center; color: var(--muted); font-size: 12.5px; }
+.logo svg { display: block; width: 100%; height: 100%; }
+h1 { margin: 0 0 12px; font-size: 32px; font-weight: 400; line-height: 1.13; letter-spacing: -0.4px; }
+.card.bad h1::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 12px;
+  border-radius: 9999px;
+  background: var(--down);
+  vertical-align: middle;
+}
+p { margin: 0; color: var(--body); }
+footer { text-align: center; color: var(--muted); font-size: 13px; }
 footer a { color: inherit; }

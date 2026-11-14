@@ -393,7 +393,7 @@ describe("licensing", () => {
 
   test("activation switches the install from trial to the plan", async () => {
     const lic = await t.license({ email: "Buyer@Example.com", note: "order 1" });
-    assert.match(lic.key, /^XAIGC(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
+    assert.match(lic.key, /^XAICG(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
     const stored = await t.db.query("SELECT key_hash, key_hint, email FROM licenses WHERE id = $1", [lic.id]);
     assert.ok(!JSON.stringify(stored.rows).includes(lic.key), "the key itself is never stored");
     assert.equal(stored.rows[0].email, "buyer@example.com");
@@ -429,24 +429,24 @@ describe("licensing", () => {
     assert.equal(malformed.status, 400);
     assert.equal(malformed.body.error.code, "invalid_key");
     for (let i = 0; i < 7; i++) {
-      const res = await t.activate(d, "XAIGC-AAAAA-BBBBB-CCCCC-DDDD" + i);
+      const res = await t.activate(d, "XAICG-AAAAA-BBBBB-CCCCC-DDDD" + i);
       assert.equal(res.status, 404);
       assert.equal(res.body.error.code, "invalid_key");
     }
     // The allowance (8 misses per 15 minutes) is spent: more wrong keys are told to slow down.
-    const throttled = await t.activate(d, "XAIGC-AAAAA-BBBBB-CCCCC-DDDD8");
+    const throttled = await t.activate(d, "XAICG-AAAAA-BBBBB-CCCCC-DDDD8");
     assert.equal(throttled.status, 429);
     assert.equal(throttled.body.error.code, "too_many_attempts");
     assert.ok(Number(throttled.headers["retry-after"]) > 0);
     // Someone else on the same network who mistypes is throttled too...
     const neighbour = await t.install({ ip: d.ip });
-    assert.equal((await t.activate(neighbour, "XAIGC-AAAAA-BBBBB-CCCCC-DDDD9")).status, 429);
+    assert.equal((await t.activate(neighbour, "XAICG-AAAAA-BBBBB-CCCCC-DDDD9")).status, 429);
     // ...but a correct key always works, for the neighbour and for the guesser.
     const lic = await t.license({ maxDevices: 2 });
     assert.equal((await t.activate(neighbour, lic.key)).status, 200, "a valid key is never locked out by other people's misses");
     assert.equal((await t.activate(d, lic.key)).status, 200);
     t.advance(16 * 60_000);
-    assert.equal((await t.activate(await t.install({ ip: d.ip }), "XAIGC-AAAAA-BBBBB-CCCCC-DDDDE")).status, 404, "the allowance refills");
+    assert.equal((await t.activate(await t.install({ ip: d.ip }), "XAICG-AAAAA-BBBBB-CCCCC-DDDDE")).status, 404, "the allowance refills");
     t.advance(-16 * 60_000);
   });
 
@@ -979,7 +979,7 @@ describe("abuse controls", () => {
       const d = await t.install();
       const blocked = await t.admin("POST", `/devices/${d.deviceId}/block`, { blocked: true, reason: "abuse" });
       assert.equal(blocked.status, 200);
-      for (const res of [await t.me(d), await t.generate(d), await t.activate(d, "XAIGC-AAAAA-BBBBB-CCCCC-DDDDD")]) {
+      for (const res of [await t.me(d), await t.generate(d), await t.activate(d, "XAICG-AAAAA-BBBBB-CCCCC-DDDDD")]) {
         assert.equal(res.status, 403);
         assert.equal(res.body.error.code, "device_blocked");
       }

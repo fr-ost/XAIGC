@@ -45,11 +45,11 @@ function page({ title, heading, body, tone = "" }) {
 </head>
 <body>
 <main class="card ${tone}">
-<div class="logo" aria-hidden="true">X</div>
+<div class="logo"><svg viewBox="0 0 128 128" aria-hidden="true"><rect width="128" height="128" rx="30" fill="#0052ff"/><path fill="#fff" d="M44 30h40a18 18 0 0 1 18 18v20a18 18 0 0 1-18 18H63L42 103l3-17.1A18 18 0 0 1 26 68V48a18 18 0 0 1 18-18z"/><path fill="#0052ff" d="M64 38c2 12 6 16 18 18-12 2-16 6-18 18-2-12-6-16-18-18 12-2 16-6 18-18z"/></svg></div>
 <h1>${escapeHtml(heading)}</h1>
 <p>${escapeHtml(body)}</p>
 </main>
-<footer>XAIGC · A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
+<footer>XAICG · A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
 </body>
 </html>`;
 }
@@ -58,7 +58,7 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
   const css = await readFile(path.join(UI_DIR, "style.css"));
   const html = (reply, status, content) =>
     reply.code(status).header("Content-Security-Policy", PAGE_CSP).type("text/html; charset=utf-8").send(page(content));
-  const failed = (reply, status, body) => html(reply, status, { title: "XAIGC sign-in", heading: "Sign-in didn't finish", body, tone: "bad" });
+  const failed = (reply, status, body) => html(reply, status, { title: "XAICG sign-in", heading: "Sign-in didn't finish", body, tone: "bad" });
 
   app.get("/auth/style.css", async (req, reply) => {
     reply.header("Cache-Control", "public, max-age=3600").type("text/css; charset=utf-8");
@@ -71,9 +71,9 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
   // finishes the sign-in and closes the tab.
   app.get("/auth/done", async (req, reply) =>
     html(reply, 200, {
-      title: "XAIGC sign-in",
+      title: "XAICG sign-in",
       heading: "Finishing sign-in",
-      body: "You can close this tab and go back to XAIGC. If nothing happened, open the XAIGC settings page and choose Sign in with Google again.",
+      body: "You can close this tab and go back to XAICG. If nothing happened, open the XAICG settings page and choose Sign in with Google again.",
     }),
   );
 
@@ -119,16 +119,16 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
       async (req, reply) => {
         const { code, state, error } = req.query;
         if (error) {
-          return failed(reply, 400, error === "access_denied" ? "You cancelled the Google sign-in. Go back to XAIGC to try again." : "Google reported a problem. Go back to XAIGC and try again.");
+          return failed(reply, 400, error === "access_denied" ? "You cancelled the Google sign-in. Go back to XAICG to try again." : "Google reported a problem. Go back to XAICG and try again.");
         }
-        if (!code || !state) return failed(reply, 400, "This sign-in link is incomplete. Go back to XAIGC and try again.");
+        if (!code || !state) return failed(reply, 400, "This sign-in link is incomplete. Go back to XAICG and try again.");
 
         const stateHash = sha256(state);
         const flow = await db.query(
           "SELECT nonce FROM auth_flows WHERE state_hash = $1 AND code_hash IS NULL AND expires_at > now()",
           [stateHash],
         );
-        if (!flow.rows[0]) return failed(reply, 400, "This sign-in link has expired or was already used. Go back to XAIGC and try again.");
+        if (!flow.rows[0]) return failed(reply, 400, "This sign-in link has expired or was already used. Go back to XAICG and try again.");
 
         let identity;
         try {
@@ -138,7 +138,7 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
           req.log.warn({ code: err.code }, "google sign-in failed");
           // The state is spent either way: Google's code cannot be replayed.
           await db.query("DELETE FROM auth_flows WHERE state_hash = $1", [stateHash]);
-          return failed(reply, 400, `${err.message} Go back to XAIGC and try again.`);
+          return failed(reply, 400, `${err.message} Go back to XAICG and try again.`);
         }
 
         const completion = randomToken("ac");
@@ -146,7 +146,7 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
           "UPDATE auth_flows SET code_hash = $1, identity = $2 WHERE state_hash = $3 AND code_hash IS NULL AND expires_at > now() RETURNING device_id",
           [sha256(completion), JSON.stringify(identity), stateHash],
         );
-        if (!parked.rows[0]) return failed(reply, 400, "This sign-in link has expired or was already used. Go back to XAIGC and try again.");
+        if (!parked.rows[0]) return failed(reply, 400, "This sign-in link has expired or was already used. Go back to XAICG and try again.");
         return reply.redirect(`/auth/done#code=${completion}`, 303);
       },
     );

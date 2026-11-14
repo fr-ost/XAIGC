@@ -1,4 +1,4 @@
-# XAIGC: AI Content Generator for X
+# X AI Comment/Reply Generator (XAICG)
 
 Replies, questions, quote lines, posts and threads for X (Twitter), written in the user's own voice.
 
@@ -9,7 +9,7 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 **Setting it up for the first time? Follow [SETUP.md](SETUP.md).** It goes step by step from empty accounts to a published extension: server, database, Google sign-in, website and the Chrome Web Store. This README is the reference.
 
 ```
- Chrome extension (extension/)                 XAIGC server (server/)                OpenAI
+ Chrome extension (extension/)                 XAICG server (server/)                OpenAI
  ┌───────────────────────────┐   HTTPS    ┌──────────────────────────────┐        ┌────────┐
  │ buttons on every post      │ ────────▶ │ rate limits, origin check     │ ─────▶ │ model  │
  │ popup compose studio       │           │ device token, license, quota  │ ◀───── │        │
@@ -131,7 +131,7 @@ Who owns a license: the Google account whose verified email the license was issu
    ```
 
 2. Load it: open `chrome://extensions`, turn on Developer mode, Load unpacked, choose the `extension/` folder.
-3. To publish, run `node scripts/pack-extension.mjs` and upload `dist/xaigc-extension-<version>.zip` to the Chrome Web Store. The listing text, the privacy answers and the images are in [`store/`](store/listing.md).
+3. To publish, run `node scripts/pack-extension.mjs` and upload `dist/xaicg-extension-<version>.zip` to the Chrome Web Store. The listing text, the privacy answers and the images are in [`store/`](store/listing.md).
 4. Lock the API to your extension. The store's developer dashboard shows the item's ID as soon as the zip is uploaded. Set this on the server:
 
    ```
@@ -154,7 +154,7 @@ Who owns a license: the Google account whose verified email the license was issu
 
 Open `https://<your-domain>/admin` and sign in with `ADMIN_TOKEN`.
 
-- **Issue licenses**: choose a plan, validity (never expires, N days from first activation, or a fixed end date), optional customer email and note, and how many keys. Keys look like `XAIGC-7K2QM-9D4TX-B81RC-0HVNE`.
+- **Issue licenses**: choose a plan, validity (never expires, N days from first activation, or a fixed end date), optional customer email and note, and how many keys. Keys look like `XAICG-7K2QM-9D4TX-B81RC-0HVNE`.
 - **Keys are shown once.** Only a hash is stored, so a leaked database cannot be turned into working keys. If a customer loses a key, use Rotate key.
 - **Manage**: revoke or restore, extend, change limits, release devices, block an install, and see per-license usage and history.
 - **Dashboard**: generations today, estimated OpenAI cost, active licenses, installs, users.

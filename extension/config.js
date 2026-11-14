@@ -1,6 +1,6 @@
-// XAIGC extension configuration.
+// XAICG extension configuration.
 //
-// API_BASE is the address of your XAIGC server. After deploying the server,
+// API_BASE is the address of your XAICG server. After deploying the server,
 // run `node scripts/set-api-url.mjs https://your-server.example` from the
 // repository root: it updates this file and the host permission in
 // manifest.json together.
@@ -10,8 +10,8 @@ export const API_BASE = "https://aigc.uniquelabs.org";
 export const CLIENT_VERSION = chrome.runtime.getManifest().version;
 
 export const PRODUCT = {
-  name: "XAIGC",
-  tagline: "AI Content Generator for X",
+  name: "XAICG",
+  tagline: "X AI Comment/Reply Generator",
   company: "Unique Labs",
   developer: "Shahriar Ahmed",
   website: "https://uniquelabs.org",

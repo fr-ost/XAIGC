@@ -1,4 +1,4 @@
-// XAIGC options page: license activation and voice settings.
+// XAICG options page: license activation and voice settings.
 
 import { DEFAULT_SETTINGS } from "./config.js";
 import { $, renderAccount, send } from "./lib/client.js";
@@ -93,7 +93,7 @@ function setSignInStatus(message, kind = "") {
 
 async function loadAccount(refresh) {
   try {
-    const { account } = await send("xaigc:account", { refresh });
+    const { account } = await send("xaicg:account", { refresh });
     showAccount(account);
     return account;
   } catch (err) {
@@ -114,7 +114,7 @@ async function activate(replaceOldest = false) {
   $("replaceBox").hidden = true;
   setLicenseStatus("Checking…");
   try {
-    const { account } = await send("xaigc:activate", { key, replaceOldest });
+    const { account } = await send("xaicg:activate", { key, replaceOldest });
     showAccount(account);
     $("licenseKey").value = "";
     pendingKey = "";
@@ -175,7 +175,7 @@ $("refresh").addEventListener("click", async () => {
 $("deactivate").addEventListener("click", async () => {
   if (!confirm("Remove the license from this browser? You can activate it again here or on another device.")) return;
   try {
-    const { account } = await send("xaigc:deactivate");
+    const { account } = await send("xaicg:deactivate");
     showAccount(account);
     setLicenseStatus("License removed from this browser.");
   } catch (err) {
@@ -187,7 +187,7 @@ $("googleSignIn").addEventListener("click", async () => {
   $("googleSignIn").disabled = true;
   setSignInStatus("Opening Google…");
   try {
-    await send("xaigc:signin");
+    await send("xaicg:signin");
     setSignInStatus("Finish signing in in the tab that just opened. This page updates by itself.");
   } catch (err) {
     setSignInStatus(err.message, "error");
@@ -197,7 +197,7 @@ $("googleSignIn").addEventListener("click", async () => {
 });
 $("signOut").addEventListener("click", async () => {
   try {
-    const { account } = await send("xaigc:signout");
+    const { account } = await send("xaicg:signout");
     showAccount(account);
     setSignInStatus("Signed out.");
   } catch (err) {
@@ -207,7 +207,7 @@ $("signOut").addEventListener("click", async () => {
 $("attachLicense").addEventListener("click", async () => {
   $("attachLicense").disabled = true;
   try {
-    const { account } = await send("xaigc:attach-license", { replaceOldest: attachReplaces });
+    const { account } = await send("xaicg:attach-license", { replaceOldest: attachReplaces });
     showAccount(account);
     setLicenseStatus(`License active on this browser. You're on ${account.planLabel}.`, "good");
   } catch (err) {
@@ -254,7 +254,7 @@ $("presets").addEventListener("click", (e) => {
 document.querySelectorAll('input[name="outputMode"]').forEach((r) => r.addEventListener("change", () => r.checked && save({ outputMode: r.value })));
 $("showQuestionButton").addEventListener("change", () => save({ showQuestionButton: $("showQuestionButton").checked }));
 $("clearMemory").addEventListener("click", async () => {
-  await send("xaigc:clear-memory");
+  await send("xaicg:clear-memory");
   $("memoryStatus").textContent = "Reply memory cleared.";
   setTimeout(() => ($("memoryStatus").textContent = ""), 2000);
 });
@@ -272,7 +272,7 @@ $("clearMemory").addEventListener("click", async () => {
 
   loadAccount(true);
   try {
-    const info = await send("xaigc:info");
+    const info = await send("xaicg:info");
     $("deviceId").textContent = info.deviceId || "Not registered yet";
   } catch {
     $("deviceId").textContent = "Unavailable";

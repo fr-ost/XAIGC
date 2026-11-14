@@ -3,7 +3,7 @@
 //
 //   node scripts/pack-extension.mjs
 //
-// Writes dist/xaigc-extension-<version>.zip, the file you upload in the
+// Writes dist/xaicg-extension-<version>.zip, the file you upload in the
 // developer dashboard. It refuses to package a build that still points at
 // localhost, because that build would install fine and then fail for every
 // user. (Pass --allow-local to package one anyway, for your own testing.)
@@ -128,11 +128,11 @@ end.writeUInt16LE(names.length, 10);
 end.writeUInt32LE(directorySize, 12);
 end.writeUInt32LE(offset, 16);
 
-const out = path.join(root, "dist", `xaigc-extension-${manifest.version}.zip`);
+const out = path.join(root, "dist", `xaicg-extension-${manifest.version}.zip`);
 await mkdir(path.dirname(out), { recursive: true });
 const zip = Buffer.concat([...parts, ...directory, end]);
 await writeFile(out, zip);
 
-console.log(`Packaged XAIGC ${manifest.version} for ${api.origin}`);
+console.log(`Packaged XAICG ${manifest.version} for ${api.origin}`);
 console.log(`  ${path.relative(root, out)}  (${names.length} files, ${Math.round(zip.length / 1024)} KB)`);
 if (local) console.log("  Note: this build talks to localhost. Do not upload it to the store.");

@@ -74,9 +74,9 @@ const html = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escape(heading.trim())} | XAIGC</title>
-  <meta name="description" content="What XAIGC processes, what it keeps and why, in plain language.">
-  <meta name="theme-color" content="#0a0f1f">
+  <title>${escape(heading.trim())} | XAICG</title>
+  <meta name="description" content="What XAICG processes, what it keeps and why, in plain language.">
+  <meta name="theme-color" content="#0a0b0d">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -84,14 +84,14 @@ const html = `<!doctype html>
   <a class="skip" href="#main">Skip to content</a>
   <div class="page-head">
     <header class="nav wrap">
-      <a class="logo" href="/" aria-label="XAIGC home"><img src="/assets/icon-128.png" width="36" height="36" alt=""><span>XAIGC</span></a>
+      <a class="logo" href="/" aria-label="XAICG home"><img src="/assets/icon-128.png" width="32" height="32" alt=""><span>XAICG</span></a>
       <nav aria-label="Main">
         <a href="/#features">Features</a>
         <a href="/#how">How it works</a>
         <a href="/#pricing">Pricing</a>
         <a href="/#faq">FAQ</a>
       </nav>
-      <a class="btn small light" data-link="store" href="/#pricing">Add to Chrome</a>
+      <a class="btn primary small" data-link="store" href="/#pricing">Add to Chrome</a>
     </header>
     <div class="wrap narrow"><h1>${escape(heading.trim())}</h1></div>
   </div>
@@ -100,17 +100,39 @@ const html = `<!doctype html>
     ${rest.length ? `<p><strong>${inline(rest.join(":").trim())}</strong></p>\n    ` : ""}${out.join("\n    ")}
   </main>
   <footer class="footer">
-    <div class="wrap footer-row">
-      <a class="logo" href="/"><img src="/assets/icon-128.png" width="28" height="28" alt=""><span>XAIGC</span></a>
-      <nav aria-label="Footer">
-        <a href="/privacy">Privacy</a>
-        <a data-link="support" href="https://uniquelabs.org">Support</a>
-        <a href="https://uniquelabs.org" rel="noopener">uniquelabs.org</a>
-      </nav>
-    </div>
     <div class="wrap">
-      <p>A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a>. Developed by Shahriar Ahmed.</p>
-      <p>© <span data-fill="year">2026</span> Unique Labs. XAIGC is not affiliated with or endorsed by X Corp. X and Twitter are trademarks of their owner.</p>
+      <div class="footer-cols">
+        <div class="footer-about">
+          <a class="logo" href="/"><img src="/assets/icon-128.png" width="28" height="28" alt=""><span>XAICG</span></a>
+          <p>X AI Comment/Reply Generator. A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a>, developed by Shahriar Ahmed.</p>
+        </div>
+        <nav aria-label="Product">
+          <h3>Product</h3>
+          <ul>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <nav aria-label="Company">
+          <h3>Company</h3>
+          <ul>
+            <li><a href="https://uniquelabs.org" rel="noopener">Unique Labs</a></li>
+            <li><a data-link="support" href="https://uniquelabs.org">Support</a></li>
+          </ul>
+        </nav>
+        <nav aria-label="Legal">
+          <h3>Legal</h3>
+          <ul>
+            <li><a href="/privacy">Privacy policy</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="legal">
+        <p>© <span data-fill="year">2026</span> Unique Labs. All rights reserved.</p>
+        <p>XAICG is an independent product. It is not affiliated with or endorsed by X Corp. X and Twitter are trademarks of their owner.</p>
+      </div>
     </div>
   </footer>
   <script src="/config.js"></script>

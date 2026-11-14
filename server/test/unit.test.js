@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 
 import { loadConfig } from "../src/config.js";
 import { connectionStringFor, waitForDatabase } from "../src/db/index.js";
@@ -51,13 +52,13 @@ test("config: PLANS_JSON overrides the plan table and is validated", () => {
 });
 
 test("database TLS: an explicit setting is not overridden by ?sslmode= in the URL", () => {
-  const url = "postgres://u:p@db.example.com:5432/postgres?sslmode=no-verify&application_name=xaigc";
+  const url = "postgres://u:p@db.example.com:5432/postgres?sslmode=no-verify&application_name=xaicg";
   const plain = loadConfig({ DATABASE_URL: url });
   assert.equal(connectionStringFor(plain), url, "left alone when nothing is configured explicitly");
   for (const env of [{ DATABASE_SSL: "true" }, { DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\\nx\\n-----END CERTIFICATE-----" }, { DATABASE_SSL: "no-verify" }]) {
     const cleaned = new URL(connectionStringFor(loadConfig({ DATABASE_URL: url, ...env })));
     assert.equal(cleaned.searchParams.get("sslmode"), null, JSON.stringify(env));
-    assert.equal(cleaned.searchParams.get("application_name"), "xaigc", "other parameters are kept");
+    assert.equal(cleaned.searchParams.get("application_name"), "xaicg", "other parameters are kept");
     assert.equal(cleaned.host, "db.example.com:5432");
   }
 });
@@ -176,31 +177,41 @@ test("license keys: format, entropy alphabet, uniqueness", () => {
   const keys = new Set();
   for (let i = 0; i < 500; i++) {
     const key = generateLicenseKey();
-    assert.match(key, /^XAIGC(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
+    assert.match(key, /^XAICG(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
     keys.add(key);
   }
   assert.equal(keys.size, 500);
 });
 
 test("license keys: normalization forgives formatting and look-alike typos", () => {
-  const key = "XAIGC-0A1BC-DEFGH-JKMNP-QRSTV";
+  const key = "XAICG-0A1BC-DEFGH-JKMNP-QRSTV";
   assert.equal(normalizeKey(key), key);
-  assert.equal(normalizeKey("  xaigc 0a1bc defgh jkmnp qrstv "), key);
-  assert.equal(normalizeKey("XAIGCOAIBCDEFGHJKMNPQRSTV"), key, "O->0 and I->1");
+  assert.equal(normalizeKey("  xaicg 0a1bc defgh jkmnp qrstv "), key);
+  assert.equal(normalizeKey("XAICGOAIBCDEFGHJKMNPQRSTV"), key, "O->0 and I->1");
   assert.equal(normalizeKey("0A1BC-DEFGH-JKMNP-QRSTV"), key, "prefix optional");
-  assert.equal(normalizeKey("XAIGC-0A1BC-DEFGH-JKMNP"), null, "too short");
-  assert.equal(normalizeKey("XAIGC-0A1BC-DEFGH-JKMNP-QRSTU"), null, "U is not in the alphabet");
+  assert.equal(normalizeKey("XAICG-0A1BC-DEFGH-JKMNP"), null, "too short");
+  assert.equal(normalizeKey("XAICG-0A1BC-DEFGH-JKMNP-QRSTU"), null, "U is not in the alphabet");
   assert.equal(normalizeKey(""), null);
   assert.equal(normalizeKey(null), null);
 });
 
 test("license keys: hash is stable, hint hides the middle", () => {
-  const key = "XAIGC-0A1BC-DEFGH-JKMNP-QRSTV";
+  const key = "XAICG-0A1BC-DEFGH-JKMNP-QRSTV";
   assert.equal(hashKey(key), hashKey(normalizeKey(key.toLowerCase())));
   assert.match(hashKey(key), /^[a-f0-9]{64}$/);
   const hint = keyHint(key);
-  assert.equal(hint, "XAIGC-0A1BC-*****-*****-**STV");
+  assert.equal(hint, "XAICG-0A1BC-*****-*****-**STV");
   assert.ok(!hint.includes("DEFGH") && !hint.includes("JKMNP"));
+});
+
+test("license keys: keys issued under the old name (XAIGC) still work", () => {
+  const old = "XAIGC-0A1BC-DEFGH-JKMNP-QRSTV";
+  const current = "XAICG-0A1BC-DEFGH-JKMNP-QRSTV";
+  assert.equal(normalizeKey(old), current, "an old key is accepted and shown with the new prefix");
+  assert.equal(normalizeKey("xaigc0a1bcdefghjkmnpqrstv"), current);
+  assert.equal(hashKey(normalizeKey(old)), hashKey(current));
+  // The stored hash of every license issued before the rename.
+  assert.equal(hashKey(current), createHash("sha256").update(`xaigc-license:${old}`).digest("hex"));
 });
 
 test("licenseState", () => {

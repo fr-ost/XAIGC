@@ -1,4 +1,4 @@
-// XAIGC popup: account status and the compose studio (posts, threads, rewrites).
+// XAICG popup: account status and the compose studio (posts, threads, rewrites).
 
 import { $, copy, renderAccount, send } from "./lib/client.js";
 
@@ -105,7 +105,7 @@ function renderResult() {
     actions.appendChild(copyBtn);
     if (!isThread) {
       const open = document.createElement("a");
-      open.className = "btn sm primary";
+      open.className = "btn sm dark";
       open.textContent = "Open in X";
       open.target = "_blank";
       open.rel = "noopener";
@@ -137,7 +137,7 @@ async function generate() {
   button.disabled = true;
   setStatus("Writing…");
   try {
-    const data = await send("xaigc:generate", { payload });
+    const data = await send("xaicg:generate", { payload });
     state.result = { kind: data.kind, items: data.thread || data.variants || [] };
     showAccount(data.account);
     setStatus("");
@@ -187,7 +187,7 @@ $("copyAll").addEventListener("click", async () => {
 });
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
 // Signing in happens on the settings page, where there is room to explain it.
-$("signIn").addEventListener("click", () => send("xaigc:open-options", { section: "account" }).then(() => window.close(), () => {}));
+$("signIn").addEventListener("click", () => send("xaicg:open-options", { section: "account" }).then(() => window.close(), () => {}));
 
 (async function init() {
   const stored = await chrome.storage.local.get(["popupState", "account"]);
@@ -200,7 +200,7 @@ $("signIn").addEventListener("click", () => send("xaigc:open-options", { section
   renderResult();
   if (stored.account) showAccount(stored.account);
   try {
-    const { account } = await send("xaigc:account", { refresh: true });
+    const { account } = await send("xaicg:account", { refresh: true });
     showAccount(account);
   } catch (err) {
     if (!stored.account) setStatus(err.message, "error");

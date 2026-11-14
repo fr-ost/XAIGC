@@ -103,7 +103,7 @@ async function freshDatabaseUrl() {
   const adminUrl = process.env.TEST_DATABASE_URL;
   if (!adminUrl) return { url: "", drop: async () => {} };
   const { default: pg } = await import("pg");
-  const name = `xaigc_test_${randomBytes(6).toString("hex")}`;
+  const name = `xaicg_test_${randomBytes(6).toString("hex")}`;
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   await admin.query(`CREATE DATABASE ${name}`);

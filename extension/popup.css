@@ -6,35 +6,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  height: 64px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline-soft);
 }
 main {
   display: grid;
-  gap: 10px;
-  padding: 12px 14px 4px;
+  gap: 12px;
+  padding: 16px 16px 4px;
 }
 .compose {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 #generate {
   width: 100%;
-}
-.notice {
-  margin-top: 8px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--warn);
-  color: var(--warn);
-  font-size: 12.5px;
 }
 
 .results-head {
@@ -42,7 +34,11 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  min-height: 32px;
+  margin: 4px 0 8px;
+}
+.results-head strong {
+  font-size: 16px;
 }
 #resultList {
   list-style: none;
@@ -52,10 +48,9 @@ main {
   gap: 8px;
 }
 #resultList li {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
 }
 #resultList p {
   white-space: pre-wrap;
@@ -66,25 +61,24 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 .result-foot .count {
-  font-size: 12px;
+  font: 500 12px/1.4 var(--mono);
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
 }
 .result-foot .count.over {
-  color: var(--bad);
+  color: var(--down);
 }
 .result-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 footer {
   display: grid;
-  gap: 8px;
-  padding: 10px 14px 12px;
+  gap: 12px;
+  padding: 12px 16px 16px;
 }
 .foot-actions {
   display: flex;

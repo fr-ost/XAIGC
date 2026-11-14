@@ -1,9 +1,13 @@
 // License keys, activation and device binding.
 //
-// Key format: XAIGC-XXXXX-XXXXX-XXXXX-XXXXX, 20 random characters from the
+// Key format: XAICG-XXXXX-XXXXX-XXXXX-XXXXX, 20 random characters from the
 // Crockford base32 alphabet (no I, L, O, U), which is 100 bits of entropy.
 // Only a SHA-256 of the key is stored. A leaked database cannot be turned
 // back into working keys, and the key is shown exactly once, at creation.
+//
+// The product used to be called XAIGC and its keys began with that. Those
+// keys still work: either prefix is accepted, and the stored hash is always
+// taken over the old spelling, so nothing in the database had to change.
 
 import { randomBytes, randomUUID } from "node:crypto";
 import { ApiError, errors } from "../errors.js";
@@ -22,8 +26,11 @@ export function generateLicenseKey() {
   return formatKey(body);
 }
 
-function formatKey(body) {
-  return `XAIGC-${body.slice(0, 5)}-${body.slice(5, 10)}-${body.slice(10, 15)}-${body.slice(15, 20)}`;
+const PREFIX = "XAICG";
+const LEGACY_PREFIX = "XAIGC";
+
+function formatKey(body, prefix = PREFIX) {
+  return `${prefix}-${body.slice(0, 5)}-${body.slice(5, 10)}-${body.slice(10, 15)}-${body.slice(15, 20)}`;
 }
 
 // Accepts what people actually paste: lower case, spaces, missing dashes,
@@ -31,13 +38,16 @@ function formatKey(body) {
 // canonical key, or null when it cannot be a valid key.
 export function normalizeKey(input) {
   let s = String(input || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
-  if (s.startsWith("XAIGC")) s = s.slice(5);
+  if (s.startsWith(PREFIX) || s.startsWith(LEGACY_PREFIX)) s = s.slice(5);
   s = s.replace(/O/g, "0").replace(/[IL]/g, "1");
   return BODY_RE.test(s) ? formatKey(s) : null;
 }
 
+// Hashed in the form keys had before the rename (see the note at the top).
+// Do not change this string: every stored license hash depends on it.
 export function hashKey(canonicalKey) {
-  return sha256(`xaigc-license:${canonicalKey}`);
+  const body = canonicalKey.replace(/[^0-9A-Z]/g, "").slice(-20);
+  return sha256(`xaigc-license:${formatKey(body, LEGACY_PREFIX)}`);
 }
 
 export function keyHint(canonicalKey) {
@@ -216,7 +226,7 @@ async function bindDevice(t, config, license, device, { source, replaceOldest = 
 // address the license was issued to (see attachAccountLicense).
 export async function activateLicense(db, config, { device, rawKey, replaceOldest = false, ipHash = null }) {
   const key = normalizeKey(rawKey);
-  if (!key) throw errors.badRequest("That doesn't look like a license key. Expected XAIGC-XXXXX-XXXXX-XXXXX-XXXXX.", "invalid_key");
+  if (!key) throw errors.badRequest("That doesn't look like a license key. Expected XAICG-XXXXX-XXXXX-XXXXX-XXXXX.", "invalid_key");
 
   return db.tx(async (t) => {
     const found = await t.query("SELECT * FROM licenses WHERE key_hash = $1 FOR UPDATE", [hashKey(key)]);

@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is. Replace `<your-site>` with the website's address (for example `https://xaigc.example`). The server's address, `https://aigc.uniquelabs.org`, is already filled in.
+Everything the developer dashboard asks for, in the order it asks. Text in code blocks is meant to be pasted as it is. Replace `<your-site>` with the website's address (for example `https://xaicg.example`). The server's address, `https://aigc.uniquelabs.org`, is already filled in.
 
 The images are in [`store/assets/`](assets/). Rebuild them with `node store/generate.mjs` after the extension's look changes.
 
@@ -8,7 +8,7 @@ The images are in [`store/assets/`](assets/). Rebuild them with `node store/gene
 
 ## 1. Package
 
-Upload `dist/xaigc-extension-<version>.zip`, made with:
+Upload `dist/xaicg-extension-<version>.zip`, made with:
 
 ```bash
 node scripts/pack-extension.mjs
@@ -18,7 +18,7 @@ The name and the short summary on the store come from `extension/manifest.json`,
 
 | Field | Value | Limit |
 | --- | --- | --- |
-| Name | `XAIGC - AI Content Generator for X` | 34 of 75 characters |
+| Name | `XAICG - AI Content Generator for X` | 34 of 75 characters |
 | Summary | `AI replies, questions, posts and threads for X (Twitter) in your own voice. A product of Unique Labs.` | 101 of 132 characters |
 
 ---
@@ -28,10 +28,10 @@ The name and the short summary on the store come from `extension/manifest.json`,
 ### Description
 
 ```
-XAIGC drafts replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
+XAICG drafts replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
 
 HOW IT WORKS
-XAIGC adds two buttons to every post on x.com: AI Reply and Question. Click one and a draft is typed into X's own reply box. Change it if you like, then press Reply. Nothing is ever posted for you.
+XAICG adds two buttons to every post on x.com: AI Reply and Question. Click one and a draft is typed into X's own reply box. Change it if you like, then press Reply. Nothing is ever posted for you.
 
 WHAT YOU CAN DO
 • Reply to any post with one click
@@ -45,7 +45,7 @@ WHAT YOU CAN DO
 • Write in English, in the post's own language, or in one of 17 languages you choose
 
 SOUNDS LIKE YOU
-Describe your persona once, or start from a preset and edit it. XAIGC is built to avoid the usual signs of AI writing: no generic praise, no hype words, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it keeps track of your recent drafts so it does not repeat itself.
+Describe your persona once, or start from a preset and edit it. XAICG is built to avoid the usual signs of AI writing: no generic praise, no hype words, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it keeps track of your recent drafts so it does not repeat itself.
 
 NO API KEY
 You do not need an OpenAI account or an API key. Install it, sign in with Google and start writing.
@@ -58,16 +58,16 @@ FREE TRIAL AND PLANS
 A license belongs to your Google account, so on a new computer you sign in and it is there. Licenses are sold at <your-site>.
 
 PRIVACY
-• XAIGC reads only the post you click, and nothing else on the page
+• XAICG reads only the post you click, and nothing else on the page
 • It never reads your direct messages, followers or password
-• The post's text is sent to the XAIGC server and on to OpenAI to write the draft. The server does not save that text or the draft.
+• The post's text is sent to the XAICG server and on to OpenAI to write the draft. The server does not save that text or the draft.
 • No advertising, no analytics trackers, no sale of data
 Full policy: <your-site>/privacy
 
 ABOUT
-XAIGC is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
+XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
 
-XAIGC is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. X and Twitter are trademarks of their owner.
+XAICG is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. X and Twitter are trademarks of their owner.
 ```
 
 If you change `TRIAL_GENERATIONS` or the plans on the server, change the numbers here and in `website/config.js` as well. If you run without Google sign-in, change "sign in with Google and start writing" to "and start writing", and drop the sentence about the license belonging to a Google account.
@@ -112,7 +112,7 @@ The screenshots show the real extension on a sample timeline with made-up accoun
 ### Single purpose
 
 ```
-XAIGC writes draft replies, posts and threads for X (Twitter). The user clicks a button on a post, or types an idea into the popup, and gets a draft to review and post themselves.
+XAICG writes draft replies, posts and threads for X (Twitter). The user clicks a button on a post, or types an idea into the popup, and gets a draft to review and post themselves.
 ```
 
 ### Permission justifications
@@ -120,7 +120,7 @@ XAIGC writes draft replies, posts and threads for X (Twitter). The user clicks a
 **storage**
 
 ```
-Stores the user's writing settings (tone, persona, language), their recent drafts so new drafts do not repeat them, the text in the popup's compose window so it is not lost when the popup closes, and the installation's ID and access token for the XAIGC server.
+Stores the user's writing settings (tone, persona, language), their recent drafts so new drafts do not repeat them, the text in the popup's compose window so it is not lost when the popup closes, and the installation's ID and access token for the XAICG server.
 ```
 
 **clipboardWrite**
@@ -134,7 +134,7 @@ Copies a draft to the clipboard when the user presses a Copy button, when they c
 ```
 x.com and twitter.com: the extension adds its AI Reply and Question buttons to posts on these pages, reads the text of the one post the user clicked, and types the draft into the site's reply box. It runs on no other site.
 
-https://aigc.uniquelabs.org: this is XAIGC's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's free trial and license there.
+https://aigc.uniquelabs.org: this is XAICG's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's free trial and license there.
 ```
 
 ### Remote code
@@ -149,7 +149,7 @@ Tick the four marked Yes, and leave the rest unticked:
 | --- | --- | --- |
 | Personally identifiable information | Yes | Name and email address, when the user signs in with Google |
 | Authentication information | Yes | A license key the user types, and the installation's access token |
-| Website content | Yes | The text of the post the user asks XAIGC to answer |
+| Website content | Yes | The text of the post the user asks XAICG to answer |
 | Location | Yes | The server sees the user's IP address and keeps a keyed hash of it to limit trial abuse. The store counts an IP address as location data. |
 | Health information | No | |
 | Financial and payment information | No | Payments happen on your website, not in the extension |
@@ -192,16 +192,16 @@ Your publisher account will also ask whether you are a **trader** (a requirement
 Reviewers will not sign in with a Google account of their own, so give them a license key. In the admin dashboard, issue one Pro license with the note "Chrome Web Store review" and paste its key below. You can revoke it after approval.
 
 ```
-XAIGC needs no username or password. Please use this license key:
+XAICG needs no username or password. Please use this license key:
 
-    XAIGC-XXXXX-XXXXX-XXXXX-XXXXX
+    XAICG-XXXXX-XXXXX-XXXXX-XXXXX
 
 To activate it:
-1. Click the XAIGC icon in the toolbar, then Settings.
+1. Click the XAICG icon in the toolbar, then Settings.
 2. Under "Plan and license", paste the key and press Activate.
 
 To test without an X account:
-3. Click the XAIGC icon. Type an idea (for example "why small weekly releases beat one big launch") and press "Generate posts". Three drafts appear. The Thread and Rewrite tabs work the same way.
+3. Click the XAICG icon. Type an idea (for example "why small weekly releases beat one big launch") and press "Generate posts". Three drafts appear. The Thread and Rewrite tabs work the same way.
 
 To test on X (needs any X account):
 4. Open https://x.com/home. Each post has "AI Reply" and "Question" buttons in its action bar.

@@ -1,6 +1,6 @@
-// XAIGC service worker.
+// XAICG service worker.
 //
-// The only part of the extension that talks to the XAIGC server. Content
+// The only part of the extension that talks to the XAICG server. Content
 // scripts, the popup and the options page send it messages; it attaches the
 // device token, the user's voice settings and recent-reply memory, and keeps
 // a cached copy of the account (plan, remaining quota) in storage so every
@@ -108,7 +108,7 @@ async function request(path, { method = "GET", body, auth = true, retried = fals
     });
   } catch (err) {
     const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
-    throw new ApiError("network", timedOut ? "The XAIGC server took too long to answer. Try again." : "Can't reach the XAIGC server. Check your connection and try again.");
+    throw new ApiError("network", timedOut ? "The XAICG server took too long to answer. Try again." : "Can't reach the XAICG server. Check your connection and try again.");
   }
 
   let json = null;
@@ -129,7 +129,7 @@ async function request(path, { method = "GET", body, auth = true, retried = fals
     const error = json?.error || {};
     if (error.account) await saveAccount(error.account);
     const { code, message, account, ...extra } = error;
-    throw new ApiError(code || `http_${res.status}`, message || `The XAIGC server returned an error (${res.status}).`, extra);
+    throw new ApiError(code || `http_${res.status}`, message || `The XAICG server returned an error (${res.status}).`, extra);
   }
   if (json?.account) await saveAccount(json.account);
   return json;
@@ -279,26 +279,26 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 });
 
 const handlers = {
-  "xaigc:generate": (msg) => generate(msg.payload || {}),
-  "xaigc:remember": async (msg) => {
+  "xaicg:generate": (msg) => generate(msg.payload || {}),
+  "xaicg:remember": async (msg) => {
     await remember(msg.text);
     return {};
   },
-  "xaigc:account": async (msg) => ({ account: msg.refresh ? await refreshAccount() : await cachedAccount() }),
-  "xaigc:activate": (msg) => request("/v1/license/activate", { method: "POST", body: { key: String(msg.key || ""), replaceOldest: msg.replaceOldest === true } }),
-  "xaigc:deactivate": () => request("/v1/license/deactivate", { method: "POST" }),
-  "xaigc:attach-license": (msg) => request("/v1/license/attach", { method: "POST", body: { replaceOldest: msg.replaceOldest === true } }),
-  "xaigc:signin": () => startSignIn(),
-  "xaigc:signout": () => request("/v1/auth/signout", { method: "POST" }),
-  "xaigc:clear-memory": async () => {
+  "xaicg:account": async (msg) => ({ account: msg.refresh ? await refreshAccount() : await cachedAccount() }),
+  "xaicg:activate": (msg) => request("/v1/license/activate", { method: "POST", body: { key: String(msg.key || ""), replaceOldest: msg.replaceOldest === true } }),
+  "xaicg:deactivate": () => request("/v1/license/deactivate", { method: "POST" }),
+  "xaicg:attach-license": (msg) => request("/v1/license/attach", { method: "POST", body: { replaceOldest: msg.replaceOldest === true } }),
+  "xaicg:signin": () => startSignIn(),
+  "xaicg:signout": () => request("/v1/auth/signout", { method: "POST" }),
+  "xaicg:clear-memory": async () => {
     await local.remove("recentReplies");
     return {};
   },
-  "xaigc:info": async () => {
+  "xaicg:info": async () => {
     const { deviceId } = await local.get("deviceId");
     return { deviceId: deviceId || null, apiBase: API_BASE, version: CLIENT_VERSION };
   },
-  "xaigc:open-options": async (msg) => {
+  "xaicg:open-options": async (msg) => {
     const url = chrome.runtime.getURL(`options.html${msg.section ? `#${msg.section}` : ""}`);
     await chrome.tabs.create({ url });
     return {};
@@ -313,7 +313,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handler(message)
     .then((data) => sendResponse({ ok: true, data }))
     .catch((err) => {
-      if (!(err instanceof ApiError)) console.error("[XAIGC]", err);
+      if (!(err instanceof ApiError)) console.error("[XAICG]", err);
       sendResponse({
         ok: false,
         error: { code: err.code || "unexpected", message: err.message || "Something went wrong.", ...(err.extra || {}) },

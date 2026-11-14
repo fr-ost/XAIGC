@@ -1,4 +1,4 @@
-// XAIGC content script for x.com.
+// XAICG content script for x.com.
 //
 // Adds reply tools to every post, extracts the post's text, asks the service
 // worker for drafts and types the chosen draft into X's reply box. Nothing is
@@ -8,8 +8,8 @@
 
 (() => {
   "use strict";
-  if (window.__xaigcLoaded) return;
-  window.__xaigcLoaded = true;
+  if (window.__xaicgLoaded) return;
+  window.__xaicgLoaded = true;
 
   const TONES = [
     ["auto", "Auto"],
@@ -24,10 +24,10 @@
   ];
   const DEFAULT_SETTINGS = { outputMode: "insert", showQuestionButton: true };
 
-  const ICON_SPARK = `<svg class="xaigc-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>`;
-  const ICON_QUESTION = `<svg class="xaigc-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5.5a2.5 2.5 0 1 1 3.6 2.25c-.7.34-1.1.9-1.1 1.6V10"/><circle cx="8" cy="13" r=".7" fill="currentColor" stroke="none"/></svg>`;
-  const ICON_REGEN = `<svg class="xaigc-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 8a6 6 0 1 1-1.76-4.24"/><path d="M14 2.5V6h-3.5"/></svg>`;
-  const ICON_CHEVRON = `<svg class="xaigc-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
+  const ICON_SPARK = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>`;
+  const ICON_QUESTION = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 5.5a2.5 2.5 0 1 1 3.6 2.25c-.7.34-1.1.9-1.1 1.6V10"/><circle cx="8" cy="13" r=".7" fill="currentColor" stroke="none"/></svg>`;
+  const ICON_REGEN = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 8a6 6 0 1 1-1.76-4.24"/><path d="M14 2.5V6h-3.5"/></svg>`;
+  const ICON_CHEVRON = `<svg class="xaicg-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
 
   /* ----------------------------- extension link ---------------------------- */
 
@@ -47,7 +47,7 @@
   }
 
   async function send(type, data = {}) {
-    const stale = "XAIGC was updated. Refresh this page to keep using it.";
+    const stale = "XAICG was updated. Refresh this page to keep using it.";
     if (!runtimeAlive()) throw fail("context", stale);
     let res;
     try {
@@ -84,11 +84,11 @@
       if (area !== "local") return;
       if (changes.settings) {
         settings = { ...DEFAULT_SETTINGS, ...(changes.settings.newValue || {}) };
-        document.querySelectorAll(".xaigc-btn.q").forEach((b) => (b.hidden = !settings.showQuestionButton));
+        document.querySelectorAll(".xaicg-btn.q").forEach((b) => (b.hidden = !settings.showQuestionButton));
       }
       if (changes.account) {
         account = changes.account.newValue || null;
-        document.querySelectorAll(".xaigc-btn").forEach(applyGauge);
+        document.querySelectorAll(".xaicg-btn").forEach(applyGauge);
       }
     });
   } catch {
@@ -104,15 +104,15 @@
     if (!rgb) return;
     const [r, g, b] = rgb.map(Number);
     const dark = 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
-    document.documentElement.dataset.xaigcTheme = dark ? "dark" : "light";
+    document.documentElement.dataset.xaicgTheme = dark ? "dark" : "light";
   }
 
   /* --------------------------------- toast --------------------------------- */
 
   function toast(message, { error = false, ms = 3200, action = null } = {}) {
-    document.querySelector(".xaigc-toast")?.remove();
+    document.querySelector(".xaicg-toast")?.remove();
     const el = document.createElement("div");
-    el.className = "xaigc-toast" + (error ? " error" : "");
+    el.className = "xaicg-toast" + (error ? " error" : "");
     el.setAttribute("role", error ? "alert" : "status");
     const text = document.createElement("span");
     text.textContent = message;
@@ -132,8 +132,8 @@
   }
 
   function showError(err) {
-    const openLicense = () => send("xaigc:open-options", { section: "license" }).catch(() => {});
-    const openAccount = () => send("xaigc:open-options", { section: "account" }).catch(() => {});
+    const openLicense = () => send("xaicg:open-options", { section: "license" }).catch(() => {});
+    const openAccount = () => send("xaicg:open-options", { section: "account" }).catch(() => {});
     switch (err?.code) {
       case "sign_in_required":
         return toast(err.message || "Sign in with Google to start your free trial.", { error: true, action: { label: "Sign in", run: openAccount } });
@@ -360,16 +360,16 @@
 
   async function insertDraft(box, text) {
     if (!box || box.getAttribute("contenteditable") !== "true") return false;
-    if (box.dataset.xaigcInserting === "1") return false; // rapid double click
-    box.dataset.xaigcInserting = "1";
+    if (box.dataset.xaicgInserting === "1") return false; // rapid double click
+    box.dataset.xaicgInserting = "1";
     try {
       return await performInsert(box, String(text || "").trim());
     } catch (err) {
-      console.error("[XAIGC] insert failed", err);
+      console.error("[XAICG] insert failed", err);
       return false;
     } finally {
       setTimeout(() => {
-        box.dataset.xaigcInserting = "0";
+        box.dataset.xaicgInserting = "0";
       }, 80);
     }
   }
@@ -397,7 +397,7 @@
     const post = extractPost(article);
     if (!post.text) throw fail("no_text", "Couldn't find any text in this post to reply to.");
     const rejected = state && state.kind === kind ? [...state.shown, state.variants[state.index]].filter(Boolean).slice(-4) : [];
-    const data = await send("xaigc:generate", {
+    const data = await send("xaicg:generate", {
       payload: { kind, tone: tone === "default" ? undefined : tone, post, rejected, handle: viewerHandle() },
     });
     const variants = data.variants || [];
@@ -407,7 +407,7 @@
   }
 
   async function deliver(article, kind, text, note, knownBox = null) {
-    const remember = () => send("xaigc:remember", { text }).catch(() => {});
+    const remember = () => send("xaicg:remember", { text }).catch(() => {});
 
     if (kind === "quote") {
       await copyText(text);
@@ -434,14 +434,14 @@
   async function run(article, btn, kind, tone = "default") {
     if (btn.dataset.busy === "1") return;
     btn.dataset.busy = "1";
-    const label = btn.querySelector(".xaigc-label");
+    const label = btn.querySelector(".xaicg-label");
     const original = label?.textContent;
     if (label) label.textContent = "Writing…";
     try {
       const { text, note } = await nextDraft(article, kind, tone);
       await deliver(article, kind, text, note);
     } catch (err) {
-      if (err?.code !== "context") console.warn("[XAIGC]", err?.code, err?.message);
+      if (err?.code !== "context") console.warn("[XAICG]", err?.code, err?.message);
       showError(err);
     } finally {
       delete btn.dataset.busy;
@@ -452,10 +452,10 @@
   /* ------------------------- "try another" floater ------------------------- */
 
   function attachRegenerate(box, article, kind) {
-    document.querySelectorAll(".xaigc-regen").forEach((el) => el.remove());
+    document.querySelectorAll(".xaicg-regen").forEach((el) => el.remove());
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "xaigc-regen";
+    btn.className = "xaicg-regen";
     btn.title = "Try another draft";
     btn.setAttribute("aria-label", "Try another draft");
     btn.innerHTML = ICON_REGEN;
@@ -481,7 +481,7 @@
       // editing and no longer wants the overlay. Our inserts also raise
       // trusted input events (execCommand does), so they are told apart by
       // the in-progress flag, not by isTrusted alone.
-      if (e.isTrusted && box.dataset.xaigcInserting !== "1") destroy();
+      if (e.isTrusted && box.dataset.xaicgInserting !== "1") destroy();
     };
     const observer = new MutationObserver(() => {
       if (!document.contains(box) || !isVisible(box)) destroy();
@@ -507,7 +507,7 @@
         const state = drafts.get(article);
         const { text, note } = await nextDraft(article, kind, state?.tone ?? "default");
         if (await insertDraft(box, text)) {
-          send("xaigc:remember", { text }).catch(() => {});
+          send("xaicg:remember", { text }).catch(() => {});
           if (note) toast(`New draft inserted.${note}`);
         } else {
           await copyText(text);
@@ -527,13 +527,13 @@
 
   function openMenu(anchor, article, replyBtn) {
     closeMenu();
-    document.querySelector(".xaigc-toast")?.remove(); // never let a toast cover the menu
+    document.querySelector(".xaicg-toast")?.remove(); // never let a toast cover the menu
     const menu = document.createElement("div");
-    menu.className = "xaigc-menu";
+    menu.className = "xaicg-menu";
     menu.setAttribute("role", "menu");
 
     const label = document.createElement("div");
-    label.className = "xaigc-menu-label";
+    label.className = "xaicg-menu-label";
     label.textContent = "Reply in a tone";
     menu.appendChild(label);
 
@@ -555,7 +555,7 @@
     for (const [id, name] of TONES) item(name, () => run(article, replyBtn, "reply", id));
     menu.appendChild(document.createElement("hr"));
     item("Copy a quote-post line", () => run(article, replyBtn, "quote"));
-    item("XAIGC settings", () => send("xaigc:open-options").catch(showError));
+    item("XAICG settings", () => send("xaicg:open-options").catch(showError));
 
     document.body.appendChild(menu);
     const r = anchor.getBoundingClientRect();
@@ -612,7 +612,7 @@
   function makeButton(className, html, title) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = `xaigc-btn ${className}`;
+    btn.className = `xaicg-btn ${className}`;
     btn.innerHTML = html;
     btn.dataset.baseTitle = title;
     btn.title = title;
@@ -621,12 +621,12 @@
 
   function createButtons(article) {
     const wrap = document.createElement("div");
-    wrap.className = "xaigc-wrap";
+    wrap.className = "xaicg-wrap";
 
-    const reply = makeButton("ai", `${ICON_SPARK}<span class="xaigc-label">AI Reply</span>`, "Draft a reply in your voice");
-    const question = makeButton("q", `${ICON_QUESTION}<span class="xaigc-label">Question</span>`, "Draft a short, specific question");
+    const reply = makeButton("ai", `${ICON_SPARK}<span class="xaicg-label">AI Reply</span>`, "Draft a reply in your voice");
+    const question = makeButton("q", `${ICON_QUESTION}<span class="xaicg-label">Question</span>`, "Draft a short, specific question");
     const more = makeButton("more icon-only", ICON_CHEVRON, "Tones and more");
-    more.setAttribute("aria-label", "XAIGC: tones and more");
+    more.setAttribute("aria-label", "XAICG: tones and more");
     more.setAttribute("aria-haspopup", "menu");
     more.setAttribute("aria-expanded", "false");
     question.hidden = !settings.showQuestionButton;
@@ -661,7 +661,7 @@
     for (const article of document.querySelectorAll('article[data-testid="tweet"], article[role="article"]')) {
       // Check for the buttons themselves rather than a marker on the post:
       // when X re-renders a post's action bar, the buttons come back.
-      if (article.querySelector(".xaigc-wrap")) continue;
+      if (article.querySelector(".xaicg-wrap")) continue;
       const bar = findActionBar(article);
       if (bar) bar.appendChild(createButtons(article));
     }

@@ -7,7 +7,7 @@ export async function send(type, data = {}) {
   } catch {
     res = null;
   }
-  if (!res) throw Object.assign(new Error("XAIGC is restarting. Close this and try again."), { code: "context" });
+  if (!res) throw Object.assign(new Error("XAICG is restarting. Close this and try again."), { code: "context" });
   if (!res.ok) {
     const { message, ...rest } = res.error || {};
     throw Object.assign(new Error(message || "Something went wrong."), rest);

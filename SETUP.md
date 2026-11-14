@@ -1,4 +1,4 @@
-# XAIGC setup guide
+# XAICG setup guide
 
 From an empty account to a product people can install and pay for. Follow the parts in order: each one depends on the ones before it.
 
@@ -39,8 +39,8 @@ Settings pages on these services get renamed from time to time. If a button is n
 
 | Address | Example | Can you change it later? |
 | --- | --- | --- |
-| The website | `https://xaigc.yourdomain.com` | Yes, freely |
-| The server | `https://api.xaigc.yourdomain.com` | **Not without a new store release.** |
+| The website | `https://xaicg.yourdomain.com` | Yes, freely |
+| The server | `https://api.xaicg.yourdomain.com` | **Not without a new store release.** |
 
 The server's address is built into the extension and listed in its permissions. Changing it after launch means publishing a new version, and Chrome switches an extension off until the user approves a new permission. So pick the address you will keep. Railway gives you a free one (`something.up.railway.app`) which is fine for testing, but put the server on a domain you own before you submit to the store.
 
@@ -124,7 +124,7 @@ Never change `APP_SECRET` afterwards. It keys the hashes that free-trial trackin
 
    | Variable | Value |
    | --- | --- |
-   | `PUBLIC_URL` | `https://api.xaigc.yourdomain.com` (your server address, no trailing slash) |
+   | `PUBLIC_URL` | `https://api.xaicg.yourdomain.com` (your server address, no trailing slash) |
 
 ### 2.6 Check it
 
@@ -142,9 +142,9 @@ With sign-in on, the free trial is one per Google account, licenses follow peopl
 
 In the [Google Cloud console](https://console.cloud.google.com):
 
-1. Create a project (the project picker at the top, **New project**). Call it XAIGC.
+1. Create a project (the project picker at the top, **New project**). Call it XAICG.
 2. Open **Google Auth Platform** (older screens call it **APIs & Services**, **OAuth consent screen**).
-3. **Branding**: app name `XAIGC`, your support email, and, once the website is up, its address and `<your-site>/privacy` as the privacy policy.
+3. **Branding**: app name `XAICG`, your support email, and, once the website is up, its address and `<your-site>/privacy` as the privacy policy.
 4. **Audience**: choose **External**.
 5. **Data access**: the only scopes needed are `openid`, `email` and `profile`. These are the defaults and need no review from Google.
 6. **Clients**, **Create client**, type **Web application**. Under **Authorized redirect URIs** add exactly:
@@ -168,7 +168,7 @@ Then in Railway, add to the server's variables:
 Two things to know:
 
 - If you later move the server to another address, add the new redirect URI in Google first, then change `PUBLIC_URL`.
-- Until Google has verified your branding (optional and free, started from the Branding page), the sign-in screen may show your server's address instead of the name XAIGC.
+- Until Google has verified your branding (optional and free, started from the Branding page), the sign-in screen may show your server's address instead of the name XAICG.
 
 To keep signing in optional rather than required for the trial, set `TRIAL_REQUIRE_SIGN_IN=false`.
 
@@ -192,9 +192,9 @@ Load it in Chrome:
 
 Now check each of these. This is the same list a customer will walk through.
 
-- [ ] Click the XAIGC icon, then **Settings**. Press **Sign in with Google**. A tab opens, you choose your account, and the settings page shows your name.
+- [ ] Click the XAICG icon, then **Settings**. Press **Sign in with Google**. A tab opens, you choose your account, and the settings page shows your name.
 - [ ] The settings page shows a free trial with 20 generations.
-- [ ] Click the XAIGC icon, type an idea, press **Generate posts**. Three drafts appear.
+- [ ] Click the XAICG icon, type an idea, press **Generate posts**. Three drafts appear.
 - [ ] Open `https://x.com/home`. Every post has **AI Reply** and **Question** buttons. (If the tab was already open, reload it.)
 - [ ] Press **AI Reply**. X's reply box opens with a draft in it. Nothing is posted.
 - [ ] In the admin dashboard, your account appears under **Users** and today's generations went up.
@@ -272,7 +272,7 @@ Before this part, the server should be on the address it will keep (see "Decide 
    node scripts/pack-extension.mjs
    ```
 
-   It writes `dist/xaigc-extension-3.1.2.zip`, and refuses if the extension still points at `localhost`.
+   It writes `dist/xaicg-extension-3.1.2.zip`, and refuses if the extension still points at `localhost`.
 3. In the dashboard: **New item**, upload the zip.
 4. Fill in the listing from [`store/listing.md`](store/listing.md). It has the text for every field, the answers for the privacy questions, and which image goes where. The images are in `store/assets/`.
 5. For the reviewers, issue a Pro license in the admin dashboard with the note "Chrome Web Store review" and paste its key into the test instructions, as `store/listing.md` shows.

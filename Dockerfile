@@ -1,4 +1,4 @@
-# XAIGC server image.
+# XAICG server image.
 #
 # This file sits at the repository root on purpose: Railway builds any repo
 # that has a root Dockerfile with it automatically, so deploying needs no

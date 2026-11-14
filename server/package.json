@@ -1,9 +1,9 @@
 {
-  "name": "xaigc-server",
+  "name": "xaicg-server",
   "version": "3.1.2",
   "private": true,
   "type": "module",
-  "description": "XAIGC backend: generation engine, licensing, trial and abuse prevention. A product of Unique Labs.",
+  "description": "XAICG backend: generation engine, licensing, trial and abuse prevention. A product of Unique Labs.",
   "author": "Shahriar Ahmed (https://uniquelabs.org)",
   "homepage": "https://uniquelabs.org",
   "license": "UNLICENSED",

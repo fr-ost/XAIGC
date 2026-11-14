@@ -181,7 +181,7 @@ export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl
   /* ------------------------------- routes --------------------------------- */
 
   app.get("/", async () => ({
-    name: "XAIGC API",
+    name: "XAICG API",
     version: config.version,
     product: "A product of Unique Labs",
     developer: "Shahriar Ahmed",

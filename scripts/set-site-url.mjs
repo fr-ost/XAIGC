@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Tell the website its own public address.
 //
-//   node scripts/set-site-url.mjs https://xaigc.example
+//   node scripts/set-site-url.mjs https://xaicg.example
 //
 // Link previews (X, Slack, WhatsApp...) and search engines need full
 // addresses, which the site cannot know until it has a domain. This writes
@@ -23,7 +23,7 @@ try {
   process.exit(1);
 }
 if (url.protocol !== "https:" || url.pathname !== "/" || url.search || url.hash) {
-  console.error("Give only the https origin, for example https://xaigc.example (no path).");
+  console.error("Give only the https origin, for example https://xaicg.example (no path).");
   process.exit(1);
 }
 const origin = url.origin;

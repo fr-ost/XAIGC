@@ -1,4 +1,4 @@
-// XAIGC server configuration.
+// XAICG server configuration.
 // Every tunable lives here and is read from environment variables, so the
 // same build runs locally, in tests and on Railway.
 
@@ -208,7 +208,7 @@ export function loadConfig(env = process.env) {
     problems.push("Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither, to leave it off).");
   }
   if (googleEnabled && !/^https?:\/\/[^/\s]+$/.test(publicUrl)) {
-    problems.push("PUBLIC_URL is required for Google sign-in: the address of this server, for example https://xaigc.up.railway.app (no path).");
+    problems.push("PUBLIC_URL is required for Google sign-in: the address of this server, for example https://xaicg.up.railway.app (no path).");
   }
   if (googleEnabled && production && !publicUrl.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(publicUrl)) {
     problems.push("PUBLIC_URL must use https in production.");

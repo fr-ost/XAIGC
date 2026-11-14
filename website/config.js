@@ -1,11 +1,11 @@
-// XAIGC website settings. This is the one file to edit; no build step.
+// XAICG website settings. This is the one file to edit; no build step.
 //
 // The numbers here are what the page tells visitors, so keep them equal to
 // what the server enforces (TRIAL_GENERATIONS and the plans, see
 // server/.env.example).
-window.XAIGC_SITE = {
+window.XAICG_SITE = {
   // The extension's Chrome Web Store address. Until it is set, the "Add to
-  // Chrome" buttons read "Coming soon to the Chrome Web Store".
+  // Chrome" buttons read "Coming soon to Chrome".
   chromeStoreUrl: "",
 
   // Where people buy a license, and where they get help.

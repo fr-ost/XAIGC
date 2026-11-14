@@ -1,67 +1,89 @@
+body {
+  background: var(--surface-soft);
+  font-size: 15px;
+}
 .top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  height: 64px;
+  padding: 0 24px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline-soft);
 }
 main {
   max-width: 760px;
   margin: 0 auto;
-  padding: 20px 16px 8px;
+  padding: 48px 16px 8px;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+}
+.page-title {
+  margin-bottom: 8px;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.11;
+  letter-spacing: -0.5px;
 }
 .card {
-  padding: 18px;
+  padding: 32px;
+  border-radius: var(--r-xl);
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
+  min-height: 32px;
 }
 .card-foot {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
-h1 {
-  font-size: 20px;
-  letter-spacing: -0.02em;
+.welcome-title {
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.13;
+  letter-spacing: -0.4px;
 }
 h2 {
-  font-size: 15px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.33;
 }
 .lead {
-  margin-top: -6px;
+  margin-top: -8px;
 }
+
+/* The first-run card is the one inverted surface on the page. */
 .welcome {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--surface-dark);
+  background: var(--surface-dark);
+  color: var(--on-dark-soft);
 }
-.notice {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--warn);
-  color: var(--warn);
-  font-size: 13px;
+.welcome-title,
+.welcome b {
+  color: var(--on-dark);
+}
+.welcome a {
+  color: var(--on-dark);
+  text-decoration: underline;
 }
 
 .facts {
   margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px 16px;
+  gap: 16px 24px;
 }
 .facts dt {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .facts dd {
@@ -85,45 +107,47 @@ h2 {
   text-transform: none;
 }
 .replace {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px dashed var(--border);
-  background: var(--surface-2);
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--surface-soft);
   display: grid;
-  gap: 8px;
+  gap: 12px;
   justify-items: start;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 .persona-meta {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 6px;
+}
+#personaCount {
+  font-family: var(--mono);
+  font-weight: 500;
+  white-space: nowrap;
 }
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 12px;
 }
 .chip {
-  padding: 4px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-2);
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font: 600 13px/1.5 var(--sans);
   cursor: pointer;
 }
-.chip:hover {
-  background: var(--surface-2);
+.chip:active {
+  background: var(--hairline);
 }
 
 fieldset {
@@ -131,72 +155,65 @@ fieldset {
   padding: 0;
   border: 0;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .choice {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
   font-weight: 400;
-  font-size: 14px;
-  color: var(--text);
+  font-size: 15px;
+  color: var(--ink);
   cursor: pointer;
 }
 .choice input {
-  margin-top: 3px;
-  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--primary);
 }
 .choice:has(input:checked) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
 }
 
 .stack {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   justify-items: start;
 }
-/* Sign in with Google button, following Google's branding guidelines. */
+/* Sign in with Google button, following Google's branding guidelines
+   (white fill, grey outline, the "G" mark, Google's pill shape). */
 .gsi {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 4px;
+  height: 44px;
+  padding: 0 20px 0 14px;
+  border-radius: var(--r-pill);
   border: 1px solid #747775;
   background: #ffffff;
   color: #1f1f1f;
-  font: 500 14px/20px Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 500 14px/20px Roboto, var(--sans);
   letter-spacing: 0.25px;
   cursor: pointer;
 }
-.gsi:hover {
+.gsi:active {
   background: #f8faff;
-  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
 }
 .gsi:disabled {
   opacity: 0.6;
-  cursor: default;
-}
-@media (prefers-color-scheme: dark) {
-  .gsi {
-    background: #131314;
-    border-color: #8e918f;
-    color: #e3e3e3;
-  }
-  .gsi:hover {
-    background: #1e1f20;
-  }
+  cursor: not-allowed;
 }
 .who {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 .who-text {
@@ -208,23 +225,29 @@ fieldset {
   overflow-wrap: anywhere;
 }
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
-  border-radius: 50%;
+  border-radius: 9999px;
   display: grid;
   place-items: center;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 700;
-  font-size: 17px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 18px;
   text-transform: uppercase;
 }
 
 .credit {
-  padding: 8px 16px 28px;
+  padding: 24px 16px 48px;
 }
-@media (max-width: 520px) {
+@media (max-width: 560px) {
+  main {
+    padding-top: 32px;
+  }
+  .card {
+    padding: 24px 20px;
+  }
   .inline {
     flex-direction: column;
   }

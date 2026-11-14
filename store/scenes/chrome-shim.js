@@ -2,10 +2,10 @@
 //
 // It lets the real extension pages (popup.html, options.html) and the real
 // content script run in an ordinary page, fed with the sample data in
-// window.__XAIGC_PREVIEW, so store screenshots show the actual UI without a
+// window.__XAICG_PREVIEW, so store screenshots show the actual UI without a
 // server, a Chrome profile or an X account.
 (() => {
-  const preview = window.__XAIGC_PREVIEW || {};
+  const preview = window.__XAICG_PREVIEW || {};
   const store = { ...(preview.storage || {}) };
   const listeners = [];
   const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -35,11 +35,11 @@
   async function handle(message) {
     const account = store.account;
     switch (message.type) {
-      case "xaigc:account":
+      case "xaicg:account":
         return { account };
-      case "xaigc:info":
+      case "xaicg:info":
         return { deviceId: preview.deviceId || null, apiBase: "https://api.example", version: preview.version };
-      case "xaigc:generate": {
+      case "xaicg:generate": {
         const kind = message.payload?.kind || "reply";
         await new Promise((r) => setTimeout(r, 30));
         const next = { ...account, quota: { ...account.quota, used: account.quota.used + 1, remaining: Math.max(0, account.quota.remaining - 1) } };
@@ -53,7 +53,7 @@
 
   window.chrome = {
     runtime: {
-      id: "xaigc-preview",
+      id: "xaicg-preview",
       getManifest: () => ({ version: preview.version || "0.0.0" }),
       getURL: (p) => p,
       openOptionsPage() {},

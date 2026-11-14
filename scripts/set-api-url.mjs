@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Point the extension at your deployed XAIGC server.
+// Point the extension at your deployed XAICG server.
 //
 //   node scripts/set-api-url.mjs https://your-app.up.railway.app
 //

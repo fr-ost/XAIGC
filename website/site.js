@@ -1,7 +1,7 @@
 // Fills in links, numbers and the pricing cards from config.js.
 (() => {
   "use strict";
-  const cfg = window.XAIGC_SITE || {};
+  const cfg = window.XAICG_SITE || {};
   const all = (selector) => [...document.querySelectorAll(selector)];
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -21,7 +21,7 @@
       a.setAttribute("aria-disabled", "true");
       a.classList.add("pending");
       // The header button is small, so it gets the short form.
-      a.textContent = a.classList.contains("small") ? "Coming soon" : "Coming soon to the Chrome Web Store";
+      a.textContent = a.classList.contains("small") ? "Coming soon" : "Coming soon to Chrome";
     }
   }
   for (const a of all('[data-link="buy"]')) a.href = cfg.buyUrl || "#pricing";
@@ -33,11 +33,13 @@
   if (plans) {
     const card = ({ name, price, period, lines, cta, featured }) => {
       const box = el("article", `plan${featured ? " featured" : ""}`);
-      if (featured) box.append(el("span", "plan-tag", "Most popular"));
-      box.append(el("h3", "", name));
+      const top = el("div", "plan-top");
+      top.append(el("h3", "", name));
+      if (featured) top.append(el("span", "plan-tag", "Most popular"));
+      box.append(top);
       const cost = el("p", "plan-price");
       if (price) {
-        cost.append(el("strong", "", price));
+        cost.append(el("strong", /\d/.test(price) ? "num" : "", price));
         if (period) cost.append(el("span", "", ` ${period}`));
       } else {
         cost.append(el("span", "plan-quiet", "See current pricing"));
@@ -51,7 +53,7 @@
     };
 
     const trial = Number(cfg.trialGenerations ?? 20);
-    const start = el("a", "btn ghost", "Start free");
+    const start = el("a", "btn", "Start free");
     start.dataset.link = "store";
     start.href = cfg.chromeStoreUrl || "#top";
     if (cfg.chromeStoreUrl) {
@@ -68,7 +70,7 @@
       }),
     ];
     for (const p of cfg.plans || []) {
-      const buy = el("a", `btn ${p.featured ? "primary" : "ghost"}`, `Get ${p.name}`);
+      const buy = el("a", `btn${p.featured ? " primary" : ""}`, `Get ${p.name}`);
       buy.href = cfg.buyUrl || "#";
       buy.target = "_blank";
       buy.rel = "noopener";

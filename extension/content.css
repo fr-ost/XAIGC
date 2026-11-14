@@ -1,29 +1,36 @@
-/* XAIGC in-page UI. Every selector is prefixed so nothing leaks into X. */
+/* XAICG in-page UI. Every selector is prefixed so nothing leaks into X. */
 
+/* Tokens from the product's design system. X has light and dark themes of
+   its own, so each has a set; the blue is the same in both. */
 :root {
-  --xaigc-fg: #0f1419;
-  --xaigc-bg: #ffffff;
-  --xaigc-border: rgba(15, 20, 25, 0.2);
-  --xaigc-muted: #536471;
-  --xaigc-hover-bg: #0f1419;
-  --xaigc-hover-fg: #ffffff;
-  --xaigc-warn: #b45309;
-  --xaigc-bad: #b91c1c;
-  --xaigc-shadow: 0 8px 28px rgba(15, 20, 25, 0.18);
+  --xaicg-primary: #0052ff;
+  --xaicg-primary-active: #003ecc;
+  --xaicg-on-primary: #ffffff;
+  --xaicg-fg: #0a0b0d;
+  --xaicg-bg: #ffffff;
+  --xaicg-soft: #eef0f3;
+  --xaicg-soft-active: #dee1e6;
+  --xaicg-border: #dee1e6;
+  --xaicg-muted: #7c828a;
+  --xaicg-warn: #f4b000;
+  --xaicg-bad: #cf202f;
+  --xaicg-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --xaicg-toast-bg: #0a0b0d;
+  --xaicg-toast-fg: #ffffff;
 }
-:root[data-xaigc-theme="dark"] {
-  --xaigc-fg: #e7e9ea;
-  --xaigc-bg: #16181c;
-  --xaigc-border: rgba(231, 233, 234, 0.24);
-  --xaigc-muted: #8b98a5;
-  --xaigc-hover-bg: #e7e9ea;
-  --xaigc-hover-fg: #0f1419;
-  --xaigc-warn: #fbbf24;
-  --xaigc-bad: #f87171;
-  --xaigc-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+:root[data-xaicg-theme="dark"] {
+  --xaicg-fg: #ffffff;
+  --xaicg-bg: #16181c;
+  --xaicg-soft: #16181c;
+  --xaicg-soft-active: #23262c;
+  --xaicg-border: rgba(255, 255, 255, 0.14);
+  --xaicg-muted: #a8acb3;
+  --xaicg-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --xaicg-toast-bg: #ffffff;
+  --xaicg-toast-fg: #0a0b0d;
 }
 
-.xaigc-wrap {
+.xaicg-wrap {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -32,118 +39,139 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.xaigc-btn {
-  --xaigc-accent: var(--xaigc-fg);
+/* Every button is a pill. "AI Reply" is the one blue action; the others sit
+   back on a soft surface. */
+.xaicg-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--xaigc-border);
-  background: transparent;
-  color: var(--xaigc-accent);
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background: var(--xaicg-soft);
+  color: var(--xaicg-fg);
   cursor: pointer;
   font: 600 13px/16px inherit;
   font-family: inherit;
   white-space: nowrap;
   user-select: none;
-  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+  transition: background 0.12s ease, transform 0.12s ease;
 }
-.xaigc-btn.icon-only {
-  padding: 4px 7px;
+:root[data-xaicg-theme="dark"] .xaicg-btn {
+  border-color: var(--xaicg-border);
 }
-.xaigc-btn .xaigc-ico {
+.xaicg-btn.ai,
+:root[data-xaicg-theme="dark"] .xaicg-btn.ai {
+  border-color: transparent;
+  background: var(--xaicg-primary);
+  color: var(--xaicg-on-primary);
+}
+.xaicg-btn.icon-only {
+  padding: 6px 8px;
+}
+.xaicg-btn .xaicg-ico {
   width: 13px;
   height: 13px;
   flex: none;
 }
-.xaigc-btn:hover {
-  background: var(--xaigc-hover-bg);
-  color: var(--xaigc-hover-fg);
-  border-color: var(--xaigc-hover-bg);
+.xaicg-btn:hover,
+.xaicg-btn:active {
+  background: var(--xaicg-soft-active);
 }
-.xaigc-btn:active {
+.xaicg-btn.ai:hover,
+.xaicg-btn.ai:active,
+:root[data-xaicg-theme="dark"] .xaicg-btn.ai:hover,
+:root[data-xaicg-theme="dark"] .xaicg-btn.ai:active {
+  background: var(--xaicg-primary-active);
+}
+.xaicg-btn:active {
   transform: scale(0.97);
 }
-.xaigc-btn:focus-visible,
-.xaigc-regen:focus-visible,
-.xaigc-menu button:focus-visible,
-.xaigc-toast button:focus-visible {
-  outline: 2px solid #1d9bf0;
+.xaicg-btn:focus-visible,
+.xaicg-regen:focus-visible,
+.xaicg-menu button:focus-visible,
+.xaicg-toast button:focus-visible {
+  outline: 2px solid var(--xaicg-primary);
   outline-offset: 2px;
 }
-.xaigc-btn[data-busy="1"] {
+.xaicg-btn[data-busy="1"] {
   cursor: progress;
   opacity: 0.8;
   pointer-events: none;
 }
-.xaigc-btn[data-busy="1"] .xaigc-ico,
-.xaigc-regen[data-busy="1"] .xaigc-ico {
-  animation: xaigc-spin 0.8s linear infinite;
+.xaicg-btn[data-busy="1"] .xaicg-ico,
+.xaicg-regen[data-busy="1"] .xaicg-ico {
+  animation: xaicg-spin 0.8s linear infinite;
 }
-.xaigc-btn.gauge-warn {
-  --xaigc-accent: var(--xaigc-warn);
-  border-color: var(--xaigc-warn);
+/* A small dot says the allowance is running low: yellow from 70% used, red
+   from 90%. The exact numbers are in the tooltip. */
+.xaicg-btn.gauge-warn::after,
+.xaicg-btn.gauge-bad::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  border: 2px solid var(--xaicg-bg);
+  background: var(--xaicg-warn);
 }
-.xaigc-btn.gauge-bad {
-  --xaigc-accent: var(--xaigc-bad);
-  border-color: var(--xaigc-bad);
-}
-.xaigc-btn.gauge-warn:hover,
-.xaigc-btn.gauge-bad:hover {
-  background: var(--xaigc-accent);
-  border-color: var(--xaigc-accent);
-  color: var(--xaigc-bg);
+.xaicg-btn.gauge-bad::after {
+  background: var(--xaicg-bad);
 }
 
 /* Tone / action menu */
-.xaigc-menu {
+.xaicg-menu {
   position: absolute;
   z-index: 2147483000;
-  min-width: 190px;
-  padding: 6px;
-  border-radius: 14px;
-  border: 1px solid var(--xaigc-border);
-  background: var(--xaigc-bg);
-  color: var(--xaigc-fg);
-  box-shadow: var(--xaigc-shadow);
+  min-width: 200px;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--xaicg-border);
+  background: var(--xaicg-bg);
+  color: var(--xaicg-fg);
+  box-shadow: var(--xaicg-shadow);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-.xaigc-menu .xaigc-menu-label {
-  padding: 6px 10px 4px;
-  font-size: 11px;
-  font-weight: 700;
+.xaicg-menu .xaicg-menu-label {
+  padding: 6px 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--xaigc-muted);
+  color: var(--xaicg-muted);
 }
-.xaigc-menu button {
+.xaicg-menu button {
   display: block;
   width: 100%;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: inherit;
-  font: 500 14px/18px inherit;
+  font: 500 14px/20px inherit;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
 }
-.xaigc-menu button:hover {
-  background: rgba(120, 130, 140, 0.18);
+.xaicg-menu button:hover {
+  background: var(--xaicg-soft);
 }
-.xaigc-menu hr {
+:root[data-xaicg-theme="dark"] .xaicg-menu button:hover {
+  background: var(--xaicg-soft-active);
+}
+.xaicg-menu hr {
   border: 0;
-  border-top: 1px solid var(--xaigc-border);
-  margin: 6px 4px;
+  border-top: 1px solid var(--xaicg-border);
+  margin: 8px 4px;
 }
 
 /* Floating "try another" button next to the reply box */
-.xaigc-regen {
+.xaicg-regen {
   position: absolute;
   z-index: 2147482000;
   display: inline-flex;
@@ -152,30 +180,32 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: 999px;
-  border: 1px solid var(--xaigc-border);
-  background: var(--xaigc-bg);
-  color: var(--xaigc-fg);
+  border-radius: 9999px;
+  border: 1px solid var(--xaicg-border);
+  background: var(--xaicg-bg);
+  color: var(--xaicg-fg);
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(15, 20, 25, 0.16);
-  transition: background 0.14s ease, color 0.14s ease, transform 0.14s ease;
+  box-shadow: var(--xaicg-shadow);
+  transition: background 0.12s ease, transform 0.12s ease;
 }
-.xaigc-regen:hover {
-  background: var(--xaigc-hover-bg);
-  color: var(--xaigc-hover-fg);
+.xaicg-regen:hover {
+  background: var(--xaicg-soft-active);
   transform: rotate(-25deg);
 }
-.xaigc-regen[data-busy="1"] {
+:root:not([data-xaicg-theme="dark"]) .xaicg-regen:hover {
+  background: var(--xaicg-soft);
+}
+.xaicg-regen[data-busy="1"] {
   pointer-events: none;
   opacity: 0.7;
 }
-.xaigc-regen .xaigc-ico {
+.xaicg-regen .xaicg-ico {
   width: 15px;
   height: 15px;
 }
 
 /* Toast */
-.xaigc-toast {
+.xaicg-toast {
   position: fixed;
   left: 50%;
   bottom: 32px;
@@ -185,41 +215,41 @@
   align-items: center;
   gap: 12px;
   max-width: min(520px, calc(100vw - 32px));
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: #0f1419;
-  color: #ffffff;
-  font: 500 13px/18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  animation: xaigc-pop 0.18s ease-out;
+  padding: 12px 20px;
+  border-radius: 24px;
+  background: var(--xaicg-toast-bg);
+  color: var(--xaicg-toast-fg);
+  font: 500 14px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  animation: xaicg-pop 0.18s ease-out;
 }
-:root[data-xaigc-theme="dark"] .xaigc-toast {
-  background: #e7e9ea;
-  color: #0f1419;
-}
-.xaigc-toast.error,
-:root[data-xaigc-theme="dark"] .xaigc-toast.error {
-  background: #b91c1c;
-  color: #ffffff;
-}
-.xaigc-toast button {
+/* An error keeps the same surface and is marked with a red dot. */
+.xaicg-toast.error::before {
+  content: "";
   flex: none;
-  padding: 4px 12px;
-  border-radius: 999px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--xaicg-bad);
+}
+.xaicg-toast button {
+  flex: none;
+  padding: 5px 14px;
+  border-radius: 100px;
   border: 1px solid currentColor;
   background: transparent;
   color: inherit;
-  font: 700 12.5px/16px inherit;
+  font: 600 13px/16px inherit;
   font-family: inherit;
   cursor: pointer;
 }
 
-@keyframes xaigc-spin {
+@keyframes xaicg-spin {
   to {
     transform: rotate(360deg);
   }
 }
-@keyframes xaigc-pop {
+@keyframes xaicg-pop {
   from {
     opacity: 0;
     transform: translateX(-50%) translateY(6px);
@@ -230,14 +260,14 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .xaigc-btn,
-  .xaigc-regen,
-  .xaigc-toast {
+  .xaicg-btn,
+  .xaicg-regen,
+  .xaicg-toast {
     transition: none;
     animation: none;
   }
-  .xaigc-btn[data-busy="1"] .xaigc-ico,
-  .xaigc-regen[data-busy="1"] .xaigc-ico {
+  .xaicg-btn[data-busy="1"] .xaicg-ico,
+  .xaicg-regen[data-busy="1"] .xaicg-ico {
     animation-duration: 2s;
   }
 }
