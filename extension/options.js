@@ -25,6 +25,8 @@ function showAccount(account) {
   });
   if (!d) return;
 
+  showSignIn(account);
+
   const lic = account.license;
   $("licenseInfo").hidden = !lic;
   if (lic) {
@@ -38,10 +40,48 @@ function showAccount(account) {
   $("deactivate").hidden = !lic;
   // Keep the key field available on trial and when a license needs replacing.
   $("activateForm").hidden = account.licensed;
-  $("buy").hidden = account.licensed;
+  $("buy").hidden = account.licensed || Boolean(account.accountLicense);
+  // The box below already explains a waiting account license; don't also say "activate a license".
+  if (account.accountLicense) $("notice").hidden = true;
   $("buy").href = d.buyUrl;
   $("buy").textContent = account.notice === "license_expired" ? "Renew license" : "Get a license";
   $("support").href = d.supportUrl;
+}
+
+// The account card (Google sign-in) and the "your account has a license"
+// prompt. Hidden entirely when the server has no Google sign-in configured.
+function showSignIn(account) {
+  const auth = account.auth || {};
+  const user = account.user;
+  $("account").hidden = !auth.google && !user;
+  $("signedOut").hidden = Boolean(user);
+  $("signedIn").hidden = !user;
+  $("welcomeSignIn").hidden = !auth.signInRequired;
+  if (user) {
+    $("userName").textContent = user.name || user.email;
+    $("userEmail").textContent = user.name ? user.email : "";
+    $("avatar").textContent = (user.name || user.email).trim().charAt(0);
+  } else {
+    $("signInWhy").textContent = auth.signInRequired
+      ? "Sign in with Google to start your free trial. Your trial and any license then follow your account to every browser you sign in on."
+      : "Signing in is optional. It keeps your license with your Google account, so a new browser only needs you to sign in.";
+  }
+
+  const waiting = account.accountLicense;
+  $("accountLicenseBox").hidden = !waiting;
+  if (waiting) {
+    const moving = waiting.reason !== "detached";
+    $("accountLicenseText").textContent = moving
+      ? `Your account has a ${waiting.plan} license, but it is in use on ${waiting.devicesUsed} of ${waiting.maxDevices} browsers. You can move it here; the browser that has been idle longest will be signed out of it.`
+      : `Your account has a ${waiting.plan} license that is not in use on this browser.`;
+    $("attachLicense").textContent = moving ? "Move the license to this browser" : "Use it on this browser";
+  }
+}
+
+function setSignInStatus(message, kind = "") {
+  const el = $("signInStatus");
+  el.textContent = message;
+  el.className = `status ${kind}`.trim();
 }
 
 async function loadAccount(refresh) {
@@ -136,6 +176,49 @@ $("deactivate").addEventListener("click", async () => {
   }
 });
 
+$("googleSignIn").addEventListener("click", async () => {
+  $("googleSignIn").disabled = true;
+  setSignInStatus("Opening Google…");
+  try {
+    await send("xaigc:signin");
+    setSignInStatus("Finish signing in in the tab that just opened. This page updates by itself.");
+  } catch (err) {
+    setSignInStatus(err.message, "error");
+  } finally {
+    $("googleSignIn").disabled = false;
+  }
+});
+$("signOut").addEventListener("click", async () => {
+  try {
+    const { account } = await send("xaigc:signout");
+    showAccount(account);
+    setSignInStatus("Signed out.");
+  } catch (err) {
+    setSignInStatus(err.message, "error");
+  }
+});
+$("attachLicense").addEventListener("click", async () => {
+  $("attachLicense").disabled = true;
+  try {
+    const { account } = await send("xaigc:attach-license");
+    showAccount(account);
+    setLicenseStatus(`License active on this browser. You're on ${account.planLabel}.`, "good");
+  } catch (err) {
+    setLicenseStatus(err.message, "error");
+  } finally {
+    $("attachLicense").disabled = false;
+  }
+});
+
+// The sign-in finishes in the service worker, in another tab. Follow it here.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes.account?.newValue) showAccount(changes.account.newValue);
+  const status = changes.signInStatus?.newValue;
+  if (status?.state === "done") setSignInStatus("You're signed in.", "good");
+  else if (status?.state === "error") setSignInStatus(status.message, "error");
+});
+
 for (const id of ["tone", "length", "language", "emoji"]) {
   $(id).addEventListener("change", () => save({ [id]: $(id).value }));
 }
@@ -169,6 +252,7 @@ $("clearMemory").addEventListener("click", async () => {
   $("version").textContent = chrome.runtime.getManifest().version;
   if (location.hash === "#welcome") $("welcome").hidden = false;
   if (location.hash === "#license") $("licenseKey").focus();
+  if (location.hash === "#account") $("account").scrollIntoView({ block: "start" });
 
   loadAccount(true);
   try {

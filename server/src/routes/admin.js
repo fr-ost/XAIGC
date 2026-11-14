@@ -8,6 +8,7 @@ import { errors } from "../errors.js";
 import { num } from "../db/index.js";
 import { safeEqual } from "../services/crypto.js";
 import { setDeviceBlocked } from "../services/devices.js";
+import { deleteUser, getUserDetail, listUsers, setUserBlocked } from "../services/users.js";
 import {
   createLicense,
   getLicenseDetail,
@@ -52,6 +53,27 @@ function serializeLicense(config, row) {
     createdAt: iso(row.created_at),
     devicesUsed: row.devices_used === undefined ? undefined : num(row.devices_used),
     usedToday: row.used_today === undefined ? undefined : num(row.used_today),
+    // The Google account this license belongs to, if any.
+    owner: row.user_id ? { id: row.user_id, email: row.owner_email || null } : null,
+  };
+}
+
+function serializeUser(config, row) {
+  const plan = row.plan ? config.plans[row.plan]?.label || row.plan : null;
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    blocked: row.blocked,
+    blockedReason: row.blocked_reason,
+    createdAt: iso(row.created_at),
+    lastLoginAt: iso(row.last_login_at),
+    lastSeenAt: iso(row.last_seen_at),
+    devices: num(row.devices),
+    generations: num(row.generations),
+    activeLicenses: num(row.active_licenses),
+    plan,
+    trial: { used: Math.min(num(row.trial_used), config.trial.generations), limit: config.trial.generations },
   };
 }
 
@@ -97,7 +119,7 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
 
   app.get("/admin/api/stats", admin, async (req) => {
     const day = utcDay(clock());
-    const [devices, licenses, series, statuses] = await Promise.all([
+    const [devices, licenses, series, statuses, users] = await Promise.all([
       db.query(
         `SELECT count(*)::int AS total,
                 (count(*) FILTER (WHERE created_at > now() - interval '24 hours'))::int AS new24h,
@@ -121,6 +143,13 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
         `SELECT status, count(*)::int AS n FROM usage_events
          WHERE ts > now() - interval '24 hours' GROUP BY status ORDER BY n DESC`,
       ),
+      db.query(
+        `SELECT count(*)::int AS total,
+                (count(*) FILTER (WHERE created_at > now() - interval '24 hours'))::int AS new24h,
+                (count(*) FILTER (WHERE last_login_at > now() - interval '7 days'))::int AS active7d,
+                (count(*) FILTER (WHERE blocked))::int AS blocked
+         FROM users`,
+      ),
     ]);
 
     const byDay = new Map();
@@ -143,6 +172,8 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
       days,
       devices: pick(devices.rows[0], ["total", "new24h", "active24h", "licensed", "blocked"]),
       licenses: pick(licenses.rows[0], ["total", "active", "expired", "revoked"]),
+      users: pick(users.rows[0], ["total", "new24h", "active7d", "blocked"]),
+      signIn: { google: config.google.enabled, requiredForTrial: config.trial.requireSignIn },
       outcomes24h: statuses.rows.map((r) => ({ status: r.status, count: num(r.n) })),
       model: config.openai.model,
       caps: config.caps,
@@ -255,6 +286,7 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
             dailyLimit: nullableInt(1, 1000000),
             email: { type: ["string", "null"], maxLength: 254 },
             note: { type: ["string", "null"], maxLength: 500 },
+            userId: { type: "null" }, // null removes the owning account
           },
         },
       },
@@ -269,6 +301,69 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
 
   app.post("/admin/api/licenses/:id/reset-devices", { ...admin, schema: { params: uuidParam } }, async (req) => ({
     released: await resetLicenseDevices(db, req.params.id),
+  }));
+
+  /* --------------------------------- users -------------------------------- */
+
+  app.get(
+    "/admin/api/users",
+    {
+      ...admin,
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            q: { type: "string", maxLength: 120 },
+            filter: { type: "string", enum: ["", "licensed", "trial", "blocked"] },
+            limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+            offset: { type: "integer", minimum: 0, default: 0 },
+          },
+        },
+      },
+    },
+    async (req) => {
+      const { q = "", filter = "", limit, offset } = req.query;
+      const result = await listUsers(db, { q: q.trim(), filter, limit, offset });
+      return { total: result.total, users: result.users.map((row) => serializeUser(config, row)) };
+    },
+  );
+
+  app.get("/admin/api/users/:id", { ...admin, schema: { params: uuidParam } }, async (req) => {
+    const detail = await getUserDetail(db, req.params.id);
+    return {
+      user: serializeUser(config, detail.user),
+      devices: detail.devices.map((d) => ({
+        id: d.id,
+        createdAt: iso(d.created_at),
+        lastSeenAt: iso(d.last_seen_at),
+        clientVersion: d.client_version,
+        totalGenerations: num(d.total_generations),
+        blocked: d.blocked,
+        license: d.key_hint ? { hint: d.key_hint, plan: config.plans[d.plan]?.label || d.plan } : null,
+      })),
+      licenses: detail.licenses.map((row) => serializeLicense(config, row)),
+    };
+  });
+
+  app.post(
+    "/admin/api/users/:id/block",
+    {
+      ...admin,
+      schema: {
+        params: uuidParam,
+        body: {
+          type: "object",
+          required: ["blocked"],
+          additionalProperties: false,
+          properties: { blocked: { type: "boolean" }, reason: { type: "string", maxLength: 300 } },
+        },
+      },
+    },
+    async (req) => ({ user: await setUserBlocked(db, req.params.id, req.body.blocked, req.body.reason) }),
+  );
+
+  app.delete("/admin/api/users/:id", { ...admin, schema: { params: uuidParam } }, async (req) => ({
+    deleted: await deleteUser(db, req.params.id),
   }));
 
   /* -------------------------------- devices ------------------------------- */

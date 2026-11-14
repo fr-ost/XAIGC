@@ -11,7 +11,8 @@ import { ApiError, errors } from "../errors.js";
 import { EngineError } from "../engine/index.js";
 import { KINDS, LANGUAGES, TONES } from "../engine/prompts.js";
 import { hmac } from "../services/crypto.js";
-import { touchDevice } from "../services/devices.js";
+import { getDevice, touchDevice } from "../services/devices.js";
+import { attachAccountLicense } from "../services/licenses.js";
 import { buildAccount, nextUtcMidnight, reserve, resolveEntitlement } from "../services/quota.js";
 
 const text = (max, min = 0) => ({ type: "string", minLength: min, maxLength: max });
@@ -161,7 +162,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
   }
 
   app.post("/v1/generate", { preValidation: requireDevice, schema: { body: bodySchema } }, async (req) => {
-    const device = req.device;
+    let device = req.device;
     if (config.minClientVersion && olderThan(req.headers["x-xaigc-client"], config.minClientVersion)) {
       throw new ApiError(426, "update_required", "This version of XAIGC is out of date. Update the extension to keep generating.");
     }
@@ -182,7 +183,20 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
     let invoked = false;
     try {
       const now = clock();
+      // A signed-in browser with no license of its own takes its account's
+      // license first, so one granted a moment ago works on the very next click.
+      if (device.user && resolveEntitlement(config, device.license, now).mode === "trial") {
+        try {
+          const { attached } = await attachAccountLicense(db, config, { device, ipHash: req.net.hash });
+          if (attached) device = (await getDevice(db, device.id)) || device;
+        } catch (err) {
+          req.log.warn({ err }, "could not attach the account's license");
+        }
+      }
       const entitlement = resolveEntitlement(config, device.license, now);
+      if (entitlement.mode === "trial" && config.trial.requireSignIn && !device.user) {
+        throw errors.forbidden("sign_in_required", "Sign in with Google to start your free trial.");
+      }
       // An install stays tied to the X account it last reported, so leaving
       // the field out later (the compose popup has no page to read it from)
       // does not open a second trial allowance.

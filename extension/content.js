@@ -133,7 +133,10 @@
 
   function showError(err) {
     const openLicense = () => send("xaigc:open-options", { section: "license" }).catch(() => {});
+    const openAccount = () => send("xaigc:open-options", { section: "account" }).catch(() => {});
     switch (err?.code) {
+      case "sign_in_required":
+        return toast(err.message || "Sign in with Google to start your free trial.", { error: true, action: { label: "Sign in", run: openAccount } });
       case "trial_ended":
         return toast(err.message || "Your free trial is used up.", { error: true, action: { label: "Activate license", run: openLicense } });
       case "trial_busy":

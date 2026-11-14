@@ -13,6 +13,8 @@ import { createEngine } from "../src/engine/index.js";
 import { buildApp } from "../src/app.js";
 
 export const ADMIN_TOKEN = "test-admin-token-0123456789abcdef";
+// Pass these to createTestApp() to switch Google sign-in on.
+export const GOOGLE = { GOOGLE_CLIENT_ID: "test-client.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "test-google-secret", PUBLIC_URL: "http://localhost:8787" };
 export const EXT_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
 
 const DEFAULT_CANDIDATES = [
@@ -48,7 +50,38 @@ export function createFakeOpenAI() {
     },
     moderation: (body) => json(200, { results: body.input.map(() => ({ flagged: false })) }),
     model: () => json(200, { id: "test-model", object: "model" }),
+    // Fake Google. A test "signs in at Google" by registering an account
+    // under an authorization code; the token endpoint then issues an ID
+    // token for it the way Google would. `claims` overrides let a test
+    // produce a token that should be rejected.
+    google: {
+      codes: new Map(),
+      tokenCalls: [],
+      issue(code, { nonce, account, claims = {} }) {
+        fake.google.codes.set(code, { nonce, account, claims });
+      },
+    },
     fetch: async (url, init = {}) => {
+      if (String(url).startsWith("https://oauth2.googleapis.com/token")) {
+        const form = Object.fromEntries(new URLSearchParams(init.body));
+        fake.google.tokenCalls.push(form);
+        const grant = fake.google.codes.get(form.code);
+        fake.google.codes.delete(form.code); // Google's codes are single use
+        if (!grant || form.client_secret !== "test-google-secret") return json(400, { error: "invalid_grant", error_description: "Bad Request" });
+        const payload = {
+          iss: "https://accounts.google.com",
+          aud: form.client_id,
+          sub: grant.account.sub,
+          email: grant.account.email,
+          email_verified: true,
+          name: grant.account.name,
+          nonce: grant.nonce,
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          ...grant.claims,
+        };
+        const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+        return json(200, { access_token: "ya29.fake", id_token: `${b64({ alg: "RS256" })}.${b64(payload)}.signature` });
+      }
       const path = new URL(url).pathname.replace(/^\/v1/, "");
       const body = init.body ? JSON.parse(init.body) : null;
       fake.calls.push({ path, body, headers: init.headers });
@@ -115,7 +148,7 @@ export async function createTestApp(env = {}) {
   await migrate(db, null);
   const openai = createOpenAI(config, { fetchImpl: fake.fetch });
   const engine = createEngine(config, { openai, rng: () => 0.42 });
-  const app = await buildApp({ config, db, engine, clock });
+  const app = await buildApp({ config, db, engine, clock, fetchImpl: fake.fetch });
   await app.ready();
 
   const call = async (method, url, { token, body, ip, headers = {} } = {}) => {
@@ -162,6 +195,33 @@ export async function createTestApp(env = {}) {
         ...extra,
       }),
     me: (device) => call("GET", "/v1/me", { token: device.token, ip: device.ip }),
+    // The three steps of a sign-in, separately, so tests can interfere.
+    async startSignIn(device) {
+      const res = await call("POST", "/v1/auth/google/start", { token: device.token, ip: device.ip });
+      if (res.status !== 200) return { res };
+      const url = new URL(res.body.url);
+      return { res, url, state: url.searchParams.get("state"), nonce: url.searchParams.get("nonce") };
+    },
+    // What Google does after the person picks an account: send their browser
+    // back to our callback with a code. Returns the completion code that the
+    // browser ends up holding (or null with the error page).
+    async googleReturns(flow, account, { claims, code = `code-${randomBytes(6).toString("hex")}` } = {}) {
+      fake.google.issue(code, { nonce: flow.nonce, account, claims });
+      const res = await call("GET", `/auth/google/callback?code=${code}&state=${encodeURIComponent(flow.state)}`, { ip: nextIp() });
+      const location = res.headers.location || "";
+      return { res, completion: location.startsWith("/auth/done#code=") ? location.slice("/auth/done#code=".length) : null };
+    },
+    completeSignIn: (device, completion) => call("POST", "/v1/auth/google/complete", { token: device.token, ip: device.ip, body: { code: completion } }),
+    // The whole thing, as one honest user would do it.
+    async signIn(device, account) {
+      const flow = await t.startSignIn(device);
+      if (!flow.state) throw new Error(`sign-in start failed: ${flow.res.status} ${flow.res.raw}`);
+      const back = await t.googleReturns(flow, account);
+      if (!back.completion) throw new Error(`google callback failed: ${back.res.status} ${back.res.raw.slice(0, 200)}`);
+      return t.completeSignIn(device, back.completion);
+    },
+    signOut: (device) => call("POST", "/v1/auth/signout", { token: device.token, ip: device.ip }),
+    attach: (device) => call("POST", "/v1/license/attach", { token: device.token, ip: device.ip }),
     activate: (device, key, extra = {}) => call("POST", "/v1/license/activate", { token: device.token, ip: device.ip, body: { key, ...extra } }),
     deactivate: (device) => call("POST", "/v1/license/deactivate", { token: device.token, ip: device.ip }),
     admin: (method, path, body) => call(method, `/admin/api${path}`, { token: ADMIN_TOKEN, body, ip: "198.51.100.7" }),

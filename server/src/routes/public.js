@@ -1,11 +1,13 @@
 // Device registration, account status and license activation.
 
 import { ApiError, errors } from "../errors.js";
-import { authenticateDevice, registerDevice, touchDevice } from "../services/devices.js";
-import { activateLicense, deactivateDevice } from "../services/licenses.js";
+import { authenticateDevice, getDevice, registerDevice, touchDevice } from "../services/devices.js";
+import { activateLicense, attachAccountLicense, deactivateDevice, licenseState } from "../services/licenses.js";
 import { buildAccount } from "../services/quota.js";
+import { resolveAccount } from "../services/session.js";
 
 const clientVersion = (req) => String(req.headers["x-xaigc-client"] || "").slice(0, 20) || null;
+const licenseStateOf = (device) => licenseState(device.license);
 
 export function registerPublicRoutes(app, { config, db, limiters, clock, requireDevice }) {
   // First contact from a fresh install. Returns the device's bearer token.
@@ -44,7 +46,10 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
     if (clock() - new Date(device.last_seen_at).getTime() > 10 * 60_000) {
       await touchDevice(db, device.id, { ipHash: req.net.hash, clientVersion: clientVersion(req) });
     }
-    return { deviceId: device.id, account: await buildAccount(db, config, { device, ipHash: req.net.hash, now: clock() }) };
+    // A signed-in browser picks up its account's license here, so a license
+    // issued or granted while the user was away shows up on their next look.
+    const { account } = await resolveAccount(db, config, { device, ipHash: req.net.hash, now: clock(), log: req.log });
+    return { deviceId: device.id, account };
   });
 
   app.post(
@@ -89,14 +94,32 @@ export function registerPublicRoutes(app, { config, db, limiters, clock, require
         throw err;
       }
 
-      const fresh = await authenticateDevice(db, req.headers.authorization.replace(/^Bearer\s+/i, ""));
+      const fresh = await getDevice(db, device.id);
       return { ok: true, account: await buildAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock() }) };
     },
   );
 
+  // Move the signed-in account's license to this browser, signing out the
+  // browser that has been idle longest if every seat is taken. No key needed:
+  // the account owns the license.
+  app.post("/v1/license/attach", { preValidation: requireDevice }, async (req) => {
+    const device = req.device;
+    if (!device.user) throw errors.forbidden("sign_in_required", "Sign in with Google first.");
+    const { attached, waiting } = await attachAccountLicense(db, config, { device, explicit: true, ipHash: req.net.hash });
+    if (!attached && waiting?.error) throw waiting.error;
+    if (!attached && licenseStateOf(device) !== "active") {
+      throw new ApiError(404, "no_account_license", "This account does not have an active license.");
+    }
+    const fresh = await getDevice(db, device.id);
+    return { ok: true, account: await buildAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock() }) };
+  });
+
   app.post("/v1/license/deactivate", { preValidation: requireDevice }, async (req) => {
     await deactivateDevice(db, { device: req.device, ipHash: req.net.hash });
-    const fresh = { ...req.device, license_id: null, license: null };
-    return { ok: true, account: await buildAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock() }) };
+    // Removing a license also switches off automatic re-attachment for this
+    // browser, so an account-owned license stays off until the user asks for it.
+    const fresh = await getDevice(db, req.device.id);
+    const { account } = await resolveAccount(db, config, { device: fresh, ipHash: req.net.hash, now: clock(), log: req.log });
+    return { ok: true, account };
   });
 }

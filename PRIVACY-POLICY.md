@@ -11,6 +11,7 @@ This policy explains what the extension and the XAIGC server process, why, and w
 - XAIGC writes drafts. It never posts, likes, follows or sends anything on your behalf.
 - To write a draft, the text of the post you chose (or the idea or draft you typed) is sent to the XAIGC server and on to OpenAI. The XAIGC server does not save that text or the generated draft.
 - No OpenAI API key is needed from you, and none is stored in the extension.
+- If you sign in with Google, XAIGC receives your name and email address and nothing else from your Google account.
 - Your X password, direct messages, followers and other account data are never read.
 - No advertising, no analytics trackers, no sale of data.
 
@@ -33,12 +34,17 @@ The server forwards this to OpenAI to generate the draft, checks the result with
 | IP address | Keyed one-way hash (IPv6 addresses are reduced to their /64 network first) | Limits free-trial abuse and request flooding |
 | X account handle | Hashed in your browser before it is sent, then hashed again with a server key | Stops the free trial being restarted by reinstalling |
 | License key | One-way hash, plus a masked hint such as `XAIGC-ABCDE-*****-*****-**XYZ` | Validates your license |
+| Google account | Google's account ID, your email address and your name, as provided by Google when you sign in | Your XAIGC account: one free trial per person, and a license that follows you between browsers |
 | Email address | As provided at purchase, if any | License delivery and support |
 | Usage records | Time, type of request, model, token counts, outcome, installation, license | Enforcing plan limits, billing accuracy, abuse detection |
 
 Usage records contain no post text and no generated text. Per-request records are deleted after 60 days. Daily totals are kept for accounting.
 
 Raw IP addresses are held in memory only, for short-lived rate limiting, and are not written to the database.
+
+### Signing in with Google
+
+Signing in is handled by Google. XAIGC asks only for your basic profile (`openid`, `email`, `profile`): it receives your Google account ID, your email address and your name. It does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. No Google access token is stored. You can remove XAIGC's access at any time at https://myaccount.google.com/permissions and sign out in the extension's settings.
 
 ## 3. What stays in your browser
 
@@ -56,7 +62,8 @@ None of this is synced to other devices. Removing the extension deletes it.
 ## 4. Who receives data
 
 - **OpenAI** receives the material described in section 1 in order to generate and moderate drafts, together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: https://openai.com/policies/privacy-policy
-- **Our hosting provider** runs the XAIGC server and its database.
+- **Google** handles sign-in if you choose to sign in, under its own privacy policy: https://policies.google.com/privacy
+- **Our hosting and database providers** run the XAIGC server and store the records in section 2.
 
 Data is not sold, rented or shared for advertising.
 
@@ -71,7 +78,8 @@ Data is not sold, rented or shared for advertising.
 
 - Use clipboard mode if you do not want the extension to type into X.
 - Clear your reply memory in Settings.
-- Ask for your server-side records to be deleted by contacting us with the install ID shown under Settings, About.
+- Sign out, or use a license key without signing in at all.
+- Ask for your account and server-side records to be deleted by contacting us with your account email, or the install ID shown under Settings, About.
 - Uninstall the extension at any time.
 
 ## 7. Security

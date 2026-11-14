@@ -30,9 +30,13 @@ export function resolveEntitlement(config, license, now = Date.now()) {
   return { mode: "trial", licenseState: state };
 }
 
-function trialKeys(config, { deviceId, ipHash, xhHash, now }) {
+// The trial is one allowance counted against every identity we have for the
+// caller: the install, the Google account, the X account and the network.
+// Whichever runs out first ends it. The order is fixed (see reserve()).
+function trialKeys(config, { deviceId, userId = null, ipHash, xhHash, now }) {
   const ipCutoff = new Date(now - config.trial.ipWindowDays * 86_400_000).toISOString();
   const keys = [{ key: `dev:${deviceId}`, limit: config.trial.generations, cutoff: EPOCH, type: "device" }];
+  if (userId) keys.push({ key: `user:${userId}`, limit: config.trial.generations, cutoff: EPOCH, type: "user" });
   if (xhHash) keys.push({ key: `xh:${xhHash}`, limit: config.trial.generations, cutoff: EPOCH, type: "account" });
   if (ipHash) keys.push({ key: `ip:${ipHash}`, limit: config.trial.ipLimit, cutoff: ipCutoff, type: "network" });
   return keys;
@@ -84,7 +88,7 @@ class Denied extends Error {
 export async function reserve(db, config, { device, entitlement, ipHash, xhHash, now = Date.now() }) {
   const day = utcDay(now);
   const licensed = entitlement.mode === "license";
-  const trial = licensed ? [] : trialKeys(config, { deviceId: device.id, ipHash, xhHash, now });
+  const trial = licensed ? [] : trialKeys(config, { deviceId: device.id, userId: device.user_id, ipHash, xhHash, now });
   const daily = licensed
     ? [{ subject: `lic:${entitlement.license.id}`, limit: entitlement.dailyLimit, reason: "daily_limit" }]
     : [{ subject: "global:trial", limit: config.caps.trialGlobalDaily, reason: "trial_capacity" }];
@@ -135,8 +139,8 @@ export async function reserve(db, config, { device, entitlement, ipHash, xhHash,
 
 // Read-only view of the trial allowance. `remaining` is the tightest of the
 // device, X-account and network counters.
-export async function trialStatus(db, config, { deviceId, ipHash, xhHash, now = Date.now() }) {
-  const keys = trialKeys(config, { deviceId, ipHash, xhHash, now });
+export async function trialStatus(db, config, { deviceId, userId = null, ipHash, xhHash, now = Date.now() }) {
+  const keys = trialKeys(config, { deviceId, userId, ipHash, xhHash, now });
   const { rows } = await db.query("SELECT key, used, window_start FROM trial_counters WHERE key = ANY($1::text[])", [
     keys.map((k) => k.key),
   ]);
@@ -164,13 +168,36 @@ export async function licenseUsageToday(db, licenseId, day) {
 
 // The account object returned by /v1/me and alongside every generation. The
 // extension renders plan, remaining quota and license state from this alone.
-export async function buildAccount(db, config, { device, ipHash, xhHash = null, now = Date.now() }) {
+//   user            who is signed in on this browser, or null
+//   auth.google     whether this server offers Google sign-in
+//   auth.signInRequired  true when this browser must sign in before it can generate
+//   accountLicense  a license the signed-in account owns that is not on this
+//                   browser because its seats are taken (`waiting` from
+//                   attachAccountLicense), so the UI can offer to move it here
+export async function buildAccount(db, config, { device, ipHash, xhHash = null, now = Date.now(), waiting = null }) {
   const license = device.license || null;
   const entitlement = resolveEntitlement(config, license, now);
+  let accountLicense = null;
+  if (waiting?.license) {
+    const plan = planFor(config, waiting.license);
+    accountLicense = {
+      hint: waiting.license.key_hint,
+      plan: plan.label,
+      maxDevices: plan.maxDevices,
+      devicesUsed: waiting.devicesUsed ?? plan.maxDevices,
+      reason: waiting.reason,
+    };
+  }
   const base = {
     links: config.links,
     minClientVersion: config.minClientVersion || null,
     cooldownMs: config.limits.cooldownMs,
+    user: device.user ? { email: device.user.email, name: device.user.name || null } : null,
+    auth: {
+      google: config.google.enabled,
+      signInRequired: entitlement.mode === "trial" && config.trial.requireSignIn && !device.user,
+    },
+    accountLicense,
   };
 
   let licenseInfo = null;
@@ -201,7 +228,7 @@ export async function buildAccount(db, config, { device, ipHash, xhHash = null, 
     };
   }
 
-  const trial = await trialStatus(db, config, { deviceId: device.id, ipHash, xhHash: xhHash || device.xh_hash, now });
+  const trial = await trialStatus(db, config, { deviceId: device.id, userId: device.user_id, ipHash, xhHash: xhHash || device.xh_hash, now });
   return {
     ...base,
     plan: "trial",

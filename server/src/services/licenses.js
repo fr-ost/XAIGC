@@ -106,89 +106,170 @@ export async function createLicense(db, config, input) {
     ],
   );
   await logEvent(db, id, "created");
-  return { license: rows[0], key };
+  let license = rows[0];
+  if (license.email) {
+    const owner = await db.query("SELECT id, email FROM users WHERE lower(email) = lower($1) ORDER BY created_at LIMIT 1", [license.email]);
+    if (owner.rows[0]) {
+      const linked = await db.query("UPDATE licenses SET user_id = $1 WHERE id = $2 RETURNING *", [owner.rows[0].id, id]);
+      license = { ...linked.rows[0], owner_email: owner.rows[0].email };
+      await logEvent(db, id, "linked", { detail: "issued to an existing account" });
+    }
+  }
+  return { license, key };
 }
 
-// Bind `device` to the license behind `rawKey`.
-// Throws ApiError for every refusal; returns the license row on success.
+// Put `device` on `license`. Runs inside a transaction that already holds
+// the license row FOR UPDATE, so seat counting cannot race. Shared by key
+// activation and by attaching the license of a signed-in account.
+// Throws ApiError for every refusal; returns the (possibly updated) license.
+async function bindDevice(t, config, license, device, { replaceOldest = false, ipHash = null, detail = null }) {
+  const state = licenseState(license);
+  if (state === "revoked") throw errors.forbidden("license_revoked", "This license has been revoked. Contact support if you think that's a mistake.");
+  if (state === "expired") throw errors.forbidden("license_expired", "This license has expired. Renew it to keep generating.");
+
+  if (device.license_id === license.id) return license; // already active here
+
+  const plan = planFor(config, license);
+  const bound = await t.query(
+    "SELECT id, last_seen_at FROM devices WHERE license_id = $1 AND id <> $2 ORDER BY last_seen_at ASC",
+    [license.id, device.id],
+  );
+
+  // Activation churn: stops one license being passed around a group by
+  // activating and deactivating in turn.
+  const resetAt = license.devices_reset_at ? new Date(license.devices_reset_at).getTime() : 0;
+  const since = new Date(Math.max(Date.now() - CHURN_WINDOW_MS, resetAt)).toISOString();
+  const churn = await t.query(
+    "SELECT count(*)::int AS n FROM license_events WHERE license_id = $1 AND type = 'activated' AND ts > $2",
+    [license.id, since],
+  );
+  // Scales with the seat count so a large license can still roll out.
+  const churnLimit = Math.max(config.limits.activationsPer30Days, plan.maxDevices * 3);
+  if (num(churn.rows[0].n) >= churnLimit) {
+    throw new ApiError(429, "activation_limit", "This license has been activated on too many devices recently. Contact support to reset it.");
+  }
+
+  if (bound.rows.length >= plan.maxDevices) {
+    if (!replaceOldest) {
+      throw errors.conflict(
+        "device_limit",
+        `This license is already active on ${bound.rows.length} device${bound.rows.length === 1 ? "" : "s"} (limit ${plan.maxDevices}).`,
+        { devicesUsed: bound.rows.length, maxDevices: plan.maxDevices, canReplace: true },
+      );
+    }
+    const drop = bound.rows.slice(0, bound.rows.length - plan.maxDevices + 1);
+    for (const old of drop) {
+      await t.query("UPDATE devices SET license_id = NULL, activated_at = NULL WHERE id = $1", [old.id]);
+      await logEvent(t, license.id, "deactivated", { deviceId: old.id, detail: "replaced by another device", ipHash });
+    }
+  }
+
+  await t.query("UPDATE devices SET license_id = $1, activated_at = now() WHERE id = $2", [license.id, device.id]);
+
+  // The clock on duration-based licenses starts at first activation.
+  const updated = await t.query(
+    `UPDATE licenses SET
+       first_activated_at = COALESCE(first_activated_at, now()),
+       expires_at = CASE
+         WHEN expires_at IS NULL AND duration_days IS NOT NULL AND first_activated_at IS NULL
+           THEN now() + make_interval(days => duration_days)
+         ELSE expires_at END,
+       updated_at = now()
+     WHERE id = $1
+     RETURNING *`,
+    [license.id],
+  );
+  await logEvent(t, license.id, "activated", { deviceId: device.id, detail, ipHash });
+  return updated.rows[0];
+}
+
+// Activate the license behind `rawKey` on `device`.
 export async function activateLicense(db, config, { device, rawKey, replaceOldest = false, ipHash = null }) {
   const key = normalizeKey(rawKey);
   if (!key) throw errors.badRequest("That doesn't look like a license key. Expected XAIGC-XXXXX-XXXXX-XXXXX-XXXXX.", "invalid_key");
 
   return db.tx(async (t) => {
     const found = await t.query("SELECT * FROM licenses WHERE key_hash = $1 FOR UPDATE", [hashKey(key)]);
-    const license = found.rows[0];
-    if (!license) throw new ApiError(404, "invalid_key", "License key not recognized. Check for typos and try again.");
+    if (!found.rows[0]) throw new ApiError(404, "invalid_key", "License key not recognized. Check for typos and try again.");
+    const license = await bindDevice(t, config, found.rows[0], device, { replaceOldest, ipHash });
 
-    const state = licenseState(license);
-    if (state === "revoked") throw errors.forbidden("license_revoked", "This license has been revoked. Contact support if you think that's a mistake.");
-    if (state === "expired") throw errors.forbidden("license_expired", "This license has expired. Renew it to keep generating.");
-
-    if (device.license_id === license.id) return license; // already active here
-
-    const plan = planFor(config, license);
-    const bound = await t.query(
-      "SELECT id, last_seen_at FROM devices WHERE license_id = $1 AND id <> $2 ORDER BY last_seen_at ASC",
-      [license.id, device.id],
-    );
-
-    // Activation churn: stops one key being passed around a group by
-    // activating and deactivating in turn.
-    const resetAt = license.devices_reset_at ? new Date(license.devices_reset_at).getTime() : 0;
-    const since = new Date(Math.max(Date.now() - CHURN_WINDOW_MS, resetAt)).toISOString();
-    const churn = await t.query(
-      "SELECT count(*)::int AS n FROM license_events WHERE license_id = $1 AND type = 'activated' AND ts > $2",
-      [license.id, since],
-    );
-    // Scales with the seat count so a large license can still roll out.
-    const churnLimit = Math.max(config.limits.activationsPer30Days, plan.maxDevices * 3);
-    if (num(churn.rows[0].n) >= churnLimit) {
-      throw new ApiError(
-        429,
-        "activation_limit",
-        "This license has been activated on too many devices recently. Contact support to reset it.",
-      );
+    // The first account to activate an unowned key becomes its owner, so the
+    // license follows that account to other browsers without the key.
+    if (device.user_id && !license.user_id) {
+      const owned = await t.query("UPDATE licenses SET user_id = $1, updated_at = now() WHERE id = $2 RETURNING *", [device.user_id, license.id]);
+      await logEvent(t, license.id, "linked", { deviceId: device.id, detail: "linked to the signed-in account", ipHash });
+      return owned.rows[0];
     }
-
-    if (bound.rows.length >= plan.maxDevices) {
-      if (!replaceOldest) {
-        throw errors.conflict(
-          "device_limit",
-          `This license is already active on ${bound.rows.length} device${bound.rows.length === 1 ? "" : "s"} (limit ${plan.maxDevices}).`,
-          { devicesUsed: bound.rows.length, maxDevices: plan.maxDevices, canReplace: true },
-        );
-      }
-      const drop = bound.rows.slice(0, bound.rows.length - plan.maxDevices + 1);
-      for (const old of drop) {
-        await t.query("UPDATE devices SET license_id = NULL, activated_at = NULL WHERE id = $1", [old.id]);
-        await logEvent(t, license.id, "deactivated", { deviceId: old.id, detail: "replaced by another device", ipHash });
-      }
-    }
-
-    await t.query("UPDATE devices SET license_id = $1, activated_at = now() WHERE id = $2", [license.id, device.id]);
-
-    // The clock on duration-based licenses starts at first activation.
-    const updated = await t.query(
-      `UPDATE licenses SET
-         first_activated_at = COALESCE(first_activated_at, now()),
-         expires_at = CASE
-           WHEN expires_at IS NULL AND duration_days IS NOT NULL AND first_activated_at IS NULL
-             THEN now() + make_interval(days => duration_days)
-           ELSE expires_at END,
-         updated_at = now()
-       WHERE id = $1
-       RETURNING *`,
-      [license.id],
-    );
-    await logEvent(t, license.id, "activated", { deviceId: device.id, ipHash });
-    return updated.rows[0];
+    return license;
   });
+}
+
+// Give a signed-in browser the license its account owns, if there is one.
+//
+// Licenses reach an account two ways: the account activated the key once, or
+// the license was issued to the account's (Google-verified) email address, in
+// which case it is claimed here the first time that account shows up.
+//
+// Returns { attached, waiting }: `attached` is the license now active on this
+// device; `waiting` describes an owned license that is not on this device,
+// either because all its seats are taken (reason "device_limit") or because
+// the user removed it from this browser (reason "detached"). The user can
+// choose to bring it here, which is the `explicit` call.
+export async function attachAccountLicense(db, config, { device, explicit = false, ipHash = null }) {
+  const user = device.user;
+  if (!user || licenseState(device.license) === "active") return { attached: null, waiting: null };
+  const replaceOldest = explicit;
+
+  await db.query(
+    "UPDATE licenses SET user_id = $1, updated_at = now() WHERE user_id IS NULL AND status = 'active' AND lower(email) = lower($2)",
+    [user.id, user.email],
+  );
+  const candidates = await db.query(
+    `SELECT id FROM licenses
+     WHERE user_id = $1 AND status = 'active' AND (expires_at IS NULL OR expires_at > now())
+     ORDER BY (expires_at IS NULL) DESC, expires_at DESC, created_at DESC
+     LIMIT 5`,
+    [user.id],
+  );
+
+  if (!explicit && device.auto_attach === false) {
+    if (!candidates.rows[0]) return { attached: null, waiting: null };
+    const row = await db.query("SELECT * FROM licenses WHERE id = $1", [candidates.rows[0].id]);
+    const used = await db.query("SELECT count(*)::int AS n FROM devices WHERE license_id = $1", [candidates.rows[0].id]);
+    return { attached: null, waiting: { license: row.rows[0], reason: "detached", devicesUsed: num(used.rows[0].n) } };
+  }
+  if (explicit) await db.query("UPDATE devices SET auto_attach = true WHERE id = $1", [device.id]);
+
+  let waiting = null;
+  for (const { id } of candidates.rows) {
+    try {
+      const attached = await db.tx(async (t) => {
+        const locked = await t.query("SELECT * FROM licenses WHERE id = $1 FOR UPDATE", [id]);
+        if (!locked.rows[0] || locked.rows[0].user_id !== user.id) return null; // ownership changed meanwhile
+        return bindDevice(t, config, locked.rows[0], device, { replaceOldest, ipHash, detail: "signed in" });
+      });
+      if (attached) return { attached, waiting: null };
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err;
+      if (err.code === "device_limit" || err.code === "activation_limit") {
+        if (!waiting) {
+          const row = await db.query("SELECT * FROM licenses WHERE id = $1", [id]);
+          waiting = { license: row.rows[0], reason: err.code, devicesUsed: err.extra?.devicesUsed ?? null, error: err };
+        }
+        continue;
+      }
+      if (err.code === "license_expired" || err.code === "license_revoked") continue;
+      throw err;
+    }
+  }
+  return { attached: null, waiting };
 }
 
 export async function deactivateDevice(db, { device, ipHash = null }) {
   if (!device.license_id) return false;
   await db.tx(async (t) => {
-    await t.query("UPDATE devices SET license_id = NULL, activated_at = NULL WHERE id = $1", [device.id]);
+    // auto_attach off: an account-owned license must not hop straight back.
+    await t.query("UPDATE devices SET license_id = NULL, activated_at = NULL, auto_attach = false WHERE id = $1", [device.id]);
     await logEvent(t, device.license_id, "deactivated", { deviceId: device.id, ipHash });
   });
   return true;
@@ -204,7 +285,8 @@ export async function listLicenses(db, { q = "", status = "", limit = 50, offset
     const i = params.length;
     // Search by email, note, hint, or a full key pasted into the box.
     const asKey = normalizeKey(q);
-    let clause = `(lower(coalesce(l.email, '')) LIKE $${i} OR lower(coalesce(l.note, '')) LIKE $${i} OR lower(l.key_hint) LIKE $${i}`;
+    let clause = `(lower(coalesce(l.email, '')) LIKE $${i} OR lower(coalesce(l.note, '')) LIKE $${i} OR lower(l.key_hint) LIKE $${i}
+      OR EXISTS (SELECT 1 FROM users o WHERE o.id = l.user_id AND lower(o.email) LIKE $${i})`;
     if (asKey) {
       params.push(hashKey(asKey));
       clause += ` OR l.key_hash = $${params.length}`;
@@ -220,6 +302,7 @@ export async function listLicenses(db, { q = "", status = "", limit = 50, offset
   params.push(`${day}`, limit, offset);
   const rows = await db.query(
     `SELECT l.*,
+            (SELECT o.email FROM users o WHERE o.id = l.user_id) AS owner_email,
             (SELECT count(*)::int FROM devices d WHERE d.license_id = l.id) AS devices_used,
             COALESCE((SELECT u.count FROM usage_daily u WHERE u.subject = 'lic:' || l.id::text AND u.day = $${params.length - 2}), 0) AS used_today
      FROM licenses l
@@ -234,6 +317,7 @@ export async function listLicenses(db, { q = "", status = "", limit = 50, offset
 export async function getLicenseDetail(db, id, { day }) {
   const lic = await db.query(
     `SELECT l.*,
+            (SELECT o.email FROM users o WHERE o.id = l.user_id) AS owner_email,
             (SELECT count(*)::int FROM devices d WHERE d.license_id = l.id) AS devices_used,
             COALESCE((SELECT u.count FROM usage_daily u WHERE u.subject = 'lic:' || l.id::text AND u.day = $2), 0) AS used_today
      FROM licenses l WHERE l.id = $1`,
@@ -300,6 +384,12 @@ export async function updateLicense(db, config, id, patch) {
   if (patch.dailyLimit !== undefined) set("daily_limit", patch.dailyLimit);
   if (patch.email !== undefined) set("email", patch.email ? String(patch.email).trim().toLowerCase().slice(0, 254) : null);
   if (patch.note !== undefined) set("note", patch.note ? String(patch.note).slice(0, 500) : null);
+  if (patch.userId === null) {
+    // Removing the owner turns it back into a key-only license. It stays on
+    // the browsers it is active on.
+    set("user_id", null);
+    events.push("unlinked");
+  }
   if (!sets.length) throw errors.badRequest("Nothing to update.");
 
   params.push(id);

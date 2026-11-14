@@ -53,8 +53,9 @@
         <p class="muted small" id="outcomes"></p>
       </section>
 
-      <section class="card">
+      <section class="card" id="issueCard">
         <div class="card-head"><h2>Issue licenses</h2></div>
+        <p class="muted small">Add the customer's email and they only have to sign in with that Google account: the license is theirs, no key to type. The key still works as a fallback.</p>
         <form id="createForm" class="grid">
           <div class="field">
             <label for="cPlan">Plan</label>
@@ -111,7 +112,34 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="usersCard">
+        <div class="card-head">
+          <h2>Users <span class="muted" id="userCount"></span></h2>
+          <div class="filters">
+            <input id="userSearch" type="search" placeholder="Search email or name" aria-label="Search users">
+            <select id="userFilter" aria-label="Filter users">
+              <option value="">All users</option>
+              <option value="licensed">Licensed</option>
+              <option value="trial">On the free trial</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted small" id="usersNote"></p>
+        <div class="table-wrap">
+          <table id="userTable">
+            <thead><tr><th>User</th><th>Plan</th><th class="num">Browsers</th><th class="num">Generations</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="userPrev" class="btn ghost" type="button">Previous</button>
+          <span id="userPageInfo" class="muted"></span>
+          <button id="userNext" class="btn ghost" type="button">Next</button>
+        </div>
+      </section>
+
+      <section class="card" id="licensesCard">
         <div class="card-head">
           <h2>Licenses <span class="muted" id="licenseCount"></span></h2>
           <div class="filters">

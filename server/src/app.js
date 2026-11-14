@@ -9,12 +9,13 @@ import { hmac, ipGroup } from "./services/crypto.js";
 import { createActivityGate, createLimiter } from "./services/ratelimit.js";
 import { authenticateDevice } from "./services/devices.js";
 import { registerPublicRoutes } from "./routes/public.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerGenerateRoute } from "./routes/generate.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 
 const MINUTE = 60_000;
 
-export async function buildApp({ config, db, engine, clock = Date.now }) {
+export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl = globalThis.fetch }) {
   const app = Fastify({
     logger:
       config.logLevel === "silent"
@@ -40,6 +41,7 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
     activateFail: createLimiter({ limit: config.limits.activateFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
     adminFail: createLimiter({ limit: config.limits.adminFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
     paidFailure: createLimiter({ limit: config.limits.refundedFailuresPerHour, windowMs: 60 * MINUTE, now: clock }),
+    signInStart: createLimiter({ limit: config.limits.signInStartsPer10Min, windowMs: 10 * MINUTE, now: clock }),
   };
   const gate = createActivityGate({ cooldownMs: config.limits.cooldownMs, now: clock });
 
@@ -170,10 +172,11 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
     const device = await authenticateDevice(db, match[1]);
     if (!device) throw errors.unauthorized();
     if (device.blocked) throw errors.forbidden("device_blocked", "This install has been blocked. Contact support.");
+    if (device.user?.blocked) throw errors.forbidden("account_blocked", "This account has been blocked. Contact support.");
     req.device = device;
   }
 
-  const ctx = { config, db, engine, limiters, gate, clock, requireDevice };
+  const ctx = { config, db, engine, limiters, gate, clock, requireDevice, fetchImpl };
 
   /* ------------------------------- routes --------------------------------- */
 
@@ -196,6 +199,7 @@ export async function buildApp({ config, db, engine, clock = Date.now }) {
   });
 
   registerPublicRoutes(app, ctx);
+  await registerAuthRoutes(app, ctx);
   registerGenerateRoute(app, ctx);
   await registerAdminRoutes(app, ctx);
 

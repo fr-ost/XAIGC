@@ -73,16 +73,26 @@ export async function registerDevice(db, config, { installId, clientVersion, ipH
   throw new Error("device registration failed");
 }
 
-// Resolve a bearer token to its device row, with the bound license (or null)
-// attached as `device.license`.
+const DEVICE_SELECT = `
+  SELECT d.*,
+         CASE WHEN l.id IS NULL THEN NULL ELSE to_jsonb(l) END AS license,
+         CASE WHEN u.id IS NULL THEN NULL
+              ELSE jsonb_build_object('id', u.id, 'email', u.email, 'name', u.name, 'blocked', u.blocked) END AS "user"
+  FROM devices d
+  LEFT JOIN licenses l ON l.id = d.license_id
+  LEFT JOIN users u ON u.id = d.user_id`;
+
+// Resolve a bearer token to its device row, with the bound license and the
+// signed-in user (each null when absent) attached as `device.license` and
+// `device.user`.
 export async function authenticateDevice(db, token) {
   if (!token || token.length > 200) return null;
-  const { rows } = await db.query(
-    `SELECT d.*, CASE WHEN l.id IS NULL THEN NULL ELSE to_jsonb(l) END AS license
-     FROM devices d LEFT JOIN licenses l ON l.id = d.license_id
-     WHERE d.token_hash = $1`,
-    [tokenHash(token)],
-  );
+  const { rows } = await db.query(`${DEVICE_SELECT} WHERE d.token_hash = $1`, [tokenHash(token)]);
+  return rows[0] || null;
+}
+
+export async function getDevice(db, id) {
+  const { rows } = await db.query(`${DEVICE_SELECT} WHERE d.id = $1`, [id]);
   return rows[0] || null;
 }
 

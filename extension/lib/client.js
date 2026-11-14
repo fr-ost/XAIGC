@@ -24,8 +24,11 @@ export function describeAccount(account) {
   const pct = q.limit ? Math.min(100, Math.round((q.used / q.limit) * 100)) : 100;
   const trial = !account.licensed;
   let notice = "";
-  if (account.notice === "license_expired") notice = "Your license has expired. Renew it to keep generating.";
+  const signInRequired = Boolean(account.auth?.signInRequired);
+  if (signInRequired) notice = "Sign in with Google to start your free trial.";
+  else if (account.notice === "license_expired") notice = "Your license has expired. Renew it to keep generating.";
   else if (account.notice === "license_revoked") notice = "Your license is no longer active. Contact support if that's unexpected.";
+  else if (trial && account.accountLicense) notice = "Your account has a license that is not on this browser. Open Settings to use it here.";
   else if (trial && q.remaining === 0) notice = "Your free trial is used up. Activate a license to keep generating.";
   else if (!trial && q.remaining === 0) notice = "You've reached today's limit. It resets at 00:00 UTC.";
 
@@ -39,6 +42,7 @@ export function describeAccount(account) {
     pct,
     barClass: pct >= 90 ? "bad" : pct >= 70 ? "warn" : "",
     notice,
+    signInRequired,
     buyUrl: account.links?.buy || "https://uniquelabs.org",
     supportUrl: account.links?.support || "https://uniquelabs.org",
   };

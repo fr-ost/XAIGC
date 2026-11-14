@@ -207,6 +207,50 @@ async function remember(text) {
   await local.set({ recentReplies: [clean, ...recentReplies.filter((r) => r !== clean)].slice(0, RECENT_MAX) });
 }
 
+/* ----------------------------- Google sign-in ---------------------------- */
+
+// Signing in happens in an ordinary tab: the server sends the browser to
+// Google and back. When Google is done, the tab lands on the server's
+// /auth/done page with a one-time completion code in the URL fragment. This
+// worker sees that tab (it has host access to the server), presents the code
+// together with this install's device token, and closes the tab. The server
+// only signs in the install that started the attempt, so a completion code
+// is useless to anyone else, and a sign-in link sent by someone else does
+// nothing here.
+const AUTH_DONE_URL = `${API_BASE}/auth/done`;
+const SIGN_IN_WINDOW_MS = 15 * 60_000;
+const finishing = new Set();
+
+async function startSignIn() {
+  const { url } = await request("/v1/auth/google/start", { method: "POST" });
+  await chrome.storage.session.set({ signInStartedAt: Date.now() });
+  await local.set({ signInStatus: { state: "pending", at: Date.now() } });
+  await chrome.tabs.create({ url });
+  return {};
+}
+
+async function finishSignIn(tabId, url) {
+  const code = new URLSearchParams(new URL(url).hash.slice(1)).get("code");
+  if (!code || finishing.has(code)) return;
+  // Only if this browser actually started a sign-in a moment ago.
+  const { signInStartedAt } = await chrome.storage.session.get("signInStartedAt");
+  if (!signInStartedAt || Date.now() - signInStartedAt > SIGN_IN_WINDOW_MS) return;
+  finishing.add(code);
+  try {
+    await request("/v1/auth/google/complete", { method: "POST", body: { code } });
+    await local.set({ signInStatus: { state: "done", at: Date.now() } });
+    chrome.tabs.remove(tabId).catch(() => {});
+  } catch (err) {
+    await local.set({ signInStatus: { state: "error", message: err.message || "Sign-in did not finish.", at: Date.now() } });
+  } finally {
+    await chrome.storage.session.remove("signInStartedAt");
+  }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url && changeInfo.url.startsWith(AUTH_DONE_URL)) finishSignIn(tabId, changeInfo.url);
+});
+
 const handlers = {
   "xaigc:generate": (msg) => generate(msg.payload || {}),
   "xaigc:remember": async (msg) => {
@@ -216,6 +260,9 @@ const handlers = {
   "xaigc:account": async (msg) => ({ account: msg.refresh ? await refreshAccount() : await cachedAccount() }),
   "xaigc:activate": (msg) => request("/v1/license/activate", { method: "POST", body: { key: String(msg.key || ""), replaceOldest: msg.replaceOldest === true } }),
   "xaigc:deactivate": () => request("/v1/license/deactivate", { method: "POST" }),
+  "xaigc:attach-license": () => request("/v1/license/attach", { method: "POST" }),
+  "xaigc:signin": () => startSignIn(),
+  "xaigc:signout": () => request("/v1/auth/signout", { method: "POST" }),
   "xaigc:clear-memory": async () => {
     await local.remove("recentReplies");
     return {};

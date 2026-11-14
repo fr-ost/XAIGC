@@ -47,8 +47,9 @@ function showAccount(account) {
   if (!d) return;
   buyUrl = d.buyUrl;
   const upgrade = $("upgrade");
-  upgrade.hidden = !d.trial;
+  upgrade.hidden = !d.trial || d.signInRequired;
   upgrade.href = buyUrl;
+  $("signIn").hidden = !d.signInRequired;
 }
 
 function applyMode() {
@@ -145,7 +146,7 @@ async function generate() {
     $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (err) {
     setStatus(err.message, "error");
-    if (err.code === "trial_ended" || err.code === "daily_limit") {
+    if (err.code === "trial_ended" || err.code === "daily_limit" || err.code === "sign_in_required") {
       const { account } = await chrome.storage.local.get("account");
       showAccount(account);
     }
@@ -185,6 +186,8 @@ $("copyAll").addEventListener("click", async () => {
   setTimeout(() => ($("copyAll").textContent = "Copy thread"), 1400);
 });
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
+// Signing in happens on the settings page, where there is room to explain it.
+$("signIn").addEventListener("click", () => send("xaigc:open-options", { section: "account" }).then(() => window.close(), () => {}));
 
 (async function init() {
   const stored = await chrome.storage.local.get(["popupState", "account"]);

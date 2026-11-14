@@ -20,6 +20,7 @@ const MIGRATION_LOCK_ID = 7274203;
 
 function sslOption(config) {
   const mode = config.databaseSsl;
+  if (config.databaseSslCa) return { ca: config.databaseSslCa, rejectUnauthorized: true };
   if (mode === "true" || mode === "require") return { rejectUnauthorized: true };
   if (mode === "no-verify") return { rejectUnauthorized: false };
   return undefined; // defer to the connection string (Railway's private network uses none)
@@ -30,7 +31,7 @@ async function createPgDb(config, logger) {
   const pool = new pg.Pool({
     connectionString: config.databaseUrl,
     ssl: sslOption(config),
-    max: 10,
+    max: config.databasePoolMax,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });

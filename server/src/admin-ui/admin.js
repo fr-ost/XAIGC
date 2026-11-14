@@ -4,7 +4,7 @@
 
   const $ = (id) => document.getElementById(id);
   const PAGE = 50;
-  const state = { token: sessionStorage.getItem("xaigc_admin") || "", offset: 0, total: 0, plans: [], openId: null };
+  const state = { token: sessionStorage.getItem("xaigc_admin") || "", offset: 0, total: 0, userOffset: 0, userTotal: 0, plans: [], openId: null };
 
   // h("td", { class: "num" }, "text", childNode)
   function h(tag, attrs, ...children) {
@@ -96,7 +96,7 @@
         ...plans.map((p) => h("option", { value: p.id }, `${p.label} · ${p.dailyLimit}/day · ${p.maxDevices} device${p.maxDevices === 1 ? "" : "s"}`)),
       );
       showSignedIn(true);
-      await loadLicenses();
+      await Promise.all([loadUsers(), loadLicenses()]);
     } catch (err) {
       if (err.status === 401 || err.status === 429) signOut(err.message);
       else if (err.status === 404) signOut("The admin API is disabled. Set ADMIN_TOKEN on the server.");
@@ -120,8 +120,14 @@
       stat("Est. OpenAI cost today", s.priced ? fmtCost(s.today.costUsd) : "n/a", s.priced ? `${fmt(s.today.tokensIn + s.today.tokensOut)} tokens` : "Set PRICE_IN_PER_M / PRICE_OUT_PER_M"),
       stat("Active licenses", fmt(s.licenses.active), `${fmt(s.licenses.expired)} expired · ${fmt(s.licenses.revoked)} revoked`),
       stat("Installs", fmt(s.devices.total), `${fmt(s.devices.active24h)} active in 24h · ${fmt(s.devices.new24h)} new`),
+      stat("Users", fmt(s.users.total), s.signIn.google ? `${fmt(s.users.new24h)} new today · ${fmt(s.users.active7d)} this week` : "Google sign-in is off"),
       stat("Licensed installs", fmt(s.devices.licensed), `${fmt(s.devices.blocked)} blocked`),
     );
+    $("usersNote").textContent = !s.signIn.google
+      ? "Google sign-in is not configured, so nobody can sign up yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and PUBLIC_URL on the server."
+      : s.signIn.requiredForTrial
+        ? "Everyone who uses the free trial signs in with Google first, so they all appear here."
+        : "Signing in is optional (TRIAL_REQUIRE_SIGN_IN=false), so only people who chose to sign in appear here.";
 
     $("capNote").textContent = `Daily caps: ${fmt(s.caps.globalDaily)} total, ${fmt(s.caps.trialGlobalDaily)} trial · Trial: ${s.trial.generations} per install`;
     const body = $("daysTable").querySelector("tbody");
@@ -144,7 +150,155 @@
 
   /* ------------------------------ licenses ------------------------------- */
 
-  const pill = (stateName) => h("span", { class: `pill ${stateName}` }, stateName);
+  const pill = (stateName, label = stateName) => h("span", { class: `pill ${stateName}` }, label);
+
+  // Who a license is for: the account that owns it, else the email it was
+  // issued to (waiting for that person to sign in), plus any note.
+  function customerCell(l) {
+    const who = l.owner?.email || l.email || "";
+    const tag = l.owner ? h("span", { class: "pill active", title: "This Google account owns the license" }, "account") : l.email ? h("span", { class: "muted small" }, "not signed in yet") : null;
+    return [who, who && tag ? " " : null, tag, who && l.note ? h("br") : null, l.note ? h("span", { class: "muted" }, l.note) : null];
+  }
+
+  /* -------------------------------- users --------------------------------- */
+
+  async function loadUsers() {
+    const q = $("userSearch").value.trim();
+    const filter = $("userFilter").value;
+    const params = new URLSearchParams({ limit: String(PAGE), offset: String(state.userOffset) });
+    if (q) params.set("q", q);
+    if (filter) params.set("filter", filter);
+    const { total, users } = await api(`/users?${params}`);
+    state.userTotal = total;
+
+    const rows = users.map((u) =>
+      h("tr", null,
+        h("td", { class: "wrap" }, u.email, u.name ? h("br") : null, u.name ? h("span", { class: "muted" }, u.name) : null),
+        h("td", null, u.blocked ? pill("revoked", "blocked") : u.plan ? pill("active", u.plan) : `Trial ${u.trial.used}/${u.trial.limit}`),
+        h("td", { class: "num" }, fmt(u.devices)),
+        h("td", { class: "num" }, fmt(u.generations)),
+        h("td", null, fmtDate(u.createdAt)),
+        h("td", null, fmtDate(u.lastLoginAt)),
+        h("td", null, h("button", { class: "btn sm", type: "button", onclick: () => openUser(u.id).catch((err) => toast(err.message)) }, "Manage")),
+      ),
+    );
+    $("userTable").querySelector("tbody").replaceChildren(
+      ...(rows.length ? rows : [h("tr", null, h("td", { class: "empty", colspan: "7" }, q || filter ? "No users match." : "No one has signed in yet."))]),
+    );
+    $("userCount").textContent = `(${fmt(total)})`;
+    const from = total ? state.userOffset + 1 : 0;
+    $("userPageInfo").textContent = `${from}-${Math.min(total, state.userOffset + PAGE)} of ${fmt(total)}`;
+    $("userPrev").disabled = state.userOffset === 0;
+    $("userNext").disabled = state.userOffset + PAGE >= total;
+  }
+
+  async function openUser(id) {
+    const d = await api(`/users/${id}`);
+    const u = d.user;
+    $("dTitle").textContent = u.email;
+    const refresh = () => Promise.all([openUser(id), loadUsers(), loadStats()]);
+    const button = (label, fn, cls = "") =>
+      h("button", {
+        class: `btn sm ${cls}`,
+        type: "button",
+        onclick: async (e) => {
+          const el = e.currentTarget;
+          el.disabled = true;
+          try {
+            await fn();
+          } catch (err) {
+            toast(err.message);
+          }
+          el.disabled = false;
+        },
+      }, label);
+
+    $("dBody").replaceChildren(
+      h("div", { class: "kv" },
+        kv("Status", u.blocked ? pill("revoked", "blocked") : pill("active")),
+        kv("Plan", u.plan || `Free trial, ${u.trial.used} of ${u.trial.limit} used`),
+        kv("Name", u.name),
+        kv("Generations", fmt(u.generations)),
+        kv("Joined", fmtDateTime(u.createdAt)),
+        kv("Last sign-in", fmtDateTime(u.lastLoginAt)),
+        kv("Last active", fmtDateTime(u.lastSeenAt) || "Never"),
+        u.blocked ? kv("Blocked because", u.blockedReason) : null,
+      ),
+      h("div", { class: "row-actions" },
+        button("Issue a license to this user", async () => {
+          $("detail").close();
+          $("cEmail").value = u.email;
+          $("issueCard").scrollIntoView({ behavior: "smooth", block: "start" });
+          $("cPlan").focus({ preventScroll: true });
+          toast("Choose a plan and press Create. It appears in their extension straight away.");
+        }),
+        u.blocked
+          ? button("Unblock", async () => {
+              await api(`/users/${id}/block`, { method: "POST", body: { blocked: false } });
+              toast("User unblocked");
+              await refresh();
+            })
+          : button("Block", async () => {
+              const reason = prompt("Block this user on all of their browsers? Optional reason:", "");
+              if (reason === null) return;
+              await api(`/users/${id}/block`, { method: "POST", body: { blocked: true, reason: reason.trim() || undefined } });
+              toast("User blocked");
+              await refresh();
+            }, "danger"),
+        button("Delete user", async () => {
+          if (!confirm(`Delete ${u.email}? Their browsers are signed out and their account record is erased. Licenses they own are kept as key-only licenses.`)) return;
+          await api(`/users/${id}`, { method: "DELETE" });
+          $("detail").close();
+          toast("User deleted");
+          await Promise.all([loadUsers(), loadLicenses(), loadStats()]);
+        }, "danger"),
+      ),
+      h("div", null,
+        h("h3", null, "Licenses"),
+        h("div", { class: "table-wrap" },
+          h("table", null,
+            h("thead", null, h("tr", null, h("th", null, "Key"), h("th", null, "Plan"), h("th", null, "State"), h("th", { class: "num" }, "Devices"), h("th", null, "Expires"), h("th", null, ""))),
+            h("tbody", null,
+              d.licenses.length
+                ? d.licenses.map((l) =>
+                    h("tr", null,
+                      h("td", { class: "mono" }, l.hint),
+                      h("td", null, l.planLabel),
+                      h("td", null, pill(l.state)),
+                      h("td", { class: "num" }, `${l.devicesUsed}/${l.maxDevices}`),
+                      h("td", null, l.expiresAt ? fmtDate(l.expiresAt) : l.durationDays ? `${l.durationDays}d after activation` : "Never"),
+                      h("td", null, h("button", { class: "btn sm", type: "button", onclick: () => openDetail(l.id).catch((err) => toast(err.message)) }, "Manage")),
+                    ),
+                  )
+                : h("tr", null, h("td", { class: "empty", colspan: "6" }, "No licenses. This user is on the free trial.")),
+            ),
+          ),
+        ),
+      ),
+      h("div", null,
+        h("h3", null, "Browsers signed in"),
+        h("div", { class: "table-wrap" },
+          h("table", null,
+            h("thead", null, h("tr", null, h("th", null, "Install"), h("th", null, "License"), h("th", null, "Last seen"), h("th", null, "Version"), h("th", { class: "num" }, "Generations"))),
+            h("tbody", null,
+              d.devices.length
+                ? d.devices.map((dev) =>
+                    h("tr", null,
+                      h("td", { class: "mono" }, dev.id.slice(0, 8), dev.blocked ? " (blocked)" : ""),
+                      h("td", null, dev.license ? `${dev.license.plan}` : "None"),
+                      h("td", null, fmtDateTime(dev.lastSeenAt)),
+                      h("td", null, dev.clientVersion || ""),
+                      h("td", { class: "num" }, fmt(dev.totalGenerations)),
+                    ),
+                  )
+                : h("tr", null, h("td", { class: "empty", colspan: "5" }, "Signed out everywhere.")),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (!$("detail").open) $("detail").showModal();
+  }
 
   async function loadLicenses() {
     const q = $("search").value.trim();
@@ -160,7 +314,7 @@
         h("td", { class: "mono" }, l.hint),
         h("td", null, l.planLabel),
         h("td", null, pill(l.state)),
-        h("td", { class: "wrap" }, l.email || "", l.email && l.note ? h("br") : null, l.note ? h("span", { class: "muted" }, l.note) : null),
+        h("td", { class: "wrap" }, customerCell(l)),
         h("td", { class: "num" }, `${l.devicesUsed}/${l.maxDevices}`),
         h("td", { class: "num" }, `${fmt(l.usedToday)}/${fmt(l.dailyLimit)}`),
         h("td", null, l.expiresAt ? fmtDate(l.expiresAt) : l.durationDays ? `${l.durationDays}d after activation` : "Never"),
@@ -211,7 +365,7 @@
       $("copyAll").onclick = () => copy(keys.join("\n"), `${keys.length} key${keys.length === 1 ? "" : "s"} copied`);
       $("created").hidden = false;
       state.offset = 0;
-      await Promise.all([loadLicenses(), loadStats()]);
+      await Promise.all([loadLicenses(), loadUsers(), loadStats()]);
     } catch (err) {
       $("createError").textContent = err.message;
     } finally {
@@ -276,7 +430,8 @@
         kv("Expires", l.expiresAt ? fmtDateTime(l.expiresAt) : l.durationDays ? `${l.durationDays} days after first activation` : "Never"),
         kv("First activated", fmtDateTime(l.firstActivatedAt) || "Not yet"),
         kv("Created", fmtDateTime(l.createdAt)),
-        kv("Email", l.email),
+        kv("Owner account", l.owner ? l.owner.email : l.email ? "Waiting for that email to sign in" : "None (key only)"),
+        kv("Issued to email", l.email),
         kv("Note", l.note),
       ),
       h("div", { class: "row-actions" },
@@ -297,6 +452,11 @@
           toast(`${r.released} device${r.released === 1 ? "" : "s"} released`);
           await Promise.all([openDetail(id), loadLicenses()]);
         }),
+        l.owner
+          ? act("Remove owner", () =>
+              confirm(`Detach this license from ${l.owner.email}? It stays on the browsers it is active on, but stops following that account.`) &&
+              patch({ userId: null, email: null }, "Owner removed"))
+          : null,
         act("Edit email / note", async () => {
           const email = prompt("Customer email (leave empty to clear):", l.email || "");
           if (email === null) return;
@@ -369,7 +529,27 @@
     start();
   });
   $("signOut").addEventListener("click", () => signOut(""));
-  $("refresh").addEventListener("click", () => Promise.all([loadStats(), loadLicenses()]).then(() => toast("Refreshed"), (err) => toast(err.message)));
+  $("refresh").addEventListener("click", () => Promise.all([loadStats(), loadUsers(), loadLicenses()]).then(() => toast("Refreshed"), (err) => toast(err.message)));
+  $("userFilter").addEventListener("change", () => {
+    state.userOffset = 0;
+    loadUsers().catch((err) => toast(err.message));
+  });
+  let userSearchTimer;
+  $("userSearch").addEventListener("input", () => {
+    clearTimeout(userSearchTimer);
+    userSearchTimer = setTimeout(() => {
+      state.userOffset = 0;
+      loadUsers().catch((err) => toast(err.message));
+    }, 250);
+  });
+  $("userPrev").addEventListener("click", () => {
+    state.userOffset = Math.max(0, state.userOffset - PAGE);
+    loadUsers().catch((err) => toast(err.message));
+  });
+  $("userNext").addEventListener("click", () => {
+    state.userOffset += PAGE;
+    loadUsers().catch((err) => toast(err.message));
+  });
   $("cValidity").addEventListener("change", syncValidity);
   $("createForm").addEventListener("submit", createLicenses);
   $("dClose").addEventListener("click", () => $("detail").close());

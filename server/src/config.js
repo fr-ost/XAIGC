@@ -86,10 +86,29 @@ export function loadConfig(env = process.env) {
   // Railway injects RAILWAY_* variables into every service.
   const onRailway = Object.keys(env).some((key) => key.startsWith("RAILWAY_"));
 
+  const port = int(env.PORT, 8787, { min: 1, max: 65535 });
+  // Where browsers reach this server. Google sends people back here after
+  // sign-in, so it must be exactly the address registered with Google.
+  const publicUrl = (
+    env.PUBLIC_URL ||
+    (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : production ? "" : `http://localhost:${port}`)
+  ).replace(/\/+$/, "");
+  const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+
   const config = {
     version: SERVER_VERSION,
     production,
-    port: int(env.PORT, 8787, { min: 1, max: 65535 }),
+    port,
+    publicUrl,
+
+    // Sign in with Google. Enabled once both values are set.
+    google: {
+      enabled: googleEnabled,
+      clientId: env.GOOGLE_CLIENT_ID || "",
+      clientSecret: env.GOOGLE_CLIENT_SECRET || "",
+      authUrl: env.GOOGLE_AUTH_URL || "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenUrl: env.GOOGLE_TOKEN_URL || "https://oauth2.googleapis.com/token",
+    },
     host: env.HOST || "0.0.0.0",
     logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
     // Which header carries the caller's address is a property of the host.
@@ -103,6 +122,10 @@ export function loadConfig(env = process.env) {
 
     databaseUrl: env.DATABASE_URL || "",
     databaseSsl: (env.DATABASE_SSL || "").toLowerCase(), // "", "true", "no-verify", "false"
+    // PEM text of the database's root certificate, for hosts whose
+    // certificate is not signed by a public authority (Supabase publishes one).
+    databaseSslCa: (env.DATABASE_SSL_CA || "").replace(/\\n/g, "\n"),
+    databasePoolMax: int(env.DATABASE_POOL_MAX, 10, { min: 1, max: 100 }),
     pgliteDir: env.PGLITE_DIR || "", // empty = in-memory (dev/test only)
 
     appSecret: env.APP_SECRET || (production ? "" : "dev-only-secret-change-me"),
@@ -134,6 +157,10 @@ export function loadConfig(env = process.env) {
       ipLimit: int(env.TRIAL_IP_LIMIT, trialGenerations * 3, { min: 0 }),
       ipWindowDays: int(env.TRIAL_IP_WINDOW_DAYS, 30, { min: 1, max: 3650 }),
       requireHandle: flag(env.TRIAL_REQUIRE_X_ACCOUNT, false),
+      // With Google sign-in configured, the free trial needs an account by
+      // default: one trial per Google account is the strongest brake on
+      // trial farming, and it gives you a list of who your users are.
+      requireSignIn: flag(env.TRIAL_REQUIRE_SIGN_IN, googleEnabled),
     },
 
     caps: {
@@ -151,6 +178,7 @@ export function loadConfig(env = process.env) {
       activateFailuresPer15Min: int(env.ACTIVATE_FAILURES_PER_15MIN, 8, { min: 1 }),
       activationsPer30Days: int(env.ACTIVATIONS_PER_30_DAYS, 10, { min: 1 }),
       reregistrationsPerDay: int(env.REREGISTRATIONS_PER_DAY, 3, { min: 1 }),
+      signInStartsPer10Min: int(env.SIGN_IN_STARTS_PER_10MIN, 10, { min: 1 }),
       refundedFailuresPerHour: int(env.REFUNDED_FAILURES_PER_HOUR, 5, { min: 0 }),
       adminFailuresPer15Min: int(env.ADMIN_FAILURES_PER_15MIN, 10, { min: 1 }),
       bodyBytes: int(env.BODY_LIMIT_BYTES, 32 * 1024, { min: 1024 }),
@@ -172,6 +200,18 @@ export function loadConfig(env = process.env) {
     if (!config.databaseUrl) problems.push("DATABASE_URL is required in production (add the Railway Postgres plugin).");
     if (!config.openai.apiKey) problems.push("OPENAI_API_KEY is required in production.");
     if (config.appSecret.length < 24) problems.push("APP_SECRET is required in production (use 32+ random characters).");
+  }
+  if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
+    problems.push("Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither, to leave it off).");
+  }
+  if (googleEnabled && !/^https?:\/\/[^/\s]+$/.test(publicUrl)) {
+    problems.push("PUBLIC_URL is required for Google sign-in: the address of this server, for example https://xaigc.up.railway.app (no path).");
+  }
+  if (googleEnabled && production && !publicUrl.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(publicUrl)) {
+    problems.push("PUBLIC_URL must use https in production.");
+  }
+  if (config.trial.requireSignIn && !googleEnabled) {
+    problems.push("TRIAL_REQUIRE_SIGN_IN is on but Google sign-in is not configured (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET).");
   }
   if (config.adminToken && config.adminToken.length < 24) {
     problems.push("ADMIN_TOKEN must be at least 24 characters. Leave it unset to disable the admin API.");

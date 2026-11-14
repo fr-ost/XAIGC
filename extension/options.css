@@ -155,6 +155,72 @@ fieldset {
   background: var(--accent-soft);
 }
 
+.stack {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+/* Sign in with Google button, following Google's branding guidelines. */
+.gsi {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid #747775;
+  background: #ffffff;
+  color: #1f1f1f;
+  font: 500 14px/20px Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+}
+.gsi:hover {
+  background: #f8faff;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
+}
+.gsi:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (prefers-color-scheme: dark) {
+  .gsi {
+    background: #131314;
+    border-color: #8e918f;
+    color: #e3e3e3;
+  }
+  .gsi:hover {
+    background: #1e1f20;
+  }
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.who-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.who-text span {
+  overflow-wrap: anywhere;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+}
+
 .credit {
   padding: 8px 16px 28px;
 }
