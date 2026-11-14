@@ -116,7 +116,7 @@
 
     const stat = (label, value, sub) => h("div", { class: "stat" }, h("div", { class: "label" }, label), h("div", { class: "value" }, value), h("div", { class: "sub" }, sub));
     $("stats").replaceChildren(
-      stat("Generations today", fmt(s.today.total), `${fmt(s.today.paid)} licensed · ${fmt(s.today.trial)} trial`),
+      stat("Generations today", fmt(s.today.total), `${fmt(s.today.paid)} licensed · ${fmt(s.today.free)} free`),
       stat("Est. OpenAI cost today", s.priced ? fmtCost(s.today.costUsd) : "n/a", s.priced ? `${fmt(s.today.tokensIn + s.today.tokensOut)} tokens` : "Set PRICE_IN_PER_M / PRICE_OUT_PER_M"),
       stat("Active licenses", fmt(s.licenses.active), `${fmt(s.licenses.expired)} expired · ${fmt(s.licenses.revoked)} revoked`),
       stat("Installs", fmt(s.devices.total), `${fmt(s.devices.active24h)} active in 24h · ${fmt(s.devices.new24h)} new`),
@@ -125,18 +125,20 @@
     );
     $("usersNote").textContent = !s.signIn.google
       ? "Google sign-in is not switched on, so nobody can sign up yet. Set GOOGLE_CLIENT_ID on the server to the client ID of your Chrome Extension OAuth client (the same one that is in the extension), then redeploy. No secret or public address is needed."
-      : s.signIn.requiredForTrial
-        ? "Everyone who uses the free trial signs in with Google first, so they all appear here."
-        : "Signing in is optional (TRIAL_REQUIRE_SIGN_IN=false), so only people who chose to sign in appear here.";
+      : s.signIn.requiredForFree
+        ? "Everyone on the free plan signs in with Google first, so they all appear here."
+        : "Signing in is optional (FREE_REQUIRE_SIGN_IN=false), so only people who chose to sign in appear here.";
 
-    $("capNote").textContent = `Daily caps: ${fmt(s.caps.globalDaily)} total, ${fmt(s.caps.trialGlobalDaily)} trial · Trial: ${s.trial.generations} per install`;
+    $("capNote").textContent = s.free.dailyLimit > 0
+      ? `Free plan: ${fmt(s.free.dailyLimit)} a day per person, up to ${fmt(s.caps.freeGlobalDaily)} a day across everyone · Cap on all generations: ${fmt(s.caps.globalDaily)} a day`
+      : `The free plan is off (FREE_DAILY_LIMIT=0), so only licensed users can generate · Cap on all generations: ${fmt(s.caps.globalDaily)} a day`;
     const body = $("daysTable").querySelector("tbody");
     const rows = s.days.slice(0, 14).map((d) =>
       h("tr", null,
         h("td", null, d.day),
         h("td", { class: "num" }, fmt(d.total)),
         h("td", { class: "num" }, fmt(d.paid)),
-        h("td", { class: "num" }, fmt(d.trial)),
+        h("td", { class: "num" }, fmt(d.free)),
         h("td", { class: "num" }, fmt(d.tokensIn)),
         h("td", { class: "num" }, fmt(d.tokensOut)),
         h("td", { class: "num" }, s.priced ? fmtCost(d.costUsd) : "n/a"),
@@ -174,7 +176,7 @@
     const rows = users.map((u) =>
       h("tr", null,
         h("td", { class: "wrap" }, u.email, u.name ? h("br") : null, u.name ? h("span", { class: "muted" }, u.name) : null),
-        h("td", null, u.blocked ? pill("revoked", "blocked") : u.plan ? pill("active", u.plan) : `Trial ${u.trial.used}/${u.trial.limit}`),
+        h("td", null, u.blocked ? pill("revoked", "blocked") : u.plan ? pill("active", u.plan) : `Free ${u.free.used}/${u.free.limit} today`),
         h("td", { class: "num" }, fmt(u.devices)),
         h("td", { class: "num" }, fmt(u.generations)),
         h("td", null, fmtDate(u.createdAt)),
@@ -216,7 +218,7 @@
     $("dBody").replaceChildren(
       h("div", { class: "kv" },
         kv("Status", u.blocked ? pill("revoked", "blocked") : pill("active")),
-        kv("Plan", u.plan || `Free trial, ${u.trial.used} of ${u.trial.limit} used`),
+        kv("Plan", u.plan || `Free, ${u.free.used} of ${u.free.limit} used today`),
         kv("Name", u.name),
         kv("Generations", fmt(u.generations)),
         kv("Joined", fmtDateTime(u.createdAt)),
@@ -248,7 +250,7 @@
             }, "danger"),
         button("Delete user", async () => {
           const warning = u.blocked ? "\n\nThis user is BLOCKED. Deleting the account also deletes the block: they could sign up again. Keep blocked users instead." : "";
-          if (!confirm(`Delete ${u.email}?\n\nErased: their Google account ID, name and email, including the email on their licenses, which become key-only. Their browsers are signed out.\n\nKept: their free-trial count (so it cannot be restarted) and anonymous usage records.${warning}`)) return;
+          if (!confirm(`Delete ${u.email}?\n\nErased: their Google account ID, name and email, including the email on their licenses, which become key-only. Their browsers are signed out.\n\nKept: today's free-use count (so deleting does not reset it) and anonymous usage records.${warning}`)) return;
           await api(`/users/${id}`, { method: "DELETE" });
           $("detail").close();
           toast("User deleted");
@@ -272,7 +274,7 @@
                       h("td", null, h("button", { class: "btn sm", type: "button", onclick: () => openDetail(l.id).catch((err) => toast(err.message)) }, "Manage")),
                     ),
                   )
-                : h("tr", null, h("td", { class: "empty", colspan: "6" }, "No licenses. This user is on the free trial.")),
+                : h("tr", null, h("td", { class: "empty", colspan: "6" }, "No licenses. This user is on the free plan.")),
             ),
           ),
         ),

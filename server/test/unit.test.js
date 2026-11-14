@@ -44,6 +44,35 @@ test("config: X-Real-IP is trusted by default only on Railway", () => {
   assert.equal(loadConfig({}).clientIpHeader, "");
 });
 
+test("config: the free plan is 5 a day and the paid plans are 60, 200 and 600", () => {
+  const cfg = loadConfig({});
+  assert.deepEqual(cfg.free, { dailyLimit: 5, ipDailyLimit: 50, requireHandle: false, requireSignIn: false });
+  assert.deepEqual(
+    Object.values(cfg.plans).map((p) => [p.label, p.dailyLimit]),
+    [["Starter", 60], ["Pro", 200], ["Agency", 600]],
+  );
+  assert.deepEqual(cfg.notices, []);
+
+  const custom = loadConfig({ FREE_DAILY_LIMIT: "8", FREE_IP_DAILY_LIMIT: "20", FREE_GLOBAL_DAILY_CAP: "100" });
+  assert.equal(custom.free.dailyLimit, 8);
+  assert.equal(custom.free.ipDailyLimit, 20);
+  assert.equal(custom.caps.freeGlobalDaily, 100);
+  assert.equal(loadConfig({ FREE_DAILY_LIMIT: "8" }).free.ipDailyLimit, 80, "the network cap follows the allowance unless set");
+});
+
+test("config: settings from the old one-time trial", () => {
+  // The switches kept their meaning, so the old names still work.
+  const old = loadConfig({ TRIAL_REQUIRE_X_ACCOUNT: "true", TRIAL_GLOBAL_DAILY_CAP: "70" });
+  assert.equal(old.free.requireHandle, true);
+  assert.equal(old.caps.freeGlobalDaily, 70);
+  assert.equal(loadConfig({ TRIAL_REQUIRE_X_ACCOUNT: "true", FREE_REQUIRE_X_ACCOUNT: "false" }).free.requireHandle, false, "the new name wins");
+  // A lifetime total is not a daily allowance, so that one is ignored, out loud.
+  const stale = loadConfig({ TRIAL_GENERATIONS: "20", TRIAL_IP_LIMIT: "60" });
+  assert.equal(stale.free.dailyLimit, 5);
+  assert.equal(stale.notices.length, 2);
+  assert.match(stale.notices[0], /TRIAL_GENERATIONS is no longer used/);
+});
+
 test("config: PLANS_JSON overrides the plan table and is validated", () => {
   const cfg = loadConfig({ PLANS_JSON: JSON.stringify({ solo: { label: "Solo", dailyLimit: 10, maxDevices: 1 } }) });
   assert.deepEqual(Object.keys(cfg.plans), ["solo"]);

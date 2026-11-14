@@ -8,9 +8,9 @@ Most problems have a quick fix. Find yours below. If it is not there, write to u
 
 Click the puzzle icon in Chrome's toolbar and pin XAICG. Then open x.com: every post has **AI Reply** and **Question** buttons. The XAICG icon in the toolbar opens the popup, where you write posts and threads. **Settings** is at the bottom of the popup.
 
-### How do I start the free trial?
+### How do I start using it for free?
 
-Click the XAICG icon and press **Sign in with Google**. Chrome asks which account to use. You get 20 free generations, with no card to enter. The trial is one per Google account.
+Click the XAICG icon and press **Sign in with Google**. Chrome asks which account to use. You get 5 free comments every day, with no card to enter. The free allowance is one per Google account.
 
 ### Sign in with Google does not work
 
@@ -45,11 +45,15 @@ Open Settings and switch off **Sound effects** under On x.com.
 
 ## Plans and licenses
 
-### My trial ran out, or I reached today's limit
+### I have used today's free comments, or reached today's limit
 
-The free trial is 20 generations in total. Paid plans have a daily allowance that starts again at 00:00 UTC. The popup shows how many you have left. The plans are listed at https://xaicg.uniquelabs.org/#pricing
+The free plan is 5 comments a day. Starter is 60 a day, Pro 200 and Agency 600. Every allowance starts again at 00:00 UTC, and the popup shows how many you have left. If 5 a day is not enough, the plans are listed at https://xaicg.uniquelabs.org/#pricing
 
-### I bought a license but I am still on the trial
+### What counts as a comment?
+
+Each time XAICG writes for you: a reply, a question, a post, a thread or a rewrite. One request brings back several drafts, and stepping through them with the round button beside the reply box does not use another one.
+
+### I bought a license but I am still on the free plan
 
 - Sign in with the Google account whose email address you gave when you bought. The license belongs to that account.
 - Open Settings and press **Refresh**.

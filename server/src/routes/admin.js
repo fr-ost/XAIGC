@@ -73,7 +73,8 @@ function serializeUser(config, row) {
     generations: num(row.generations),
     activeLicenses: num(row.active_licenses),
     plan,
-    trial: { used: Math.min(num(row.trial_used), config.trial.generations), limit: config.trial.generations },
+    // Free comments used today, out of the daily allowance.
+    free: { used: Math.min(num(row.free_used), config.free.dailyLimit), limit: config.free.dailyLimit },
   };
 }
 
@@ -154,17 +155,17 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
 
     const byDay = new Map();
     for (const r of series.rows) {
-      const d = byDay.get(r.day) || { day: r.day, total: 0, trial: 0, tokensIn: 0, tokensOut: 0 };
+      const d = byDay.get(r.day) || { day: r.day, total: 0, free: 0, tokensIn: 0, tokensOut: 0 };
       if (r.subject === "global") {
         d.total = num(r.count);
         d.tokensIn = num(r.tokens_in);
         d.tokensOut = num(r.tokens_out);
-      } else d.trial = num(r.count);
+      } else d.free = num(r.count);
       byDay.set(r.day, d);
     }
     const cost = (d) => (d.tokensIn / 1e6) * config.openai.priceInPerM + (d.tokensOut / 1e6) * config.openai.priceOutPerM;
-    const days = [...byDay.values()].sort((a, b) => (a.day < b.day ? 1 : -1)).map((d) => ({ ...d, paid: d.total - d.trial, costUsd: cost(d) }));
-    const today = days.find((d) => d.day === day) || { day, total: 0, trial: 0, paid: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 };
+    const days = [...byDay.values()].sort((a, b) => (a.day < b.day ? 1 : -1)).map((d) => ({ ...d, paid: d.total - d.free, costUsd: cost(d) }));
+    const today = days.find((d) => d.day === day) || { day, total: 0, free: 0, paid: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 };
 
     const pick = (row, keys) => Object.fromEntries(keys.map((k) => [k, num(row[k.toLowerCase()])]));
     return {
@@ -173,11 +174,11 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
       devices: pick(devices.rows[0], ["total", "new24h", "active24h", "licensed", "blocked"]),
       licenses: pick(licenses.rows[0], ["total", "active", "expired", "revoked"]),
       users: pick(users.rows[0], ["total", "new24h", "active7d", "blocked"]),
-      signIn: { google: config.google.enabled, requiredForTrial: config.trial.requireSignIn },
+      signIn: { google: config.google.enabled, requiredForFree: config.free.requireSignIn },
       outcomes24h: statuses.rows.map((r) => ({ status: r.status, count: num(r.n) })),
       model: config.openai.model,
       caps: config.caps,
-      trial: config.trial,
+      free: config.free,
       priced: config.openai.priceInPerM > 0 || config.openai.priceOutPerM > 0,
       // How the server sees the admin's own address. If this shows a private
       // proxy address instead of your public IP, CLIENT_IP_HEADER is wrong
@@ -315,7 +316,7 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
           type: "object",
           properties: {
             q: { type: "string", maxLength: 120 },
-            filter: { type: "string", enum: ["", "licensed", "trial", "blocked"] },
+            filter: { type: "string", enum: ["", "licensed", "free", "blocked"] },
             limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
             offset: { type: "integer", minimum: 0, default: 0 },
           },
@@ -324,13 +325,13 @@ export async function registerAdminRoutes(app, { config, db, limiters, clock }) 
     },
     async (req) => {
       const { q = "", filter = "", limit, offset } = req.query;
-      const result = await listUsers(db, { q: q.trim(), filter, limit, offset });
+      const result = await listUsers(db, { q: q.trim(), filter, limit, offset, day: utcDay(clock()) });
       return { total: result.total, users: result.users.map((row) => serializeUser(config, row)) };
     },
   );
 
   app.get("/admin/api/users/:id", { ...admin, schema: { params: uuidParam } }, async (req) => {
-    const detail = await getUserDetail(db, req.params.id);
+    const detail = await getUserDetail(db, req.params.id, { day: utcDay(clock()) });
     return {
       user: serializeUser(config, detail.user),
       devices: detail.devices.map((d) => ({

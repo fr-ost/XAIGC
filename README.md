@@ -26,9 +26,10 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 | --- | --- |
 | `SETUP.md` | The step-by-step setup guide. |
 | `extension/` | The Chrome extension (Manifest V3). Load this folder unpacked, or package it for the Chrome Web Store. |
-| `server/` | Node.js API: engine, licensing, trial, quotas, admin. |
+| `server/` | Node.js API: engine, licensing, the free plan, quotas, admin. |
 | `server/test/` | The test suite. Runs on an embedded Postgres or a real one. |
-| `website/` | The product website. Plain files, no build step. Deploys to Vercel with Root Directory `website`. |
+| `website/` | The product website, as plain files ready to serve: home, blog, FAQ, about, contact, support, privacy and terms. Deploys to Vercel with Root Directory `website`. |
+| `content/` | What the website's pages are written from: the home page's sections, the about, contact and FAQ pages, and the blog (`content/blog/`, one Markdown file per article). |
 | `store/` | Chrome Web Store material: `assets/` (screenshots, promo tiles, icon), `listing.md` (the text for every dashboard field) and the generator that makes the images from the real extension. |
 | `Dockerfile` | Server image. Railway picks it up automatically. |
 | `PRIVACY-POLICY.md` | Privacy policy matching what the code does. The website's privacy page is built from it. |
@@ -43,8 +44,8 @@ Helper scripts, run from the top of the repository:
 | `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client. |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together. |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store. Refuses a build that points at localhost. |
-| `node scripts/set-site-url.mjs <site address>` | Tells the website its own address, for link previews and the sitemap. |
-| `node scripts/build-privacy.mjs` | Rebuilds `website/privacy.html`, `website/terms.html` and `website/support.html` from `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md`. |
+| `node scripts/build-site.mjs` | Rebuilds every page of the website from `website/config.js`, `content/` and the three documents above, with the sitemap, `robots.txt` and the blog's feed. Fails if a link between pages leads nowhere. |
+| `node scripts/set-site-url.mjs <site address>` | Tells the website its own address and rebuilds it. |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots. Needs Playwright. |
 
 ## What users get
@@ -55,7 +56,7 @@ Helper scripts, run from the top of the repository:
 - **Compose studio** in the toolbar popup: original posts, threads and rewrites of a draft.
 - A persona description, default tone, reply length, language and emoji preference that apply to everything.
 - Animated buttons and soft sound effects when a draft starts, arrives and is sent. The sounds are synthesized in the browser (no audio files) and can be switched off in Settings.
-- **Sign in with Google.** One free trial per Google account, and a license that follows the account it was issued to: on a new browser the user signs in and is licensed, with no key to type.
+- **Sign in with Google.** One free allowance a day per Google account, and a license that follows the account it was issued to: on a new browser the user signs in and is licensed, with no key to type.
 - A license key still works on its own, for customers who prefer not to sign in.
 
 ## Deploying the server on Railway
@@ -123,7 +124,7 @@ People sign in inside the extension. Chrome shows its own Google account prompt 
    | --- | --- |
    | `GOOGLE_CLIENT_ID` | the same client ID. Several, separated by commas, if a development copy has its own. |
 
-There is no client secret and no redirect address. Set `TRIAL_REQUIRE_SIGN_IN=false` if you would rather keep signing in optional.
+There is no client secret and no redirect address. Set `FREE_REQUIRE_SIGN_IN=false` if you would rather keep signing in optional.
 
 How it works: Chrome gives the extension a short-lived Google access token for the account the person chose. The extension sends it to the server once. The server asks Google two things about it: which app it was issued to (it must be this extension's own client, so a token another app obtained for someone cannot be replayed here), and whose it is. It keeps the account ID, name and verified email, and nothing else: the token is not stored on the server or in the extension.
 
@@ -155,11 +156,22 @@ The tokens live at the top of `extension/ui.css` (popup and settings), `extensio
 
 ## The website
 
-`website/` is the product site: plain HTML, CSS and one small script, with no build step and no dependencies.
+`website/` is the product site: plain HTML, CSS and three small scripts, with no dependencies. Vercel serves the files as they are, so there is nothing for it to build. The pages themselves are generated on your computer by `node scripts/build-site.mjs` and committed.
+
+| Page | Written in |
+| --- | --- |
+| Home (`/`) | `content/home.html`, with the prices and numbers from `website/config.js` |
+| Blog (`/blog`) and its articles | `content/blog/*.md`, one file per article |
+| FAQ, About, Contact | `content/faq.md`, `content/about.md`, `content/contact.md` |
+| Support, Privacy, Terms | `SUPPORT.md`, `PRIVACY-POLICY.md`, `TERMS.md` |
 
 1. In Vercel, import this repository and set **Root Directory** to `website`. Leave the build settings empty.
-2. Edit `website/config.js`: the Chrome Web Store address (the buttons read "Coming soon" until it is set), where people buy, and the plans and prices. Keep the numbers equal to what the server enforces.
-3. Run `node scripts/set-site-url.mjs https://your-site.example` once the site has its address, so link previews and the sitemap use full addresses.
+2. Edit `website/config.js`: the site's address, the Chrome Web Store address (the buttons read "Coming soon" until it is set), where people buy, the free allowance, and the plans and prices. Keep the numbers equal to what the server enforces.
+3. Run `node scripts/build-site.mjs`, commit and push.
+
+**Search engines.** Every page is built with its own title and description, a canonical address, Open Graph tags for link previews and schema.org structured data (the app and its prices on the home page, the questions on the FAQ, each article on the blog). The build also writes `sitemap.xml`, `robots.txt` and an RSS feed, and refuses to finish if a title or description is missing or a link is broken. To see how the site does in search, add it to Google Search Console and submit `/sitemap.xml`; `googleSiteVerification` in `website/config.js` holds the code Google gives you.
+
+**A new blog article** is a new file in `content/blog/`, named like the others, starting with a block of `title`, `description`, `date` and `tag`. Run the build and it appears on `/blog`, on the home page, in the sitemap and in the feed.
 
 `website/vercel.json` turns on clean addresses (`/privacy`) and sets a strict content security policy. The screenshots on the site are captures of the real extension, made by `node store/generate.mjs`.
 
@@ -171,18 +183,23 @@ Open `https://<your-domain>/admin` and sign in with `ADMIN_TOKEN`.
 - **Keys are shown once.** Only a hash is stored, so a leaked database cannot be turned into working keys. If a customer loses a key, use Rotate key.
 - **Manage**: revoke or restore, extend, change limits, release devices, block an install, and see per-license usage and history.
 - **Dashboard**: generations today, estimated OpenAI cost, active licenses, installs, users.
-- **Users**: everyone who has signed in, with their plan, trial use, browsers and generations. Search, filter, and issue a license to a user.
+- **Users**: everyone who has signed in, with their plan, today's free use, browsers and generations. Search, filter, and issue a license to a user.
   - **Block** shuts the user out on all of their browsers at once and disables the licenses they own everywhere, including by key.
-  - **Delete** is for data deletion requests. It erases the account's Google ID, name and email, including the email on their licenses (which become key-only), and signs their browsers out. It keeps their free-trial count under a keyed hash, so the trial cannot be restarted, and usage records that carry no name or email. Deleting a blocked user removes the block, so block abusers rather than deleting them.
+  - **Delete** is for data deletion requests. It erases the account's Google ID, name and email, including the email on their licenses (which become key-only), and signs their browsers out. It keeps the day's free-use count under a keyed hash, so deleting does not reset it, and usage records that carry no name or email. Deleting a blocked user removes the block, so block abusers rather than deleting them.
 - **Licenses by email**: put the customer's email on a license and it becomes theirs the moment they sign in with that Google account. If they already have an account, it is active on their next click, provided a seat is free and they have not removed it from that browser. The key is only a fallback. Changing the email on a license moves it to the new person.
 
-Built-in plans (change them with `PLANS_JSON`, or override limits per license):
+The product is freemium. Everyone gets a small daily allowance for nothing, and a license raises it:
 
-| Plan | Generations per day | Devices |
-| --- | --- | --- |
-| `starter` | 60 | 1 |
-| `pro` | 200 | 2 |
-| `agency` | 600 | 5 |
+| Plan | Generations per day | Devices | Set with |
+| --- | --- | --- | --- |
+| Free | 5 | any, one allowance per person | `FREE_DAILY_LIMIT` (0 switches the free plan off) |
+| `starter` | 60 | 1 | `PLANS_JSON`, or per license |
+| `pro` | 200 | 2 | |
+| `agency` | 600 | 5 | |
+
+Every allowance starts again at 00:00 UTC. A generation is one request for drafts (the website and the extension call it a comment). The free allowance is counted per install, per Google account, per X account and per network at once, so whichever runs out first ends free use for the day.
+
+Before version 3.1.3 the free tier was a one-time trial (`TRIAL_GENERATIONS`, `TRIAL_IP_LIMIT`, `TRIAL_IP_WINDOW_DAYS`). Those three settings are no longer read, and the server says so in its log if they are still set. `TRIAL_REQUIRE_SIGN_IN`, `TRIAL_REQUIRE_X_ACCOUNT` and `TRIAL_GLOBAL_DAILY_CAP` still work under their old names; the new names start with `FREE_`.
 
 Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/licenses` so keys are issued automatically after checkout is the natural next step.
 
@@ -191,8 +208,8 @@ Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/li
 | Risk | Control |
 | --- | --- |
 | The API used as a free OpenAI proxy | The server owns the prompts. Clients send only a post, idea or draft plus a few style options. Inputs are length-capped, the model and output size are fixed server side, and output is limited to post-length text. |
-| Free trial reset by reinstalling | With Google sign-in on, one trial per Google account. In addition, trial use is counted against the install, the X account (hashed) and the network (hashed) at the same time, and an install stays tied to the X account it reported. |
-| Trial farming with many installs | A per-network trial allowance over a 30-day window, a cap on new installs per network, and a global daily cap on trial generations. |
+| Free allowance reset by reinstalling | With Google sign-in on, one free allowance a day per Google account. In addition, free use is counted against the install, the X account (hashed) and the network (hashed) at the same time, and an install stays tied to the X account it reported. |
+| Farming the free plan with many installs | A per-network daily allowance for free use, a cap on new installs per network, and a global daily cap on free generations. |
 | License sharing | Device limit per license, a daily quota shared by all of a license's devices, a limit on activations per 30 days, a daily cap on re-issuing an install's token (so an install id cannot be passed around as a seat), and a dashboard warning when one key is used from many networks. |
 | Key guessing | 100-bit keys. Wrong keys are throttled per network and per install. A correct key is always accepted, so the throttle cannot be turned against a paying customer. |
 | Flooding and scripts | Rate limits per network and per install, one generation at a time per install, a short cooldown, small request bodies, and an optional origin allowlist. The in-page buttons ignore clicks made by scripts. |
@@ -206,7 +223,7 @@ Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/li
 
 Quota counters are reserved in Postgres before the model is called, inside one transaction, so parallel requests cannot overspend a limit.
 
-Three honest limits. Without Google sign-in, a person with a new network, a new X account and a fresh browser profile gets a new trial (with it, they also need a new Google account). An origin allowlist stops other websites and casual scripts, not a determined person imitating the extension. And a device token copied out of one browser into another works in both, like any bearer credential. That is why every limit that costs money is enforced on the server, and why a license's daily quota is shared by all of its devices: copying a seat adds no capacity.
+Three honest limits. Without Google sign-in, a person with a new network, a new X account and a fresh browser profile gets a second free allowance that day (with it, they also need a new Google account). An origin allowlist stops other websites and casual scripts, not a determined person imitating the extension. And a device token copied out of one browser into another works in both, like any bearer credential. That is why every limit that costs money is enforced on the server, and why a license's daily quota is shared by all of its devices: copying a seat adds no capacity.
 
 ## Running locally
 
@@ -225,7 +242,7 @@ cd server
 npm test
 ```
 
-The suite covers the trial, licensing, quotas, every abuse control, the engine's cleanup and ranking, and the admin API, with OpenAI replaced by an in-process fake. To run it against a real Postgres server:
+The suite covers the free plan, licensing, quotas, every abuse control, the engine's cleanup and ranking, and the admin API, with OpenAI replaced by an in-process fake. To run it against a real Postgres server:
 
 ```bash
 TEST_DATABASE_URL=postgres://postgres@localhost:5432/postgres npm test
@@ -250,8 +267,8 @@ All responses are JSON. Errors have the shape `{"error":{"code":"...","message":
 
 ## Operations notes
 
-- `APP_SECRET` keys the IP and X-account hashes. Changing it resets trial tracking but does not affect licenses.
-- Rate limits are per process. If you run several replicas, each enforces its own. Trial, daily and global limits live in Postgres and stay exact.
+- `APP_SECRET` keys the IP and X-account hashes. Changing it resets the day's free-use counts but does not affect licenses.
+- Rate limits are per process. If you run several replicas, each enforces its own. Free-plan, daily and global limits live in Postgres and stay exact.
 - Per-request usage records are pruned after 60 days (`USAGE_EVENT_RETENTION_DAYS`). They never contain post text or generated text.
 - Client addresses come from `X-Real-IP` on Railway. On any other host nothing is assumed and the socket address is used, so set `CLIENT_IP_HEADER` to a header your platform overwrites with the caller's address (never one a client can set freely). The admin dashboard header shows what the server sees for you.
 - Reinstalling the extension creates a new install. A customer whose license was issued to their email just signs in again and it comes back. A customer using only a key enters it again; if the old install still holds a seat, the settings page offers to move the license to the current browser.

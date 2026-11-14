@@ -6,7 +6,7 @@ When you are done you will have:
 
 | Piece | Where it runs | Made in |
 | --- | --- | --- |
-| The server (engine, licensing, trial, admin dashboard) | Railway | Part 2 |
+| The server (engine, licensing, free plan, admin dashboard) | Railway | Part 2 |
 | The database | Railway Postgres | Part 2 |
 | Sign in with Google | Google Cloud | Part 5 |
 | The extension | Chrome Web Store | Parts 3, 4 and 8 |
@@ -114,7 +114,7 @@ Open the server service (not the database), then **Variables**:
 
 Railway redeploys when you save.
 
-Never change `APP_SECRET` afterwards. It keys the hashes that free-trial tracking relies on, and a new value gives everyone a fresh trial.
+Never change `APP_SECRET` afterwards. It keys the hashes that the free plan's daily counts rely on, and a new value resets everyone's count for the day.
 
 ### 2.5 Give it an address
 
@@ -148,9 +148,9 @@ Load it in Chrome:
 2. Turn on **Developer mode** (top right).
 3. **Load unpacked**, and choose the `extension` folder.
 
-Now check each of these. Accounts come later, in Part 5: for now the trial works without signing in.
+Now check each of these. Accounts come later, in Part 5: for now the free plan works without signing in.
 
-- [ ] Click the XAICG icon, then **Settings**. It shows a free trial with 20 generations.
+- [ ] Click the XAICG icon, then **Settings**. It shows the free plan with 5 free comments left today.
 - [ ] Click the XAICG icon, type an idea, press **Generate posts**. Three drafts appear.
 - [ ] Open `https://x.com/home`. Every post has **AI Reply** and **Question** buttons. (If the tab was already open, reload it.)
 - [ ] Press **AI Reply**. X's reply box opens with a draft in it. Nothing is posted.
@@ -179,7 +179,7 @@ Google sign-in is tied to the extension's ID, and the ID comes from the store. S
 
 ## 5. Turn on Google sign-in
 
-People sign in inside the extension: Chrome shows its own Google account prompt, and no web page opens. With sign-in on, the free trial is one per Google account, licenses follow people between computers, and the dashboard shows you who your users are.
+People sign in inside the extension: Chrome shows its own Google account prompt, and no web page opens. With sign-in on, the free allowance is one a day per Google account, licenses follow people between computers, and the dashboard shows you who your users are.
 
 In the [Google Cloud console](https://console.cloud.google.com):
 
@@ -209,7 +209,7 @@ If you used an earlier version of this project, delete `GOOGLE_CLIENT_SECRET` an
 Now try it. At `chrome://extensions`, press the reload arrow on the extension (its ID changes to the store's ID, once), then:
 
 - [ ] Click the XAICG icon, then **Settings**. Press **Sign in with Google**. Chrome asks which account to use, and the page shows your name. No tab opens.
-- [ ] The settings page shows a free trial with 20 generations.
+- [ ] The settings page shows the free plan with 5 free comments left today.
 - [ ] In the admin dashboard, your account appears under **Users**.
 
 Three things to know:
@@ -218,7 +218,7 @@ Three things to know:
 - This kind of sign-in works in Google Chrome. Other Chromium browsers do not offer it.
 - Until Google has verified your branding (optional and free, started from the Branding page), the prompt may show less of your app's name and logo.
 
-To keep signing in optional rather than required for the trial, set `TRIAL_REQUIRE_SIGN_IN=false`.
+To keep signing in optional rather than required for the free plan, set `FREE_REQUIRE_SIGN_IN=false`.
 
 ---
 
@@ -237,9 +237,17 @@ That is the whole selling loop: take payment, issue a license to the customer's 
 
 ## 7. Put the website on Vercel
 
-The site is plain files in `website/`. There is nothing to build.
+The site is plain files in `website/`, ready to serve: the home page, the blog, FAQ, about, contact, support, privacy and terms. Vercel has nothing to build.
 
-### 6.1 Deploy
+You do not write those files by hand. They are generated from `website/config.js` (addresses, numbers, prices), `content/` (the home page, about, contact, FAQ and the blog) and `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md`. After changing any of them, run:
+
+```bash
+node scripts/build-site.mjs
+```
+
+then commit and push.
+
+### 7.1 Deploy
 
 1. In Vercel: **Add New**, **Project**, import this repository.
 2. Set **Root Directory** to `website`. This is the one setting that matters.
@@ -247,30 +255,61 @@ The site is plain files in `website/`. There is nothing to build.
 4. **Deploy**.
 5. To use your own domain: project **Settings**, **Domains**.
 
-### 6.2 Tell the site its address
+### 7.2 Tell the site its address
 
 ```bash
 node scripts/set-site-url.mjs <your-site>
 ```
 
-This lets link previews on X, Slack and WhatsApp show the site's image, and writes `robots.txt` and `sitemap.xml`.
+This writes the address into `website/config.js` and rebuilds the pages. Link previews on X, Slack and WhatsApp can then show the site's image, and `robots.txt`, `sitemap.xml` and the blog's feed carry full addresses.
 
-### 6.3 Fill in `website/config.js`
+### 7.3 Fill in `website/config.js`
 
-It is the only file you need to edit.
+It holds every address, number and price the site shows. After editing it, run `node scripts/build-site.mjs`.
 
 | Setting | What to put |
 | --- | --- |
+| `siteUrl` | The site's own address. Set by the command in 7.2. |
+| `googleSiteVerification`, `bingSiteVerification` | Empty for now. See 7.5. |
 | `chromeStoreUrl` | Leave empty for now. The buttons read "Coming soon". You fill it in after Part 8. |
 | `buyUrl` | Where people pay. A payment link, or a page where they can reach you. |
 | `supportUrl` | Leave as `/support`: the site has a help page, built from `SUPPORT.md`. |
-| `supportEmail` | The address people write to. The help page's button becomes "Email <address>". While it is empty the button goes to `contactUrl`. |
-| `trialGenerations` | Must equal the server's `TRIAL_GENERATIONS` (20 unless you changed it) |
+| `supportEmail` | The address people write to. The button on the contact and support pages becomes "Email <address>". While it is empty the button goes to `contactUrl`. |
+| `freePerDay` | Must equal the server's `FREE_DAILY_LIMIT` (5 unless you changed it) |
 | `plans` | Names, limits and prices. They are set to Starter $0.99, Pro $1.99 and Agency $4.99 per month. Write prices as you want them shown, for example `price: "$0.99"`, `period: "per month"`. The limits must equal the server's plans. |
 
-Commit and push. Vercel redeploys on every push.
+Run `node scripts/build-site.mjs`, commit and push. Vercel redeploys on every push.
 
-### 6.4 Point the extension's buttons at the site
+### 7.4 Write for the blog
+
+The blog is at `/blog`. Each article is one file in `content/blog/`, named with a number and the words of its address, for example `11-reply-to-big-accounts.md`, which becomes `/blog/reply-to-big-accounts`. It starts with a short block:
+
+```
+---
+title: How to Reply to Big Accounts on X
+description: One or two sentences, 70 to 165 characters. This is the text under the title in a search result.
+date: 2026-12-01
+tag: Growth
+---
+```
+
+and then the article in Markdown: `##` for headings, `-` for lists, `>` for an example post or reply, `**bold**`, and `[links](/blog/another-article)`. Run `node scripts/build-site.mjs` and the article appears on `/blog`, on the home page, in the sitemap and in the feed. The build stops and tells you if the description is the wrong length or a link leads nowhere.
+
+Write for a reader, not for a search engine: one question per article, answered properly, with examples. Put the words people would search for in the title and the first paragraph, link to two or three related articles, and do not publish numbers you cannot stand behind.
+
+### 7.5 Get found by search engines
+
+Every page is already built with what search engines read: its own title and description, a canonical address, structured data, a sitemap at `/sitemap.xml` and `robots.txt`. What is left is to tell them the site exists.
+
+1. Open Google Search Console and add a property for the site's address (type **URL prefix**).
+2. Choose the **HTML tag** way of verifying. Google shows a tag with a long code in `content="..."`. Copy only the code into `website/config.js` as `googleSiteVerification`.
+3. Run `node scripts/build-site.mjs`, commit, push, wait for Vercel, then press **Verify**.
+4. Under **Sitemaps**, submit `sitemap.xml`.
+5. Optional: do the same in Bing Webmaster Tools with `bingSiteVerification`. It can also import the site straight from Search Console.
+
+New sites take days to weeks to appear, and ranking for a search like "AI reply generator for X" takes longer and depends on other sites linking to yours. Things that help: the link to the site from the Chrome Web Store listing, a new article every week or two, and sharing articles where your users are.
+
+### 7.6 Point the extension's buttons at the site
 
 In Railway, add to the server's variables:
 
@@ -319,7 +358,7 @@ Your unpacked copy has the same ID (because of the public key from Part 5), so i
 
 When the review is approved:
 
-- [ ] Put the store address in `website/config.js` as `chromeStoreUrl`, commit and push. The site's buttons change to **Add to Chrome**.
+- [ ] Put the store address in `website/config.js` as `chromeStoreUrl`, run `node scripts/build-site.mjs`, commit and push. The site's buttons change to **Add to Chrome**.
 - [ ] Install the extension from the store, in a Chrome profile that has never had it, and run the checklists from Parts 3 and 5 once more.
 - [ ] Revoke the reviewers' license in the admin dashboard.
 - [ ] Read [Part 14](#14-before-you-take-money).
@@ -336,9 +375,9 @@ Everything is done from `<your-server>/admin`.
 | Customer lost their key | Open the license, **Rotate key**. The old key stops working and a new one is shown once. |
 | Customer got a new computer | Nothing to do. They sign in and the license is there. If every seat is taken, the extension lets them choose which browser gives its seat up. |
 | Refund or chargeback | Open the license, **Revoke**. |
-| Someone is abusing the trial or a license | **Users**, open the user, **Block**. They are shut out on every browser, and the licenses they own stop working. |
+| Someone is abusing the free plan or a license | **Users**, open the user, **Block**. They are shut out on every browser, and the licenses they own stop working. |
 | A data deletion request | **Users**, open the user, **Delete**. Their name, email and Google ID are erased. |
-| Watch the cost | The dashboard shows today's generations and an estimate of the OpenAI cost. `GLOBAL_DAILY_CAP` and `TRIAL_GLOBAL_DAILY_CAP` are the hard ceilings. |
+| Watch the cost | The dashboard shows today's generations and an estimate of the OpenAI cost. `GLOBAL_DAILY_CAP` and `FREE_GLOBAL_DAILY_CAP` are the hard ceilings. |
 
 To issue licenses automatically after a payment, have your payment provider's webhook call the admin API:
 
@@ -390,17 +429,17 @@ Push to the branch Railway deploys. It rebuilds and restarts by itself, and data
 
 ### The website
 
-Edit, commit, push. Vercel redeploys.
+Edit the source (`website/config.js`, a file in `content/`, or one of the three documents below), then:
+
+```bash
+node scripts/build-site.mjs
+```
+
+Commit and push. Vercel redeploys. Do not edit the `.html` files in `website/` by hand: the next build replaces them.
 
 ### The privacy policy, the terms and the help page
 
-The policy is written once, in `PRIVACY-POLICY.md`, the terms in `TERMS.md` and the help page in `SUPPORT.md`. After changing any of them:
-
-```bash
-node scripts/build-privacy.mjs
-```
-
-That rebuilds `website/privacy.html`, `website/terms.html` and `website/support.html`. Commit and push. If what the extension collects has changed, update the privacy answers in the store dashboard too.
+The policy is written once, in `PRIVACY-POLICY.md`, the terms in `TERMS.md` and the help page in `SUPPORT.md`. After changing any of them, run the same command. It rebuilds `website/privacy.html`, `website/terms.html` and `website/support.html`. Commit and push. If what the extension collects has changed, update the privacy answers in the store dashboard too.
 
 ---
 
@@ -420,10 +459,12 @@ That rebuilds `website/privacy.html`, `website/terms.html` and `website/support.
 | The extension cannot reach the server | It points at the wrong address. Run `node scripts/set-api-url.mjs <your-server>` again, then press the reload arrow on the extension's card at `chrome://extensions`. |
 | "This client is not allowed to use the API" | `ALLOWED_ORIGINS` is set and does not include this copy of the extension. See Part 9. |
 | No buttons on x.com | Reload the tab: the extension only joins pages opened after it was installed or updated. If they are still missing for everyone, X has changed its page and the extension needs an update. |
-| A tester's trial ran out at once | Trial use is also counted per network (three trials' worth per 30 days by default). Several testers on one office network share that. Raise `TRIAL_IP_LIMIT`, or give testers licenses. |
+| A tester has no free comments left | The free plan is 5 a day for each person, and free use is also counted per network (50 a day by default), which several testers on one office network share. Both start again at 00:00 UTC. Raise `FREE_DAILY_LIMIT` or `FREE_IP_DAILY_LIMIT`, or give testers licenses. |
 | The website shows a 404 on Vercel | **Root Directory** is not `website`. Change it in the project's settings and redeploy. |
 | The website's buttons say "Coming soon" | `chromeStoreUrl` in `website/config.js` is empty. |
 | Links to the site show no preview image | Run `node scripts/set-site-url.mjs <your-site>` and push. |
+| A change to the website does not show | The pages are generated. Run `node scripts/build-site.mjs`, commit and push. |
+| The site is not on Google | See 7.5. A new site takes days to weeks to be listed. |
 | `pack-extension` refuses to run | The extension still points at `localhost`. Run `set-api-url` first. |
 
 Every server setting, with its default, is described in [`server/.env.example`](server/.env.example).
@@ -436,7 +477,7 @@ The code is ready to sell. These parts are yours to add, and none of them are in
 
 - **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 11.
 - **Terms and a refund policy that are really yours.** The site has a terms page, built from `TERMS.md`. It is a sensible starting text, not legal advice: read it, set the refund rule you actually want in section 6, add the country whose law applies, and have it checked before you rely on it. After editing, run `node scripts/build-privacy.mjs`.
-- **A support address** that someone reads. Put it in `website/config.js` as `supportEmail`, so the help page can offer it.
+- **A support address** that someone reads. Put it in `website/config.js` as `supportEmail`, so the contact and support pages can offer it.
 - **Your business details** for the store's trader declaration and for invoices.
 
 ---
@@ -451,7 +492,7 @@ Run all of them from the top of the repository.
 | `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store |
-| `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address |
-| `node scripts/build-privacy.mjs` | Rebuilds the website's privacy, terms and support pages from `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md` |
+| `node scripts/build-site.mjs` | Rebuilds every page of the website, the sitemap and the blog's feed from `website/config.js`, `content/` and `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md` |
+| `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address and rebuilds it |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots |
 | `node store/build-icons.mjs` | Renders `store/icon.svg` into every icon file |

@@ -5,6 +5,8 @@ import { loadConfig } from "../src/config.js";
 import { checkTokenInfo, GoogleAuthError, readProfile } from "../src/services/google.js";
 import { chatResponse, createTestApp, EXT_ORIGIN, GOOGLE, nextIp } from "./helpers.js";
 
+const DAY = 86_400_000;
+
 const alice = { sub: "google-sub-alice", email: "alice@example.com", name: "Alice Example" };
 const bob = { sub: "google-sub-bob", email: "bob@example.com", name: "Bob Example" };
 const person = (n) => ({ sub: `google-sub-${n}`, email: `${n}@example.com`, name: `${n} person` });
@@ -59,7 +61,7 @@ describe("sign in with Google", () => {
   before(async () => (t = await createTestApp(GOOGLE)));
   after(() => t.close());
 
-  test("a new browser is asked to sign in before the trial starts", async () => {
+  test("a new browser is asked to sign in before it can use the free plan", async () => {
     const d = await t.install();
     assert.equal(d.account.user, null);
     assert.deepEqual(d.account.auth, { google: true, signInRequired: true });
@@ -69,14 +71,14 @@ describe("sign in with Google", () => {
     assert.equal(t.fake.chatCalls().length, 0);
   });
 
-  test("signing in creates the account and starts the trial", async () => {
+  test("signing in creates the account and opens the free plan", async () => {
     const d = await t.install();
     const res = await t.signIn(d, alice);
     assert.equal(res.status, 200);
     assert.equal(res.body.created, true);
     assert.deepEqual(res.body.account.user, { email: "alice@example.com", name: "Alice Example" });
     assert.equal(res.body.account.auth.signInRequired, false);
-    assert.equal(res.body.account.plan, "trial");
+    assert.equal(res.body.account.plan, "free");
 
     const users = await t.db.query("SELECT google_sub, email, name FROM users");
     assert.deepEqual(users.rows, [{ google_sub: "google-sub-alice", email: "alice@example.com", name: "Alice Example" }]);
@@ -100,7 +102,7 @@ describe("sign in with Google", () => {
     await t.signIn(d, alice); // put it back for later tests
   });
 
-  test("one free trial per Google account, whatever the browser or network", async () => {
+  test("one free allowance a day per Google account, whatever the browser or network", async () => {
     const carol = person("carol");
     const first = await t.install();
     await t.signIn(first, carol);
@@ -109,11 +111,21 @@ describe("sign in with Google", () => {
 
     const second = await t.install(); // new install, new network
     const signedIn = await t.signIn(second, carol);
-    assert.equal(signedIn.body.account.quota.remaining, 0, "the account's trial is already spent");
+    assert.equal(signedIn.body.account.quota.remaining, 0, "the account's free comments for today are already spent");
     assert.equal(signedIn.body.account.quota.limitedBy, "user");
     const res = await t.generate(second);
     assert.equal(res.status, 402);
-    assert.equal(res.body.error.code, "trial_ended");
+    assert.equal(res.body.error.code, "free_limit");
+
+    // Tomorrow the account starts again, on either browser.
+    t.advance(DAY);
+    try {
+      assert.equal((await t.me(second)).body.account.quota.remaining, 3);
+      assert.equal((await t.generate(second)).status, 200);
+      assert.equal((await t.me(first)).body.account.quota.remaining, 2, "one allowance for the account, not one per browser");
+    } finally {
+      t.advance(-DAY);
+    }
   });
 
   test("a token issued to another app cannot be replayed here", async () => {
@@ -225,7 +237,7 @@ describe("sign in with Google", () => {
 /* ----------------------------- configuration ------------------------------ */
 
 describe("sign-in configuration", () => {
-  test("without Google credentials, sign-in is off and the trial works as before", async () => {
+  test("without Google credentials, sign-in is off and the free plan needs no account", async () => {
     const t = await createTestApp();
     try {
       const d = await t.install();
@@ -240,8 +252,8 @@ describe("sign-in configuration", () => {
     }
   });
 
-  test("TRIAL_REQUIRE_SIGN_IN=false keeps sign-in optional, and the account still counts", async () => {
-    const t = await createTestApp({ ...GOOGLE, TRIAL_REQUIRE_SIGN_IN: "false" });
+  test("FREE_REQUIRE_SIGN_IN=false keeps sign-in optional, and the account still counts", async () => {
+    const t = await createTestApp({ ...GOOGLE, FREE_REQUIRE_SIGN_IN: "false" });
     try {
       const d = await t.install();
       assert.deepEqual(d.account.auth, { google: true, signInRequired: false });
@@ -338,7 +350,7 @@ describe("licenses follow the account they were issued to", () => {
     const d = await t.install();
     await t.signIn(d, jo);
     for (let i = 0; i < 3; i++) await t.generate(d);
-    assert.equal((await t.generate(d)).status, 402, "trial used up");
+    assert.equal((await t.generate(d)).status, 402, "today's free comments used up");
 
     const lic = await t.license({ email: jo.email });
     assert.equal(lic.owner.email, jo.email, "linked to the account at creation");
@@ -473,7 +485,7 @@ describe("licenses follow the account they were issued to", () => {
     assert.equal(off.body.account.accountLicense.reason, "detached");
     assert.equal((await t.me(d)).body.account.licensed, false, "it does not hop straight back");
     const gen = await t.generate(d);
-    assert.equal(gen.status, 200, "the free trial is still there");
+    assert.equal(gen.status, 200, "the free plan is still there");
     assert.equal(gen.body.account.licensed, false);
     assert.equal(gen.body.account.accountLicense.reason, "detached", "and the offer to bring it back is not lost");
 
@@ -635,15 +647,26 @@ describe("managing users", () => {
     assert.equal(all.body.total, 2);
     const q = await find("quinn");
     assert.deepEqual(
-      { email: q.email, name: q.name, devices: q.devices, generations: q.generations, plan: q.plan, trial: q.trial, activeLicenses: q.activeLicenses, blocked: q.blocked },
-      { email: "quinn@example.com", name: "quinn person", devices: 1, generations: 2, plan: null, trial: { used: 2, limit: 3 }, activeLicenses: 0, blocked: false },
+      { email: q.email, name: q.name, devices: q.devices, generations: q.generations, plan: q.plan, free: q.free, activeLicenses: q.activeLicenses, blocked: q.blocked },
+      { email: "quinn@example.com", name: "quinn person", devices: 1, generations: 2, plan: null, free: { used: 2, limit: 3 }, activeLicenses: 0, blocked: false },
     );
     const r = await find("RITA");
     assert.equal(r.plan, "Agency");
     assert.equal(r.activeLicenses, 1);
     assert.equal(r.generations, 1);
     assert.equal((await t.admin("GET", "/users?filter=licensed")).body.users.map((u) => u.email).join(), "rita@example.com");
-    assert.equal((await t.admin("GET", "/users?filter=trial")).body.users.map((u) => u.email).join(), "quinn@example.com");
+    assert.equal((await t.admin("GET", "/users?filter=free")).body.users.map((u) => u.email).join(), "quinn@example.com");
+    assert.equal((await t.admin("GET", "/users?filter=trial")).status, 400, "the old filter name is gone");
+    // Free use is per day: a count from yesterday is not shown as today's.
+    const yesterday = (sign) => t.db.query(`UPDATE trial_counters SET window_start = window_start ${sign} interval '1 day' WHERE key LIKE 'user:%'`);
+    await yesterday("-");
+    try {
+      assert.deepEqual((await find("quinn")).free, { used: 0, limit: 3 });
+      assert.deepEqual((await t.admin("GET", `/users/${q.id}`)).body.user.free, { used: 0, limit: 3 });
+    } finally {
+      await yesterday("+");
+    }
+    assert.deepEqual((await find("quinn")).free, { used: 2, limit: 3 });
     assert.equal((await t.admin("GET", "/users?q=nobody")).body.total, 0);
     assert.equal((await t.admin("GET", "/users?limit=1&offset=1")).body.users.length, 1);
     assert.equal((await t.call("GET", "/admin/api/users")).status, 401);
@@ -668,7 +691,10 @@ describe("managing users", () => {
   test("stats count users", async () => {
     const stats = await t.admin("GET", "/stats");
     assert.deepEqual(stats.body.users, { total: 2, new24h: 2, active7d: 2, blocked: 0 });
-    assert.deepEqual(stats.body.signIn, { google: true, requiredForTrial: true });
+    assert.deepEqual(stats.body.signIn, { google: true, requiredForFree: true });
+    assert.deepEqual(stats.body.free, { dailyLimit: 3, ipDailyLimit: 5, requireHandle: false, requireSignIn: true });
+    assert.equal(stats.body.today.free + stats.body.today.paid, stats.body.today.total);
+    assert.ok(stats.body.today.free >= 2, "free use is counted on its own");
   });
 
   test("blocking a user shuts every one of their browsers out", async () => {
@@ -714,7 +740,7 @@ describe("managing users", () => {
     assert.equal((await t.me(d)).body.account.licensed, true);
     const keyBrowser = await t.install();
     await t.activate(keyBrowser, lic.key);
-    // Use the whole trial on another browser of theirs first.
+    // Use the day's whole free allowance on another browser of theirs first.
     await t.admin("PATCH", `/licenses/${lic.id}`, { status: "revoked" });
     for (let i = 0; i < 3; i++) assert.equal((await t.generate(d)).status, 200);
     await t.admin("PATCH", `/licenses/${lic.id}`, { status: "active" });
@@ -735,12 +761,12 @@ describe("managing users", () => {
     assert.equal(kept.body.license.email, null);
     assert.equal(kept.body.license.state, "active");
 
-    // The same Google account coming back is a new user, without a new free
-    // trial and without the license (it is key-only now).
+    // The same Google account coming back is a new user, without a second
+    // free allowance today and without the license (it is key-only now).
     const back = await t.signIn(d, sam);
     assert.equal(back.body.created, true);
     assert.equal(back.body.account.licensed, false);
-    assert.equal(back.body.account.quota.remaining, 0, "deleting an account does not reset its free trial");
+    assert.equal(back.body.account.quota.remaining, 0, "deleting an account does not reset its free use for the day");
     assert.equal((await t.generate(d)).status, 402);
     assert.equal((await t.admin("DELETE", `/users/${s.id}`)).status, 404);
   });

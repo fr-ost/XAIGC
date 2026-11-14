@@ -39,21 +39,20 @@ function showAccount(account) {
   }
   $("deactivate").hidden = !lic;
 
-  // A new user is on the free trial. Say so first; the license key is for
+  // A new user is on the free plan. Say so first; the license key is for
   // later and stays folded away until it is needed.
   const q = account.quota || {};
-  const trial = !account.licensed;
-  const spent = trial && !d.signInRequired && q.remaining === 0;
+  const free = !account.licensed;
+  const spent = free && !d.signInRequired && q.remaining === 0;
+  const more = d.ladder ? ` Need more? ${d.ladder}.` : "";
   const lapsed = account.notice === "license_expired" || account.notice === "license_revoked";
-  $("planTitle").textContent = trial ? "Your free trial" : "Plan and license";
-  $("planLead").hidden = !trial;
+  $("planTitle").textContent = free ? "Free plan" : "Plan and license";
+  $("planLead").hidden = !free;
   $("planLead").textContent = d.signInRequired
-    ? `Sign in with Google above and you get ${q.limit || 20} free generations. No card and no license needed.`
+    ? `Sign in with Google above and you get ${q.limit || 5} free comments every day. No card and no license needed.`
     : spent
-      ? "Your free trial is used up. A license keeps you going."
-      : account.auth?.google
-        ? "You can try everything free. No card and no license needed."
-        : "You can try everything free. No sign-up, no card and no license needed.";
+      ? "That is today's free comments used. They come back at 00:00 UTC, and a plan gives you more every day."
+      : `${q.limit} free comments every day, with every tone and every writing mode. No card needed.${more}`;
   // Before signing in there is nothing to count yet.
   $("planBody").hidden = d.signInRequired;
   $("haveKey").hidden = account.licensed && !lapsed;
@@ -62,7 +61,7 @@ function showAccount(account) {
   // The box below already explains a waiting account license; don't also say "activate a license".
   if (account.accountLicense) $("notice").hidden = true;
   $("buy").href = d.buyUrl;
-  $("buy").textContent = account.notice === "license_expired" ? "Renew license" : spent ? "Get a license" : "See plans";
+  $("buy").textContent = account.notice === "license_expired" ? "Renew license" : spent ? "Get more comments" : "See plans";
   $("buy").className = spent || lapsed ? "btn primary" : "btn";
   $("serverProblem").hidden = true;
   $("support").href = d.supportUrl;
@@ -83,9 +82,9 @@ function showSignIn(account) {
     $("userEmail").textContent = user.name ? user.email : "";
     $("avatar").textContent = (user.name || user.email).trim().charAt(0);
   } else {
-    $("accountTitle").textContent = auth.signInRequired ? "Start your free trial" : "Account";
+    $("accountTitle").textContent = auth.signInRequired ? "Start for free" : "Account";
     $("signInWhy").textContent = auth.signInRequired
-      ? "Sign in with Google to start your free trial. It is free, and there is no card to enter. Your trial and any license then follow your account to every browser you sign in on."
+      ? "Sign in with Google to get your free comments. It costs nothing, and there is no card to enter. Your free comments and any license then follow your account to every browser you sign in on."
       : "Signing in is optional. It keeps your license with your Google account, so a new browser only needs you to sign in.";
   }
 
@@ -119,9 +118,9 @@ async function loadAccount(refresh) {
     showAccount(account);
     return account;
   } catch (err) {
-    // Without an answer from the server there is no trial or plan to show.
+    // Without an answer from the server there is no plan to show.
     // Say what went wrong instead of leaving a bare license form.
-    $("serverProblem").textContent = `${err.message} Your free trial and plan will show here once the server answers.`;
+    $("serverProblem").textContent = `${err.message} Your plan will show here once the server answers.`;
     $("serverProblem").hidden = false;
     return null;
   }

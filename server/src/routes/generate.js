@@ -13,7 +13,7 @@ import { KINDS, LANGUAGES, TONES } from "../engine/prompts.js";
 import { hmac } from "../services/crypto.js";
 import { getDevice, touchDevice } from "../services/devices.js";
 import { attachAccountLicense } from "../services/licenses.js";
-import { buildAccount, nextUtcMidnight, reserve, resolveEntitlement } from "../services/quota.js";
+import { buildAccount, reserve, resolveEntitlement } from "../services/quota.js";
 
 const text = (max, min = 0) => ({ type: "string", minLength: min, maxLength: max });
 
@@ -106,17 +106,24 @@ function quotaError(reason, account) {
   switch (reason) {
     case "daily_limit":
       return new ApiError(429, "daily_limit", `You've used all ${account.quota.limit} generations for today. The limit resets at 00:00 UTC.`, {
-        resetsAt: nextUtcMidnight(),
+        resetsAt: account.quota.resetsAt,
         account,
       });
-    case "trial_network_exhausted":
-      return errors.paymentRequired("trial_ended", "The free trial for this network is used up. Activate a license to keep generating.", { account });
-    case "trial_capacity":
-      return new ApiError(503, "trial_busy", "Free trial capacity is used up for today. Try again tomorrow, or activate a license.", { account });
+    case "free_network_limit":
+      return errors.paymentRequired("free_limit", "Today's free comments for this network are used up. They come back at 00:00 UTC. For more today, get a plan.", {
+        resetsAt: account.quota.resetsAt,
+        account,
+      });
+    case "free_capacity":
+      return new ApiError(503, "free_busy", "The free plan is at capacity for today. Try again tomorrow, or get a plan to keep going.", { account });
     case "capacity":
       return new ApiError(503, "capacity", "XAICG is at capacity for today. Try again later.", { account });
     default:
-      return errors.paymentRequired("trial_ended", "Your free trial is used up. Activate a license to keep generating.", { account });
+      return errors.paymentRequired(
+        "free_limit",
+        `You've used today's ${account.quota.limit} free comments. They come back at 00:00 UTC. For more today, get a plan.`,
+        { resetsAt: account.quota.resetsAt, account },
+      );
   }
 }
 
@@ -186,7 +193,7 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
       // A signed-in browser with no license of its own takes its account's
       // license first, so one granted a moment ago works on the very next click.
       let waiting = null;
-      if (device.user && resolveEntitlement(config, device.license, now).mode === "trial") {
+      if (device.user && resolveEntitlement(config, device.license, now).mode === "free") {
         try {
           const result = await attachAccountLicense(db, config, { device, ipHash: req.net.hash });
           waiting = result.waiting;
@@ -196,22 +203,22 @@ export function registerGenerateRoute(app, { config, db, engine, limiters, gate,
         }
       }
       const entitlement = resolveEntitlement(config, device.license, now);
-      if (entitlement.mode === "trial" && config.trial.requireSignIn && !device.user) {
-        throw errors.forbidden("sign_in_required", "Sign in with Google to start your free trial.");
+      if (entitlement.mode === "free" && config.free.requireSignIn && !device.user) {
+        throw errors.forbidden("sign_in_required", "Sign in with Google to get your free comments.");
       }
       // An install stays tied to the X account it last reported, so leaving
       // the field out later (the compose popup has no page to read it from)
-      // does not open a second trial allowance.
+      // does not open a second free allowance.
       const xhHash = req.body.xh ? hmac(config.appSecret, `xh:${req.body.xh}`) : device.xh_hash || null;
       const event = {
         deviceId: device.id,
         licenseId: entitlement.mode === "license" ? entitlement.license.id : null,
-        plan: entitlement.mode === "license" ? entitlement.plan.id : "trial",
+        plan: entitlement.mode === "license" ? entitlement.plan.id : "free",
         kind: input.kind,
       };
 
-      if (entitlement.mode === "trial" && config.trial.requireHandle && !xhHash) {
-        throw errors.badRequest("Open X and sign in to use the free trial.", "x_account_required");
+      if (entitlement.mode === "free" && config.free.requireHandle && !xhHash) {
+        throw errors.badRequest("Open X and sign in to use the free plan.", "x_account_required");
       }
 
       const reservation = await reserve(db, config, { device, entitlement, ipHash: req.net.hash, xhHash, now });

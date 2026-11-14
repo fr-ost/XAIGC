@@ -1,0 +1,297 @@
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="badge">X AI Comment/Reply Generator for Twitter</span>
+          <h1 class="display-mega">AI replies for X, in <em>your own voice</em>.</h1>
+          <p class="lead">XAICG is a Chrome extension that adds a button to every post on X (Twitter). One click drafts a comment that sounds like you and types it into the reply box. You read it, change what you like, and post it yourself.</p>
+          <div class="actions">
+            <a class="btn primary lg" data-link="store" href="#pricing">Add to Chrome</a>
+            <a class="btn lg" href="#how">See how it works</a>
+          </div>
+          <p class="fine">Free: <span class="num">{{free}}</span> comments every day. No API key, no card.</p>
+        </div>
+        <div class="stack">
+          <div class="mini" aria-hidden="true">
+            <span class="mini-label">Free today</span>
+            <span class="mini-value"><b class="num" id="demoLeft" data-total="{{free}}">{{freeLess1}}</b> of <span class="num">{{free}}</span> left</span>
+            <span class="mini-bar"><i id="demoBar"></i></span>
+          </div>
+          <div class="ui-card demo" id="demo">
+            <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
+              <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
+              <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
+              <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
+              <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
+              <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
+            </div>
+            <div class="demo-post">
+              <span class="demo-av" aria-hidden="true">N</span>
+              <div class="demo-body">
+                <p class="demo-who"><b>Nova Protocol</b> <span>@novaprotocol · 2h</span></p>
+                <p class="demo-text">We just cut bridge fees by 80% for every user, starting Monday. Withdrawals included.</p>
+                <div class="demo-bar">
+                  <span class="demo-stats" aria-hidden="true"><span>38</span><span>112</span><span>906</span></span>
+                  <button type="button" class="demo-ai" id="demoRun"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</button>
+                </div>
+              </div>
+            </div>
+            <div class="demo-reply">
+              <p class="demo-label">Your draft</p>
+              <p class="demo-draft" id="demoDraft" aria-live="polite">Cheaper is nice, but the bridge has to stay up on a busy day for the cut to mean anything.</p>
+              <div class="demo-foot">
+                <span class="num" id="demoCount">88 / 280</span>
+                <span class="demo-actions">
+                  <button type="button" class="demo-again" id="demoAgain">Try another</button>
+                  <span class="demo-send" aria-hidden="true">Reply</span>
+                </span>
+              </div>
+            </div>
+            <p class="demo-note">A live example with sample drafts. Pick a tone, or press AI Reply.</p>
+          </div>
+          <p class="toast" id="demoToast" aria-hidden="true">Draft inserted. Review it before posting.</p>
+        </div>
+      </div>
+      <div class="wrap">
+        <dl class="stats">
+          <div class="stat"><dt><span class="num" data-count="{{free}}">{{free}}</span></dt><dd>free comments every day</dd></div>
+          <div class="stat"><dt><span class="num" data-count="9">9</span></dt><dd>tones, including Auto</dd></div>
+          <div class="stat"><dt><span class="num" data-count="18">18</span></dt><dd>languages to write in</dd></div>
+          <div class="stat"><dt><span class="num">0</span></dt><dd>posts made without you</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section id="features" class="band">
+      <div class="wrap">
+        <div class="band-head">
+          <span class="badge">Features</span>
+          <h2 class="display-lg">An AI comment generator built for the way you use X</h2>
+          <p class="lead">Everything happens where you already are: in the timeline, on the post you want to answer.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.9 2.9M15.5 15.5l2.9 2.9M5.6 18.4l2.9-2.9M15.5 8.5l2.9-2.9"/></svg></span>
+            <h3>One click on any post</h3>
+            <p>AI Reply and Question buttons sit in each post's action bar. The draft lands in X's own reply box, ready for you to read.</p>
+          </article>
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+            <h3>A tone for the moment</h3>
+            <p>Auto fits each post. Or pick casual, witty, supportive, skeptical, analytical, blunt, technical or professional.</p>
+          </article>
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></span>
+            <h3>Try another, for free</h3>
+            <p>Each request brings back several drafts. Step through them without using another comment from your allowance.</p>
+          </article>
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
+            <h3>Posts, threads and rewrites</h3>
+            <p>The toolbar popup turns a rough idea into post drafts or a full thread, and tightens a draft you already wrote.</p>
+          </article>
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
+            <h3>Your voice, saved once</h3>
+            <p>Describe how you sound. Set reply length, language and emoji. It applies to everything XAICG writes.</p>
+          </article>
+          <article class="card">
+            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span>
+            <h3>You stay in control</h3>
+            <p>Nothing is ever posted for you. Every draft waits in the box until you press Reply. A copy-only mode never touches the page.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="band light">
+      <div class="wrap">
+        <div class="band-head">
+          <span class="badge">How it works</span>
+          <h2 class="display-lg">Up and running in a minute</h2>
+        </div>
+        <ol class="grid">
+          <li class="card"><span class="plate-box step" aria-hidden="true">1</span><h3>Add XAICG to Chrome</h3><p>Install the extension from the Chrome Web Store. There is nothing to configure and no API key to find.</p></li>
+          <li class="card"><span class="plate-box step" aria-hidden="true">2</span><h3>Sign in with Google</h3><p>That gives you {{free}} free comments every day. XAICG keeps your name and email, and nothing else from your Google account.</p></li>
+          <li class="card"><span class="plate-box step" aria-hidden="true">3</span><h3>Click AI Reply on any post</h3><p>A draft appears in the reply box. Keep it, edit it, or ask for another. You press Reply.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap split">
+        <div class="split-text">
+          <span class="badge">Tones</span>
+          <h2 class="display-md">Pick a tone when you want one</h2>
+          <p>Most of the time Auto reads the room. When you want something specific, the arrow next to the buttons opens the tones, and the same menu copies a line for a quote post.</p>
+          <ul class="ticks">
+            <li>Eight tones, plus Auto</li>
+            <li>A short, specific question with one click</li>
+            <li>English by default, or the post's own language, or one of 17 you choose</li>
+          </ul>
+        </div>
+        <figure class="frame dark">
+          <img src="/assets/shots/tones.png" width="1400" height="1280" loading="lazy" decoding="async" alt="The XAICG tone menu open on a post on X, listing Auto, Casual, Witty, Supportive, Skeptical, Analytical, Blunt, Technical and Professional.">
+        </figure>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap split reverse">
+        <div class="split-text">
+          <span class="badge">Compose</span>
+          <h2 class="display-md">Write the post you meant to write</h2>
+          <p>Open XAICG from the toolbar and say what the post should be about. You get drafts to copy or open in X, a thread of the length you choose, or a tighter version of something you already wrote.</p>
+          <ul class="ticks">
+            <li>Posts in three lengths</li>
+            <li>Threads from three to eight posts</li>
+            <li>Rewrites that keep your facts, names and links</li>
+          </ul>
+        </div>
+        <div class="pair">
+          <figure class="frame light"><img src="/assets/shots/compose.png" width="760" height="2106" loading="lazy" decoding="async" alt="The XAICG popup with an idea typed in and three post drafts for X, each with Copy and Open in X buttons."></figure>
+          <figure class="frame light"><img src="/assets/shots/thread.png" width="760" height="2400" loading="lazy" decoding="async" alt="The XAICG popup showing a four-post thread generated from one idea, with a Copy thread button."></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap split">
+        <div class="split-text">
+          <span class="badge">Your voice</span>
+          <h2 class="display-md">Sounds like you, not like an assistant</h2>
+          <p>XAICG is built to avoid the tells. No generic praise, no hype words, no em dashes, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it remembers your recent drafts so it does not repeat itself.</p>
+          <p>Describe your persona once, or start from a preset and edit it. Our guide to <a href="/blog/make-ai-replies-sound-like-you">making AI replies sound like you</a> shows how.</p>
+        </div>
+        <figure class="frame bare">
+          <img src="/assets/shots/voice.png" width="1456" height="1108" loading="lazy" decoding="async" alt="XAICG settings: default tone, reply length, language, emoji, and a persona description with presets such as Skeptical trader and Blunt founder.">
+        </figure>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap split reverse">
+        <div class="split-text">
+          <span class="badge">Account</span>
+          <h2 class="display-md">Your plan follows you</h2>
+          <p>Your license belongs to your Google account. On a new computer you sign in and it is there, with no key to type. If every seat is in use, you choose which browser gives it up.</p>
+          <p>Prefer not to sign in? A license key works on its own.</p>
+        </div>
+        <figure class="frame bare">
+          <img src="/assets/shots/account.png" width="1456" height="1054" loading="lazy" decoding="async" alt="XAICG settings showing a signed-in account and a Pro plan with the comments left today, the license, its expiry date and the browsers in use.">
+        </figure>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap">
+        <div class="band-head">
+          <span class="badge">Privacy</span>
+          <h2 class="claim">Nothing is posted for you</h2>
+          <p class="lead">What XAICG sees, and what it keeps.</p>
+        </div>
+        <div class="grid two">
+          <article class="card">
+            <h3>Only the post you click</h3>
+            <p>XAICG reads the post you ask it to answer, and nothing else on the page. It never reads your messages, followers or account details, and it cannot post for you.</p>
+          </article>
+          <article class="card">
+            <h3>Drafts are not stored</h3>
+            <p>The post's text goes to the XAICG server and on to OpenAI to write the draft. The server does not save that text or the draft it returns.</p>
+          </article>
+          <article class="card">
+            <h3>No API key of yours</h3>
+            <p>You never paste an OpenAI key into the extension, so there is no key of yours to leak or to run up a bill.</p>
+          </article>
+          <article class="card">
+            <h3>Plain about the rest</h3>
+            <p>What is kept, and why, is set out in the <a href="/privacy">privacy policy</a> in ordinary language.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="band light">
+      <div class="wrap">
+        <div class="band-head">
+          <span class="badge">Pricing</span>
+          <h2 class="display-lg">Free for {{free}} comments a day. More when you need it.</h2>
+          <p class="lead">A comment is one request for drafts: a reply, a question, a post, a thread or a rewrite. Stepping through the drafts you already have is free, and every allowance starts again each day.</p>
+        </div>
+        <div id="plans" class="plans">
+{{plans}}
+        </div>
+        <p class="plans-note">Prices are in US dollars, per month. Allowances start again at 00:00 UTC. Using XAICG means accepting the <a href="/terms">terms</a>.</p>
+      </div>
+    </section>
+
+    <section id="faq" class="band">
+      <div class="wrap narrow faq">
+        <div class="band-head">
+          <span class="badge">FAQ</span>
+          <h2 class="display-lg">Questions</h2>
+        </div>
+        <details>
+          <summary>Is XAICG free?</summary>
+          <p>Yes. Everyone gets {{free}} comments a day for nothing, with every tone and every writing mode, and no card is needed. If you need more than that, {{ladder}}.</p>
+        </details>
+        <details>
+          <summary>Does XAICG post for me?</summary>
+          <p>No. It types a draft into the reply box and stops. You decide whether to post it, edit it or throw it away. If you prefer, switch to copy-only mode and it will not touch the page at all.</p>
+        </details>
+        <details>
+          <summary>Do I need an OpenAI API key?</summary>
+          <p>No. The writing happens on the XAICG server. There is nothing to set up and no key to manage.</p>
+        </details>
+        <details>
+          <summary>What counts as a comment?</summary>
+          <p>Each time XAICG writes for you: a reply, a question, a post, a thread or a rewrite. One request brings back several drafts, and choosing "try another" to see the next one does not use another comment.</p>
+        </details>
+        <details>
+          <summary>When do my comments come back?</summary>
+          <p>Every allowance, free or paid, starts again at 00:00 UTC each day. Comments you did not use do not carry over.</p>
+        </details>
+        <details>
+          <summary>Can I use my plan on more than one computer?</summary>
+          <p>Yes, up to the number of browsers in your plan. Sign in with Google on each one. If all your seats are taken you can move the license to the browser you are on.</p>
+        </details>
+        <details>
+          <summary>Which languages does it write in?</summary>
+          <p>English by default. You can have it match the language of the post instead, or always write in one of 17 languages.</p>
+        </details>
+        <details>
+          <summary>What happens to the posts I reply to?</summary>
+          <p>The text of the post is sent to the XAICG server and to OpenAI so a draft can be written. It is not saved. The <a href="/privacy">privacy policy</a> has the details.</p>
+        </details>
+        <details>
+          <summary>Is XAICG made by X?</summary>
+          <p>No. XAICG is an independent product of Unique Labs and is not affiliated with or endorsed by X Corp.</p>
+        </details>
+        <p class="more"><a href="/faq">See all questions and answers</a></p>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="wrap">
+        <div class="band-head">
+          <span class="badge">Blog</span>
+          <h2 class="display-lg">Guides to replying well on X</h2>
+          <p class="lead">Practical writing on replies, threads and using AI without sounding like it.</p>
+        </div>
+        <div class="grid posts">
+{{posts}}
+        </div>
+        <p class="more"><a href="/blog">Read all articles</a></p>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="wrap">
+        <div class="cta-card">
+          <h2>Answer more posts, and still sound like yourself.</h2>
+          <div class="actions">
+            <a class="btn primary" data-link="store" href="#pricing">Add to Chrome</a>
+            <a class="btn" href="#pricing">See plans</a>
+          </div>
+        </div>
+      </div>
+    </section>

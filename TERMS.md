@@ -16,9 +16,9 @@ You must be old enough to have an X account under X's own rules, and at least 13
 
 You can sign in with Google. You are responsible for what happens under your account and on the browsers where you are signed in. Tell us if you believe someone else is using your account or your license.
 
-## 4. Free trial
+## 4. Free plan
 
-A new account gets a limited number of free generations. The trial is one per person. Creating extra accounts, reinstalling, or otherwise working around the limit is not allowed, and we may end a trial that is being abused.
+XAICG is free to use for a limited number of comments each day. The number is shown in the extension and on our website, and it starts again at 00:00 UTC. The free allowance is one per person. Creating extra accounts, reinstalling, or otherwise working around the limit is not allowed, and we may limit or end free use that is being abused. We may change the size of the free allowance, or withdraw it, at any time.
 
 ## 5. Plans, licenses and payment
 

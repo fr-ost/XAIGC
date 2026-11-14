@@ -201,15 +201,15 @@
 
   function showError(err) {
     if (err?.code !== "context") sfx("error");
-    const openLicense = () => send("xaicg:open-options", { section: "license" }).catch(() => {});
+    const openPlans = () => send("xaicg:open-plans").catch(() => {});
     const openAccount = () => send("xaicg:open-options", { section: "account" }).catch(() => {});
     switch (err?.code) {
       case "sign_in_required":
-        return toast(err.message || "Sign in with Google to start your free trial.", { error: true, action: { label: "Sign in", run: openAccount } });
-      case "trial_ended":
-        return toast(err.message || "Your free trial is used up.", { error: true, action: { label: "Activate license", run: openLicense } });
-      case "trial_busy":
-        return toast(err.message, { error: true, action: { label: "Activate license", run: openLicense } });
+        return toast(err.message || "Sign in with Google to get your free comments.", { error: true, action: { label: "Sign in", run: openAccount } });
+      case "free_limit":
+        return toast(err.message || "You've used today's free comments. They come back at 00:00 UTC.", { error: true, action: { label: "See plans", run: openPlans } });
+      case "free_busy":
+        return toast(err.message, { error: true, action: { label: "See plans", run: openPlans } });
       case "cooldown":
       case "busy":
       case "rate_limited":
@@ -452,7 +452,7 @@
   function quotaNote(acct) {
     if (!acct || acct.licensed) return "";
     const left = acct.quota?.remaining ?? 0;
-    return ` ${left} trial ${left === 1 ? "generation" : "generations"} left.`;
+    return ` ${left} free ${left === 1 ? "comment" : "comments"} left today.`;
   }
 
   async function nextDraft(article, kind, tone) {
@@ -717,7 +717,7 @@
     const pct = (q.used / q.limit) * 100;
     if (pct >= 90) btn.classList.add("gauge-bad");
     else if (pct >= 70) btn.classList.add("gauge-warn");
-    const scope = q.scope === "trial" ? "trial generations left" : "generations left today";
+    const scope = q.scope === "free" ? "free comments left today" : "generations left today";
     btn.dataset.quota = `${q.remaining} of ${q.limit} ${scope}`;
     btn.title = `${btn.dataset.baseTitle} · ${btn.dataset.quota}`;
   }

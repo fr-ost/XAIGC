@@ -1,23 +1,24 @@
 #!/usr/bin/env node
-// Tell the website its own public address.
+// Tell the website its own public address, and rebuild it.
 //
 //   node scripts/set-site-url.mjs https://xaicg.example
 //
 // Link previews (X, Slack, WhatsApp...) and search engines need full
-// addresses, which the site cannot know until it has a domain. This writes
-// them into website/index.html, website/robots.txt and website/sitemap.xml.
-// Run it once after the first Vercel deploy, and again if the domain changes.
+// addresses. This writes the address into website/config.js and runs
+// scripts/build-site.mjs, which puts it into every page, the sitemap,
+// robots.txt and the blog's feed. Run it again if the domain changes.
 
 import { readFile, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const site = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "website");
+const here = path.dirname(fileURLToPath(import.meta.url));
+const configPath = path.join(here, "..", "website", "config.js");
 
-const input = process.argv[2];
 let url;
 try {
-  url = new URL(input);
+  url = new URL(process.argv[2]);
 } catch {
   console.error("Usage: node scripts/set-site-url.mjs https://your-site.example");
   process.exit(1);
@@ -26,44 +27,15 @@ if (url.protocol !== "https:" || url.pathname !== "/" || url.search || url.hash)
   console.error("Give only the https origin, for example https://xaicg.example (no path).");
   process.exit(1);
 }
-const origin = url.origin;
 
-// ---- index.html: preview image, page address, canonical link -------------------
-
-const indexPath = path.join(site, "index.html");
-let html = await readFile(indexPath, "utf8");
-
-const image = /<meta property="og:image" content="[^"]*">/;
-if (!image.test(html)) {
-  console.error("Could not find the og:image tag in website/index.html.");
+const config = await readFile(configPath, "utf8");
+const line = /siteUrl:\s*"[^"]*"/;
+if (!line.test(config)) {
+  console.error("Could not find siteUrl in website/config.js.");
   process.exit(1);
 }
-// Remove what an earlier run added, then write all three together.
-html = html.replace(/\n\s*<meta property="og:url" content="[^"]*">/, "").replace(/\n\s*<link rel="canonical" href="[^"]*">/, "");
-html = html.replace(
-  image,
-  `<meta property="og:image" content="${origin}/assets/og.png">\n` +
-    `  <meta property="og:url" content="${origin}/">\n` +
-    `  <link rel="canonical" href="${origin}/">`,
-);
-await writeFile(indexPath, html);
+await writeFile(configPath, config.replace(line, `siteUrl: "${url.origin}"`));
+console.log(`Website address set to ${url.origin} in website/config.js. Rebuilding the pages...`);
 
-// ---- robots.txt and sitemap.xml ---------------------------------------------------
-
-await writeFile(path.join(site, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
-await writeFile(
-  path.join(site, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    `  <url><loc>${origin}/</loc></url>\n` +
-    `  <url><loc>${origin}/privacy</loc></url>\n` +
-    `  <url><loc>${origin}/terms</loc></url>\n` +
-    `  <url><loc>${origin}/support</loc></url>\n` +
-    `</urlset>\n`,
-);
-
-console.log(`Website address set to ${origin}`);
-console.log("  website/index.html   (link preview image, page address)");
-console.log("  website/robots.txt");
-console.log("  website/sitemap.xml");
-console.log("Commit and push, and Vercel redeploys.");
+const build = spawnSync(process.execPath, [path.join(here, "build-site.mjs")], { stdio: "inherit" });
+process.exit(build.status ?? 1);

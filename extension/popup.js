@@ -47,16 +47,16 @@ function showAccount(account) {
   if (!d) return;
   buyUrl = d.buyUrl;
   const upgrade = $("upgrade");
-  const spent = d.trial && !d.signInRequired && d.left === 0;
-  upgrade.hidden = !d.trial || d.signInRequired;
+  const spent = d.free && !d.signInRequired && d.left === 0;
+  upgrade.hidden = !d.free || d.signInRequired;
   upgrade.href = buyUrl;
-  upgrade.textContent = spent ? "Get a license" : "See plans";
+  upgrade.textContent = spent ? "Get more comments" : "See plans";
   upgrade.className = spent ? "btn sm primary" : "btn sm";
-  // Until someone has signed in there is no trial to count: offer the
+  // Until someone has signed in there is nothing to count: offer the
   // sign-in instead of an empty meter.
   $("start").hidden = !d.signInRequired;
   $("usage").hidden = d.signInRequired;
-  $("startCount").textContent = String(account.quota?.limit || 20);
+  $("startCount").textContent = String(account.quota?.limit || 5);
   $("problem").hidden = true;
 }
 
@@ -171,7 +171,7 @@ async function generate() {
   } catch (err) {
     sfx("error");
     setStatus(err.message, "error");
-    if (err.code === "trial_ended" || err.code === "daily_limit" || err.code === "sign_in_required") {
+    if (err.code === "free_limit" || err.code === "daily_limit" || err.code === "sign_in_required") {
       const { account } = await chrome.storage.local.get("account");
       showAccount(account);
     }
@@ -215,7 +215,7 @@ $("copyAll").addEventListener("click", async () => {
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
 // Chrome shows its own Google account prompt. If that prompt takes the focus
 // and closes this popup, the sign-in still finishes in the background, and
-// the popup shows the trial the next time it is opened.
+// the popup shows the free plan the next time it is opened.
 $("startSignIn").addEventListener("click", async () => {
   const button = $("startSignIn");
   const say = (message, kind = "") => {
@@ -251,7 +251,7 @@ $("startSignIn").addEventListener("click", async () => {
     showAccount(account);
   } catch (err) {
     if (!stored.account) {
-      $("problem").textContent = `${err.message} Your free trial will show here once the server answers.`;
+      $("problem").textContent = `${err.message} Your plan will show here once the server answers.`;
       $("problem").hidden = false;
       $("usage").hidden = true; // nothing to count without the server
     }

@@ -33,15 +33,22 @@ describe("basics", () => {
     assert.equal((await t.call("POST", "/v1/generate", { token: "x".repeat(500), body: { kind: "reply" } })).status, 401);
   });
 
-  test("a new install starts on the free trial", async () => {
+  test("a new install starts on the free plan", async () => {
     const d = await t.install();
     assert.match(d.token, /^xd_/);
-    assert.equal(d.account.plan, "trial");
+    assert.equal(d.account.plan, "free");
+    assert.equal(d.account.planLabel, "Free");
     assert.equal(d.account.licensed, false);
     assert.deepEqual(
-      { limit: d.account.quota.limit, used: d.account.quota.used, remaining: d.account.quota.remaining },
-      { limit: 3, used: 0, remaining: 3 },
+      { scope: d.account.quota.scope, limit: d.account.quota.limit, used: d.account.quota.used, remaining: d.account.quota.remaining },
+      { scope: "free", limit: 3, used: 0, remaining: 3 },
     );
+    assert.match(d.account.quota.resetsAt, /T00:00:00\.000Z$/, "the allowance is daily: it says when it comes back");
+    assert.deepEqual(d.account.upgrade, [
+      { plan: "Starter", perDay: 60 },
+      { plan: "Pro", perDay: 200 },
+      { plan: "Agency", perDay: 600 },
+    ]);
     const me = await t.me(d);
     assert.equal(me.status, 200);
     assert.equal(me.body.deviceId, d.deviceId);
@@ -59,7 +66,7 @@ describe("basics", () => {
     const again = await t.install({ installId: first.installId, ip: first.ip });
     assert.equal(again.deviceId, first.deviceId);
     assert.notEqual(again.token, first.token);
-    assert.equal(again.account.quota.used, 1, "trial use carries over");
+    assert.equal(again.account.quota.used, 1, "free use carries over");
     assert.equal((await t.me(first)).status, 401, "the old token stops working");
     assert.equal((await t.me(again)).status, 200);
   });
@@ -82,7 +89,7 @@ describe("basics", () => {
 
 describe("generation", () => {
   let t;
-  before(async () => (t = await createTestApp({ TRIAL_GENERATIONS: "50", TRIAL_IP_LIMIT: "500" })));
+  before(async () => (t = await createTestApp({ FREE_DAILY_LIMIT: "50", FREE_IP_DAILY_LIMIT: "500" })));
   after(() => t.close());
 
   test("reply: returns ranked variants and the updated account", async () => {
@@ -252,14 +259,14 @@ describe("generation", () => {
   });
 });
 
-/* ---------------------------------- trial --------------------------------- */
+/* -------------------------------- free plan ------------------------------- */
 
-describe("free trial", () => {
+describe("free plan", () => {
   let t;
   before(async () => (t = await createTestApp()));
   after(() => t.close());
 
-  test("the trial runs out and says so", async () => {
+  test("the day's free comments run out and it says so", async () => {
     const d = await t.install();
     for (let i = 1; i <= 3; i++) {
       const res = await t.generate(d, { xh: xh("bob") });
@@ -268,12 +275,36 @@ describe("free trial", () => {
     }
     const over = await t.generate(d, { xh: xh("bob") });
     assert.equal(over.status, 402);
-    assert.equal(over.body.error.code, "trial_ended");
+    assert.equal(over.body.error.code, "free_limit");
+    assert.match(over.body.error.message, /today's 3 free comments/);
+    assert.equal(over.body.error.resetsAt, over.body.error.account.quota.resetsAt, "and when they come back");
     assert.equal(over.body.error.account.quota.remaining, 0);
     assert.equal(over.body.error.account.links.buy, "https://xaicg.uniquelabs.org/#pricing");
   });
 
-  test("reinstalling does not reset the trial for the same X account", async () => {
+  test("free comments come back the next day (UTC)", async () => {
+    const d = await t.install();
+    for (let i = 0; i < 3; i++) assert.equal((await t.generate(d, { xh: xh("daisy") })).status, 200);
+    assert.equal((await t.generate(d, { xh: xh("daisy") })).status, 402);
+    const tonight = (await t.me(d)).body.account.quota.resetsAt;
+
+    t.advance(DAY);
+    try {
+      const me = (await t.me(d)).body.account;
+      assert.deepEqual({ used: me.quota.used, remaining: me.quota.remaining }, { used: 0, remaining: 3 }, "a new day starts from nothing used");
+      assert.ok(Date.parse(me.quota.resetsAt) - Date.parse(tonight) === DAY, "and the next reset is a day later");
+      for (let i = 1; i <= 3; i++) {
+        const res = await t.generate(d, { xh: xh("daisy") });
+        assert.equal(res.status, 200);
+        assert.equal(res.body.account.quota.remaining, 3 - i);
+      }
+      assert.equal((await t.generate(d, { xh: xh("daisy") })).status, 402, "three a day, not three more for ever");
+    } finally {
+      t.advance(-DAY);
+    }
+  });
+
+  test("reinstalling does not reset the day's allowance for the same X account", async () => {
     const first = await t.install();
     for (let i = 0; i < 3; i++) assert.equal((await t.generate(first, { xh: xh("carol") })).status, 200);
     // Fresh install id, even a different network, same X account.
@@ -281,11 +312,11 @@ describe("free trial", () => {
     assert.equal(reinstall.account.quota.remaining, 3, "looks fresh until the account is seen");
     const res = await t.generate(reinstall, { xh: xh("carol") });
     assert.equal(res.status, 402);
-    assert.equal(res.body.error.code, "trial_ended");
+    assert.equal(res.body.error.code, "free_limit");
     assert.equal((await t.me(reinstall)).body.account.quota.remaining, 3, "a denied request is not charged and does not bind the account");
   });
 
-  test("one network cannot farm trials with new installs and new X accounts", async () => {
+  test("one network cannot farm free comments with new installs and new X accounts", async () => {
     const ip = nextIp();
     const a = await t.install({ ip });
     for (let i = 0; i < 3; i++) assert.equal((await t.generate(a, { xh: xh("dave1") })).status, 200);
@@ -295,6 +326,7 @@ describe("free trial", () => {
     assert.equal((await t.generate(b, { xh: xh("dave2") })).status, 200);
     const capped = await t.generate(b, { xh: xh("dave2") });
     assert.equal(capped.status, 402);
+    assert.equal(capped.body.error.code, "free_limit");
     assert.match(capped.body.error.message, /network/);
     const c = await t.install({ ip });
     assert.equal(c.account.quota.remaining, 0);
@@ -304,22 +336,27 @@ describe("free trial", () => {
     assert.equal((await t.generate(elsewhere, { xh: xh("erin") })).status, 200);
   });
 
-  test("the network allowance comes back after its window", async () => {
+  test("the network allowance comes back the next day too", async () => {
     const ip = nextIp();
     const a = await t.install({ ip });
     const b = await t.install({ ip });
     for (let i = 0; i < 3; i++) await t.generate(a, { xh: xh("fay1") });
     for (let i = 0; i < 2; i++) await t.generate(b, { xh: xh("fay2") });
-    assert.equal((await t.generate(b, { xh: xh("fay2") })).status, 402);
-    t.advance(31 * DAY);
-    const later = await t.generate(b, { xh: xh("fay2") });
-    assert.equal(later.status, 200, "network window expired");
-    assert.equal(later.body.account.quota.remaining, 0, "but the install's own trial is still spent at 3");
-    assert.equal((await t.generate(a, { xh: xh("fay1") })).status, 402, "per-install trial never resets");
-    t.advance(-31 * DAY);
+    const capped = await t.generate(b, { xh: xh("fay2") });
+    assert.equal(capped.status, 402);
+    assert.equal(capped.body.error.account.quota.limitedBy, "network");
+    t.advance(DAY);
+    try {
+      const later = await t.generate(b, { xh: xh("fay2") });
+      assert.equal(later.status, 200, "a new day for the network");
+      assert.equal(later.body.account.quota.remaining, 2, "and for the install");
+      assert.equal((await t.generate(a, { xh: xh("fay1") })).status, 200);
+    } finally {
+      t.advance(-DAY);
+    }
   });
 
-  test("parallel requests cannot overspend the trial", async () => {
+  test("parallel requests cannot overspend the day's allowance", async () => {
     const ip = nextIp();
     const devices = await Promise.all(Array.from({ length: 6 }, () => t.install({ ip })));
     const results = await Promise.all(devices.map((d) => t.generate(d, { xh: xh("gina") })));
@@ -329,9 +366,9 @@ describe("free trial", () => {
   });
 });
 
-describe("trial switches", () => {
-  test("TRIAL_GENERATIONS=0 turns the trial off", async () => {
-    const t = await createTestApp({ TRIAL_GENERATIONS: "0" });
+describe("free plan switches", () => {
+  test("FREE_DAILY_LIMIT=0 turns the free plan off", async () => {
+    const t = await createTestApp({ FREE_DAILY_LIMIT: "0" });
     try {
       const d = await t.install();
       assert.equal(d.account.quota.remaining, 0);
@@ -343,8 +380,8 @@ describe("trial switches", () => {
     }
   });
 
-  test("TRIAL_REQUIRE_X_ACCOUNT insists on a signed-in X account", async () => {
-    const t = await createTestApp({ TRIAL_REQUIRE_X_ACCOUNT: "true" });
+  test("FREE_REQUIRE_X_ACCOUNT insists on a signed-in X account", async () => {
+    const t = await createTestApp({ FREE_REQUIRE_X_ACCOUNT: "true" });
     try {
       const d = await t.install();
       const res = await t.generate(d);
@@ -357,19 +394,19 @@ describe("trial switches", () => {
   });
 
   test("global daily caps protect the OpenAI bill", async () => {
-    const t = await createTestApp({ TRIAL_GLOBAL_DAILY_CAP: "2", GLOBAL_DAILY_CAP: "4", TRIAL_GENERATIONS: "50", TRIAL_IP_LIMIT: "500" });
+    const t = await createTestApp({ FREE_GLOBAL_DAILY_CAP: "2", GLOBAL_DAILY_CAP: "4", FREE_DAILY_LIMIT: "50", FREE_IP_DAILY_LIMIT: "500" });
     try {
-      const trial = await t.install();
-      assert.equal((await t.generate(trial)).status, 200);
-      assert.equal((await t.generate(trial)).status, 200);
-      const busy = await t.generate(trial);
+      const free = await t.install();
+      assert.equal((await t.generate(free)).status, 200);
+      assert.equal((await t.generate(free)).status, 200);
+      const busy = await t.generate(free);
       assert.equal(busy.status, 503);
-      assert.equal(busy.body.error.code, "trial_busy");
+      assert.equal(busy.body.error.code, "free_busy");
 
       const lic = await t.license();
       const paid = await t.install();
       await t.activate(paid, lic.key);
-      assert.equal((await t.generate(paid)).status, 200, "licensed users are not affected by the trial cap");
+      assert.equal((await t.generate(paid)).status, 200, "licensed users are not affected by the free plan's cap");
       assert.equal((await t.generate(paid)).status, 200);
       const full = await t.generate(paid);
       assert.equal(full.status, 503);
@@ -391,7 +428,7 @@ describe("licensing", () => {
   before(async () => (t = await createTestApp()));
   after(() => t.close());
 
-  test("activation switches the install from trial to the plan", async () => {
+  test("activation switches the install from the free plan to the paid one", async () => {
     const lic = await t.license({ email: "Buyer@Example.com", note: "order 1" });
     assert.match(lic.key, /^XAICG(-[0-9A-HJKMNP-TV-Z]{5}){4}$/);
     const stored = await t.db.query("SELECT key_hash, key_hint, email FROM licenses WHERE id = $1", [lic.id]);
@@ -526,7 +563,7 @@ describe("licensing", () => {
     const off = await t.deactivate(a);
     assert.equal(off.status, 200);
     assert.equal(off.body.account.licensed, false);
-    assert.equal(off.body.account.plan, "trial");
+    assert.equal(off.body.account.plan, "free");
     assert.equal((await t.activate(b, lic.key)).status, 200);
     assert.equal((await t.deactivate(await t.install())).status, 200, "deactivating an unlicensed install is a no-op");
   });
@@ -573,7 +610,7 @@ describe("licensing", () => {
     assert.equal(me.licensed, false);
     assert.equal(me.notice, "license_expired");
     assert.equal(me.license.state, "expired");
-    assert.equal(me.plan, "trial");
+    assert.equal(me.plan, "free");
     t.advance(-2 * DAY);
 
     await t.admin("PATCH", `/licenses/${lic.id}`, { expiresAt: new Date(Date.now() - 1000).toISOString() });
@@ -613,7 +650,7 @@ describe("licensing", () => {
 
 describe("abuse controls", () => {
   test("cooldown and one-at-a-time per install", async () => {
-    const t = await createTestApp({ COOLDOWN_MS: "2000", TRIAL_GENERATIONS: "50", TRIAL_IP_LIMIT: "500" });
+    const t = await createTestApp({ COOLDOWN_MS: "2000", FREE_DAILY_LIMIT: "50", FREE_IP_DAILY_LIMIT: "500" });
     try {
       const d = await t.install();
       assert.equal((await t.generate(d)).status, 200);
@@ -643,7 +680,7 @@ describe("abuse controls", () => {
   });
 
   test("per-install and per-network rate limits", async () => {
-    const t = await createTestApp({ RL_DEVICE_PER_MIN: "3", RL_IP_PER_MIN: "12", TRIAL_GENERATIONS: "50", TRIAL_IP_LIMIT: "500" });
+    const t = await createTestApp({ RL_DEVICE_PER_MIN: "3", RL_IP_PER_MIN: "12", FREE_DAILY_LIMIT: "50", FREE_IP_DAILY_LIMIT: "500" });
     try {
       const d = await t.install();
       for (let i = 0; i < 3; i++) assert.equal((await t.generate(d)).status, 200);
@@ -886,7 +923,7 @@ describe("abuse controls", () => {
   });
 
   test("failures the model was paid for cannot be farmed for free generations", async () => {
-    const t = await createTestApp({ REFUNDED_FAILURES_PER_HOUR: "2", TRIAL_GENERATIONS: "3", TRIAL_IP_LIMIT: "50", COOLDOWN_MS: "1000" });
+    const t = await createTestApp({ REFUNDED_FAILURES_PER_HOUR: "2", FREE_DAILY_LIMIT: "3", FREE_IP_DAILY_LIMIT: "50", COOLDOWN_MS: "1000" });
     try {
       const d = await t.install();
       // The model answers, and is paid, but returns nothing usable.
@@ -949,7 +986,7 @@ describe("abuse controls", () => {
       assert.equal((await t.generate(a)).status, 200);
       const b = await t.install();
       const res = await t.generate(b, { xh: xh("sticky") });
-      assert.equal(res.status, 402, "all three of that account's trial generations are spent");
+      assert.equal(res.status, 402, "all three of that account's free comments for today are spent");
     } finally {
       await t.close();
     }

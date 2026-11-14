@@ -39,9 +39,10 @@ async function saveAccount(account) {
 
 function updateBadge(account) {
   try {
-    const trial = account && !account.licensed;
+    // On the free plan, the icon counts down the last of the day's comments.
+    const free = account && !account.licensed && !account.auth?.signInRequired;
     const left = account?.quota?.remaining ?? 0;
-    chrome.action.setBadgeText({ text: trial && left <= 5 ? String(left) : "" });
+    chrome.action.setBadgeText({ text: free && left <= 2 ? String(left) : "" });
     chrome.action.setBadgeBackgroundColor({ color: left === 0 ? "#c0362c" : "#4b5563" });
   } catch {
     /* badge is cosmetic */
@@ -185,7 +186,7 @@ async function generate(payload) {
   }
 
   // The signed-in X handle is hashed here and never sent in the clear. The
-  // server uses it only to stop the free trial being reset by reinstalling.
+  // server uses it only to stop the free allowance being reset by reinstalling.
   // The hash is remembered so requests from the popup, which has no X page
   // to read the handle from, carry the same identity.
   if (payload.handle) {
@@ -301,6 +302,17 @@ const handlers = {
   "xaicg:info": async () => {
     const { deviceId } = await local.get("deviceId");
     return { deviceId: deviceId || null, apiBase: API_BASE, version: CLIENT_VERSION };
+  },
+  // The pricing page. The address comes from the server, so it is checked
+  // before a tab is opened on it.
+  "xaicg:open-plans": async () => {
+    let url = "https://xaicg.uniquelabs.org/#pricing";
+    try {
+      const buy = new URL((await cachedAccount())?.links?.buy);
+      if (buy.protocol === "https:") url = buy.href;
+    } catch {}
+    await chrome.tabs.create({ url });
+    return {};
   },
   "xaicg:open-options": async (msg) => {
     const url = chrome.runtime.getURL(`options.html${msg.section ? `#${msg.section}` : ""}`);

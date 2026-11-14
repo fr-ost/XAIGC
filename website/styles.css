@@ -984,8 +984,8 @@ html:not(.js) .toast {
 }
 .footer-cols {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
-  gap: 48px;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+  gap: 40px;
 }
 .footer .logo {
   color: var(--ink);
@@ -994,7 +994,7 @@ html:not(.js) .toast {
   max-width: 320px;
   margin-top: 16px;
 }
-.footer h3 {
+.footer h2 {
   margin-bottom: 12px;
   color: var(--ink);
   font-size: 16px;
@@ -1029,13 +1029,56 @@ html:not(.js) .toast {
   margin-top: 4px;
 }
 
-/* ---------- inner pages (privacy, terms, 404) ---------- */
+/* ---------- inner pages ---------- */
+.page-head .wrap {
+  padding-top: 32px;
+  padding-bottom: 56px;
+}
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.crumbs a {
+  color: var(--muted-strong);
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--primary);
+}
+.crumbs a::after {
+  content: "/";
+  margin-left: 8px;
+  color: var(--muted);
+}
+.crumbs span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .page-head h1 {
-  padding: 48px 0 64px;
+  margin-top: 20px;
   font-size: clamp(32px, 4.4vw, 48px);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.5px;
+}
+.page-lead {
+  max-width: 640px;
+  margin-top: 16px;
+  color: var(--muted-strong);
+  font-size: 18px;
+  line-height: 1.5;
+}
+.page-meta {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
 }
 /* Long reading happens on the light surface. */
 .reading {
@@ -1375,4 +1418,229 @@ ul.help-text li {
   margin-top: 8px;
   color: var(--muted-strong);
   font-size: 14px;
+}
+
+/* ---------- "see more" links under a section ---------- */
+.more {
+  margin-top: 32px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.more a::after {
+  content: " \2192";
+}
+
+/* ---------- blog: cards for articles ---------- */
+.blog-list {
+  padding-top: 8px;
+}
+.post {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.card .post-tag {
+  margin-top: 0;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.post h2,
+.post h3 {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.post h2 a,
+.post h3 a {
+  color: var(--on-dark);
+  text-decoration: none;
+}
+/* The whole card opens the article. */
+.post h2 a::after,
+.post h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-xl);
+}
+.post:hover h2 a,
+.post:hover h3 a {
+  color: var(--primary);
+}
+.card .post-meta {
+  margin-top: auto;
+  padding-top: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ---------- blog: an article, on the light surface ---------- */
+.article {
+  padding-bottom: 0;
+  font-size: 17px;
+  line-height: 1.65;
+}
+.article h2 {
+  margin: 48px 0 12px;
+  font-size: 26px;
+  line-height: 1.25;
+  scroll-margin-top: 88px;
+}
+.article h3 {
+  margin: 32px 0 8px;
+  font-size: 19px;
+  line-height: 1.35;
+}
+.article p,
+.article ul,
+.article ol {
+  margin: 16px 0;
+}
+.article > :first-child {
+  margin-top: 0;
+}
+.prose ol {
+  margin: 12px 0;
+  padding-left: 24px;
+  color: #474d57;
+}
+.prose em {
+  font-style: italic;
+}
+/* Examples: a post, and a reply to it. */
+.prose blockquote {
+  margin: 16px 0;
+  padding: 14px 18px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  background: var(--soft-light);
+}
+.prose blockquote p {
+  margin: 0;
+  color: var(--ink);
+}
+.article-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 56px;
+  padding: 28px 32px;
+  border-radius: var(--r-xl);
+  background: var(--ink);
+}
+.article-cta h2 {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.article-cta p {
+  margin-top: 6px;
+  color: var(--muted-strong);
+  font-size: 14px;
+}
+.article-cta .btn {
+  flex: none;
+}
+.related {
+  margin-top: 48px;
+  padding-bottom: var(--section);
+}
+.related h2 {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 600;
+}
+.related ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.related li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline-light);
+}
+.related li:last-child {
+  border-bottom: 1px solid var(--hairline-light);
+}
+.related a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.related a:hover {
+  text-decoration: underline;
+}
+.related span {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------- questions with numbered steps ---------- */
+.faq details ol {
+  margin: 0;
+  padding: 0 0 20px 22px;
+  color: var(--muted-strong);
+  font-size: 14px;
+}
+.faq details p + p {
+  margin-top: -8px;
+}
+
+/* ---------- the menu has six links: tighten it before it folds away ---------- */
+@media (min-width: 769px) and (max-width: 960px) {
+  .nav {
+    gap: 20px;
+  }
+  .nav nav {
+    gap: 18px;
+  }
+  .nav nav a {
+    font-size: 13px;
+  }
+}
+@media (max-width: 1024px) {
+  .footer-cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 32px;
+  }
+  .footer-about {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 768px) {
+  .footer-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+  .article-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px;
+  }
+  .page-head .wrap {
+    padding-top: 24px;
+    padding-bottom: 40px;
+  }
+}
+@media (max-width: 640px) {
+  .article {
+    font-size: 16px;
+  }
+  .article h2 {
+    margin-top: 40px;
+    font-size: 22px;
+  }
+  .related li {
+    flex-direction: column;
+    gap: 2px;
+  }
 }

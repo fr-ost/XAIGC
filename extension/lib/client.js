@@ -20,25 +20,29 @@ export const $ = (id) => document.getElementById(id);
 // Turn the account object from the server into display strings.
 export function describeAccount(account) {
   if (!account) return null;
-  const q = account.quota || { limit: 0, used: 0, remaining: 0, scope: "trial" };
+  const q = account.quota || { limit: 0, used: 0, remaining: 0, scope: "free" };
   const pct = q.limit ? Math.min(100, Math.round((q.used / q.limit) * 100)) : 100;
-  const trial = !account.licensed;
+  const free = !account.licensed;
+  // "Starter gives 60 a day, Pro 200, Agency 600", from the server's own plans.
+  const ladder = (account.upgrade || []).map((p, i) => (i === 0 ? `${p.plan} gives ${p.perDay} a day` : `${p.plan} ${p.perDay}`)).join(", ");
   let notice = "";
   const signInRequired = Boolean(account.auth?.signInRequired);
-  if (signInRequired) notice = "Sign in with Google to start your free trial.";
+  if (signInRequired) notice = "Sign in with Google to get your free comments.";
   else if (account.notice === "license_expired") notice = "Your license has expired. Renew it to keep generating.";
   else if (account.notice === "license_revoked") notice = "Your license is no longer active. Contact support if that's unexpected.";
-  else if (trial && account.accountLicense) notice = "Your account has a license that is not on this browser. Open Settings to use it here.";
-  else if (trial && q.remaining === 0) notice = "Your free trial is used up. Activate a license to keep generating.";
-  else if (!trial && q.remaining === 0) notice = "You've reached today's limit. It resets at 00:00 UTC.";
+  else if (free && account.accountLicense) notice = "Your account has a license that is not on this browser. Open Settings to use it here.";
+  else if (free && q.limit === 0) notice = "There is no free plan at the moment. A plan lets you generate.";
+  else if (free && q.remaining === 0) notice = `You've used today's ${q.limit} free comments. They come back at 00:00 UTC.${ladder ? ` Need more today? ${ladder}.` : " Need more today? Get a plan."}`;
+  else if (!free && q.remaining === 0) notice = "You've reached today's limit. It resets at 00:00 UTC.";
 
   return {
-    trial,
-    badge: account.planLabel || (trial ? "Free trial" : "Licensed"),
-    badgeClass: account.notice ? "alert" : trial ? "" : "pro",
+    free,
+    ladder,
+    badge: account.planLabel || (free ? "Free" : "Licensed"),
+    badgeClass: account.notice ? "alert" : free ? "" : "pro",
     left: q.remaining,
-    label: trial ? `of ${q.limit} trial generations left` : `of ${q.limit} left today`,
-    sub: trial ? "" : "Resets at 00:00 UTC",
+    label: free ? `of ${q.limit} free comments left today` : `of ${q.limit} left today`,
+    sub: "Resets at 00:00 UTC",
     pct,
     barClass: pct >= 90 ? "bad" : pct >= 70 ? "warn" : "",
     notice,

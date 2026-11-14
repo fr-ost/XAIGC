@@ -29,13 +29,13 @@ The server forwards this to OpenAI to generate the draft, checks the result with
 
 | Data | Form | Purpose |
 | --- | --- | --- |
-| Install ID | One-way hash | Identifies your installation so your trial and license follow it |
+| Install ID | One-way hash | Identifies your installation so your free allowance and license follow it |
 | Access token | One-way hash | Authenticates your installation's requests |
-| IP address | Keyed one-way hash (IPv6 addresses are reduced to their /64 network first) | Limits free-trial abuse and request flooding |
-| X account handle | Hashed in your browser before it is sent, then hashed again with a server key | Stops the free trial being restarted by reinstalling |
+| IP address | Keyed one-way hash (IPv6 addresses are reduced to their /64 network first) | Limits abuse of the free plan and request flooding |
+| X account handle | Hashed in your browser before it is sent, then hashed again with a server key | Stops the daily free allowance being restarted by reinstalling |
 | License key | One-way hash, plus a masked hint such as `XAICG-ABCDE-*****-*****-**XYZ` | Validates your license |
-| Google account | Google's account ID, your email address and your name, as provided by Google when you sign in | Your XAICG account: one free trial per person, and a license that follows you between browsers |
-| Free-trial count | A number stored under a keyed one-way hash of your Google account ID | One free trial per person. Kept even if the account is deleted, so the trial cannot be restarted. |
+| Google account | Google's account ID, your email address and your name, as provided by Google when you sign in | Your XAICG account: one free allowance a day per person, and a license that follows you between browsers |
+| Free-use count | A number for the current day, stored under a keyed one-way hash of your Google account ID | One free allowance a day per person. Kept even if the account is deleted, so deleting and signing up again does not reset the day's count. |
 | Email address | As provided at purchase, if any | License delivery and support |
 | Usage records | Time, type of request, model, token counts, outcome, installation, license | Enforcing plan limits, billing accuracy, abuse detection |
 
@@ -75,14 +75,14 @@ Data is not sold, rented or shared for advertising.
 - **clipboardWrite**: copying a draft when you choose clipboard mode or copy a quote line.
 - **Access to x.com and twitter.com**: adding the XAICG buttons to posts, reading the post you chose, and typing the draft into the reply box.
 - **identity**: showing Chrome's Google account prompt when you choose to sign in.
-- **Access to the XAICG server**: sending generation requests and checking your trial and license. The extension does not read your other tabs.
+- **Access to the XAICG server**: sending generation requests and checking your plan and license. The extension does not read your other tabs.
 
 ## 6. Your choices
 
 - Use clipboard mode if you do not want the extension to type into X.
 - Clear your reply memory in Settings.
 - Sign out, or use a license key without signing in at all.
-- Ask for your account to be deleted by contacting us with your account email, or the install ID shown under Settings, About. Deleting an account erases your Google account ID, name and email address, including the email on any license. What remains carries none of those: the free-trial count described above, your license itself (usable with its key), and usage records.
+- Ask for your account to be deleted by contacting us with your account email, or the install ID shown under Settings, About. Deleting an account erases your Google account ID, name and email address, including the email on any license. What remains carries none of those: the free-use count described above, your license itself (usable with its key), and usage records.
 - Uninstall the extension at any time.
 
 ## 7. Security

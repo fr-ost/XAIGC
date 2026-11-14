@@ -85,7 +85,8 @@ export function loadConfig(env = process.env) {
   const production = env.NODE_ENV === "production";
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
   const pricing = MODEL_PRICING[model] || { in: 0, out: 0 };
-  const trialGenerations = int(env.TRIAL_GENERATIONS, 20, { min: 0, max: 10000 });
+  // The free plan: this many generations a day for each person, for nothing.
+  const freeDaily = int(env.FREE_DAILY_LIMIT, 5, { min: 0, max: 10000 });
   // Railway injects RAILWAY_* variables into every service.
   const onRailway = Object.keys(env).some((key) => key.startsWith("RAILWAY_"));
 
@@ -148,23 +149,27 @@ export function loadConfig(env = process.env) {
 
     plans: parsePlans(env.PLANS_JSON),
 
-    trial: {
-      generations: trialGenerations,
-      // All trial use from one network inside the window is capped here, so
-      // reinstalling or switching X accounts on the same connection runs dry.
-      ipLimit: int(env.TRIAL_IP_LIMIT, trialGenerations * 3, { min: 0 }),
-      ipWindowDays: int(env.TRIAL_IP_WINDOW_DAYS, 30, { min: 1, max: 3650 }),
-      requireHandle: flag(env.TRIAL_REQUIRE_X_ACCOUNT, false),
-      // With Google sign-in configured, the free trial needs an account by
-      // default: one trial per Google account is the strongest brake on
-      // trial farming, and it gives you a list of who your users are.
-      requireSignIn: flag(env.TRIAL_REQUIRE_SIGN_IN, googleEnabled),
+    // The free plan. Paid plans are in `plans` above.
+    free: {
+      // 0 switches the free plan off: only licensed users can generate.
+      dailyLimit: freeDaily,
+      // All free use from one network in a day is capped here, so making
+      // new accounts or reinstalling on the same connection runs dry. It is
+      // well above one person's allowance because homes and offices share
+      // an address.
+      ipDailyLimit: int(env.FREE_IP_DAILY_LIMIT, freeDaily * 10, { min: 0 }),
+      requireHandle: flag(env.FREE_REQUIRE_X_ACCOUNT ?? env.TRIAL_REQUIRE_X_ACCOUNT, false),
+      // With Google sign-in configured, the free plan needs an account by
+      // default: one allowance per Google account is the strongest brake on
+      // farming it, and it gives you a list of who your users are.
+      requireSignIn: flag(env.FREE_REQUIRE_SIGN_IN ?? env.TRIAL_REQUIRE_SIGN_IN, googleEnabled),
     },
 
     caps: {
       // Wallet protection: hard ceilings on generations per UTC day.
       globalDaily: int(env.GLOBAL_DAILY_CAP, 30000, { min: 1 }),
-      trialGlobalDaily: int(env.TRIAL_GLOBAL_DAILY_CAP, 3000, { min: 0 }),
+      // The most free generations served in a day, across everyone.
+      freeGlobalDaily: int(env.FREE_GLOBAL_DAILY_CAP ?? env.TRIAL_GLOBAL_DAILY_CAP, 3000, { min: 0 }),
     },
 
     limits: {
@@ -204,8 +209,16 @@ export function loadConfig(env = process.env) {
       problems.push(`GOOGLE_CLIENT_ID should be an OAuth client ID ending in .apps.googleusercontent.com (got "${id.slice(0, 24)}..."). Use the client of type "Chrome Extension".`);
     }
   }
-  if (config.trial.requireSignIn && !googleEnabled) {
-    problems.push("TRIAL_REQUIRE_SIGN_IN is on but Google sign-in is not configured (GOOGLE_CLIENT_ID).");
+  if (config.free.requireSignIn && !googleEnabled) {
+    problems.push("FREE_REQUIRE_SIGN_IN is on but Google sign-in is not configured (GOOGLE_CLIENT_ID).");
+  }
+  // Settings from before the free plan became a daily allowance. They are
+  // ignored, and saying so beats silently doing something different.
+  config.notices = [];
+  for (const old of ["TRIAL_GENERATIONS", "TRIAL_IP_LIMIT", "TRIAL_IP_WINDOW_DAYS"]) {
+    if (env[old] !== undefined && env[old] !== "") {
+      config.notices.push(`${old} is no longer used. The free plan is now a daily allowance: FREE_DAILY_LIMIT (currently ${config.free.dailyLimit} a day) and FREE_IP_DAILY_LIMIT.`);
+    }
   }
   if (config.adminToken && config.adminToken.length < 24) {
     problems.push("ADMIN_TOKEN must be at least 24 characters. Leave it unset to disable the admin API.");

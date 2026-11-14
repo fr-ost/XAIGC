@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>The XAICG blog</title>
+    <link>https://xaicg.uniquelabs.org/blog</link>
+    <atom:link href="https://xaicg.uniquelabs.org/feed.xml" rel="self" type="application/rss+xml"/>
+    <description>Practical guides to replying well on X (Twitter).</description>
+    <language>en</language>
+    <item>
+      <title>How to Write Better Replies on X (Twitter)</title>
+      <link>https://xaicg.uniquelabs.org/blog/how-to-write-better-replies-on-x</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/how-to-write-better-replies-on-x</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>A practical guide to writing replies on X that people read and answer. React to one detail, add something new, keep it short and skip the filler.</description>
+    </item>
+    <item>
+      <title>How to Grow on X by Replying to Other People</title>
+      <link>https://xaicg.uniquelabs.org/blog/grow-on-x-by-replying</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/grow-on-x-by-replying</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>Replies put your name in front of an audience someone else built. How to choose the right posts, reply early and well, and turn replies into followers.</description>
+    </item>
+    <item>
+      <title>AI Reply Generators for X: How They Work and What to Check</title>
+      <link>https://xaicg.uniquelabs.org/blog/ai-reply-generator-for-x-guide</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/ai-reply-generator-for-x-guide</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>What an AI reply generator for X (Twitter) does, how an assistant differs from a bot, and seven things to check before you install one.</description>
+    </item>
+    <item>
+      <title>How to Make AI Replies Sound Like You</title>
+      <link>https://xaicg.uniquelabs.org/blog/make-ai-replies-sound-like-you</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/make-ai-replies-sound-like-you</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>AI drafts sound generic until you tell the tool who you are. How to describe your voice, set tone and length, and fix a draft in ten seconds.</description>
+    </item>
+    <item>
+      <title>Is It Safe to Use AI for Replies on X?</title>
+      <link>https://xaicg.uniquelabs.org/blog/is-it-safe-to-use-ai-replies-on-x</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/is-it-safe-to-use-ai-replies-on-x</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>What separates an AI writing assistant from a reply bot, what X's rules on spam and automation are aimed at, and the habits that protect your account.</description>
+    </item>
+    <item>
+      <title>9 Types of Replies That Start Conversations on X</title>
+      <link>https://xaicg.uniquelabs.org/blog/reply-types-that-start-conversations</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/reply-types-that-start-conversations</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>Nine kinds of reply that get answered on X, each with an example. The specific question, the added data point, the polite disagreement and more.</description>
+    </item>
+    <item>
+      <title>How to Write a Thread on X That People Finish</title>
+      <link>https://xaicg.uniquelabs.org/blog/how-to-write-a-thread-on-x</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/how-to-write-a-thread-on-x</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>A step-by-step way to write a thread on X. One idea, a first post that earns the second, one point per post and an ending that asks for something.</description>
+    </item>
+    <item>
+      <title>12 Signs a Reply Was Written by AI (and How to Fix Them)</title>
+      <link>https://xaicg.uniquelabs.org/blog/signs-a-reply-was-written-by-ai</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/signs-a-reply-was-written-by-ai</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>The giveaways of AI-written replies on X, from generic praise to tidy three-part lists, and how to fix each one before you post.</description>
+    </item>
+    <item>
+      <title>A Daily Reply Routine for X: How Many Replies Is Enough?</title>
+      <link>https://xaicg.uniquelabs.org/blog/daily-reply-routine-for-x</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/daily-reply-routine-for-x</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>How many replies a day make sense on X, and a 20-minute routine for doing them well. Realistic numbers for beginners, regulars and teams.</description>
+    </item>
+    <item>
+      <title>Before You Install a Chrome Extension for X: A Safety Check</title>
+      <link>https://xaicg.uniquelabs.org/blog/chrome-extension-permissions-x-twitter</link>
+      <guid isPermaLink="true">https://xaicg.uniquelabs.org/blog/chrome-extension-permissions-x-twitter</guid>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 GMT</pubDate>
+      <description>Extensions for X can read what you read. A short checklist covering permissions, site access, API keys, the privacy policy and who makes it.</description>
+    </item>
+  </channel>
+</rss>

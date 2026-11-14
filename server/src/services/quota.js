@@ -9,8 +9,6 @@
 import { num } from "../db/index.js";
 import { licenseState, planFor } from "./licenses.js";
 
-const EPOCH = "1970-01-01T00:00:00.000Z";
-
 export function utcDay(now = Date.now()) {
   return new Date(now).toISOString().slice(0, 10);
 }
@@ -27,18 +25,26 @@ export function resolveEntitlement(config, license, now = Date.now()) {
     const plan = planFor(config, license);
     return { mode: "license", license, plan, dailyLimit: plan.dailyLimit, licenseState: state };
   }
-  return { mode: "trial", licenseState: state };
+  return { mode: "free", licenseState: state };
 }
 
-// The trial is one allowance counted against every identity we have for the
-// caller: the install, the Google account, the X account and the network.
-// Whichever runs out first ends it. The order is fixed (see reserve()).
-function trialKeys(config, { deviceId, userKey = null, ipHash, xhHash, now }) {
-  const ipCutoff = new Date(now - config.trial.ipWindowDays * 86_400_000).toISOString();
-  const keys = [{ key: `dev:${deviceId}`, limit: config.trial.generations, cutoff: EPOCH, type: "device" }];
-  if (userKey) keys.push({ key: `user:${userKey}`, limit: config.trial.generations, cutoff: EPOCH, type: "user" });
-  if (xhHash) keys.push({ key: `xh:${xhHash}`, limit: config.trial.generations, cutoff: EPOCH, type: "account" });
-  if (ipHash) keys.push({ key: `ip:${ipHash}`, limit: config.trial.ipLimit, cutoff: ipCutoff, type: "network" });
+// The free plan is a daily allowance counted against every identity we have
+// for the caller: the install, the Google account, the X account and the
+// network. Whichever runs out first ends it for the day, so a new install,
+// a new X account or a new Google account on its own opens nothing extra.
+// Every counter starts again at 00:00 UTC. The order is fixed (see reserve()).
+//
+// (The table is still called trial_counters: before the free plan was a
+// daily allowance it was a one-time trial, and renaming a table is not worth
+// a migration.)
+function freeKeys(config, { deviceId, userKey = null, ipHash, xhHash, now }) {
+  const cutoff = `${utcDay(now)}T00:00:00.000Z`; // counts from before today no longer apply
+  const at = new Date(now).toISOString();
+  const each = config.free.dailyLimit;
+  const keys = [{ key: `dev:${deviceId}`, limit: each, cutoff, at, type: "device" }];
+  if (userKey) keys.push({ key: `user:${userKey}`, limit: each, cutoff, at, type: "user" });
+  if (xhHash) keys.push({ key: `xh:${xhHash}`, limit: each, cutoff, at, type: "account" });
+  if (ipHash) keys.push({ key: `ip:${ipHash}`, limit: config.free.ipDailyLimit, cutoff, at, type: "network" });
   return keys;
 }
 
@@ -54,19 +60,19 @@ async function bumpDaily(q, subject, day, limit) {
   return rows.length > 0;
 }
 
-// Windowed counter: rows older than `cutoff` start over, otherwise the bump
-// only succeeds while `used` is under `limit`.
-async function bumpTrial(q, { key, limit, cutoff }) {
+// Daily counter: a row last started before `cutoff` (today's midnight) starts
+// over, otherwise the bump only succeeds while `used` is under `limit`.
+async function bumpFree(q, { key, limit, cutoff, at }) {
   if (limit <= 0) return false;
   const { rows } = await q.query(
-    `INSERT INTO trial_counters (key, used) VALUES ($1, 1)
+    `INSERT INTO trial_counters (key, used, window_start) VALUES ($1, 1, $4::timestamptz)
      ON CONFLICT (key) DO UPDATE SET
        used = CASE WHEN trial_counters.window_start < $3::timestamptz THEN 1 ELSE trial_counters.used + 1 END,
-       window_start = CASE WHEN trial_counters.window_start < $3::timestamptz THEN now() ELSE trial_counters.window_start END,
+       window_start = CASE WHEN trial_counters.window_start < $3::timestamptz THEN $4::timestamptz ELSE trial_counters.window_start END,
        updated_at = now()
      WHERE trial_counters.window_start < $3::timestamptz OR trial_counters.used < $2
      RETURNING used`,
-    [key, limit, cutoff],
+    [key, limit, cutoff, at],
   );
   return rows.length > 0;
 }
@@ -79,25 +85,27 @@ class Denied extends Error {
 }
 
 // Returns { ok: false, reason } or { ok: true, refund(), addTokens(in, out) }.
-// reason: daily_limit | trial_exhausted | trial_network_exhausted |
-//         trial_capacity | capacity
+// reason: daily_limit | free_limit | free_network_limit | free_capacity |
+//         capacity
 //
 // Lock order matters. Every writer touches counter rows one at a time and in
-// the same order (trial keys, then the plan/trial daily row, then 'global'),
+// the same order (free keys, then the plan or free daily row, then 'global'),
 // so two requests can never hold each other's rows and deadlock.
 export async function reserve(db, config, { device, entitlement, ipHash, xhHash, now = Date.now() }) {
   const day = utcDay(now);
   const licensed = entitlement.mode === "license";
-  const trial = licensed ? [] : trialKeys(config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash, now });
+  const free = licensed ? [] : freeKeys(config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash, now });
+  // 'global:trial' is the name this row has always had; it now counts the
+  // free plan's use, and keeping it keeps the history in one series.
   const daily = licensed
     ? [{ subject: `lic:${entitlement.license.id}`, limit: entitlement.dailyLimit, reason: "daily_limit" }]
-    : [{ subject: "global:trial", limit: config.caps.trialGlobalDaily, reason: "trial_capacity" }];
+    : [{ subject: "global:trial", limit: config.caps.freeGlobalDaily, reason: "free_capacity" }];
   daily.push({ subject: "global", limit: config.caps.globalDaily, reason: "capacity" });
 
   try {
     await db.tx(async (t) => {
-      for (const k of trial) {
-        if (!(await bumpTrial(t, k))) throw new Denied(k.type === "network" ? "trial_network_exhausted" : "trial_exhausted");
+      for (const k of free) {
+        if (!(await bumpFree(t, k))) throw new Denied(k.type === "network" ? "free_network_limit" : "free_limit");
       }
       for (const d of daily) {
         if (!(await bumpDaily(t, d.subject, day, d.limit))) throw new Denied(d.reason);
@@ -113,7 +121,7 @@ export async function reserve(db, config, { device, entitlement, ipHash, xhHash,
     day,
     async refund() {
       await db.tx(async (t) => {
-        for (const k of trial) {
+        for (const k of free) {
           await t.query("UPDATE trial_counters SET used = GREATEST(used - 1, 0) WHERE key = $1", [k.key]);
         }
         for (const d of daily) {
@@ -137,15 +145,15 @@ export async function reserve(db, config, { device, entitlement, ipHash, xhHash,
   };
 }
 
-// Read-only view of the trial allowance. `remaining` is the tightest of the
-// device, X-account and network counters.
-export async function trialStatus(db, config, { deviceId, userKey = null, ipHash, xhHash, now = Date.now() }) {
-  const keys = trialKeys(config, { deviceId, userKey, ipHash, xhHash, now });
+// Read-only view of today's free allowance. `remaining` is the tightest of
+// the device, Google-account, X-account and network counters.
+export async function freeStatus(db, config, { deviceId, userKey = null, ipHash, xhHash, now = Date.now() }) {
+  const keys = freeKeys(config, { deviceId, userKey, ipHash, xhHash, now });
   const { rows } = await db.query("SELECT key, used, window_start FROM trial_counters WHERE key = ANY($1::text[])", [
     keys.map((k) => k.key),
   ]);
   const byKey = new Map(rows.map((r) => [r.key, r]));
-  let remaining = config.trial.generations;
+  let remaining = config.free.dailyLimit;
   let limitedBy = "device";
   for (const k of keys) {
     const row = byKey.get(k.key);
@@ -157,7 +165,7 @@ export async function trialStatus(db, config, { deviceId, userKey = null, ipHash
       limitedBy = k.type;
     }
   }
-  const limit = config.trial.generations;
+  const limit = config.free.dailyLimit;
   return { limit, used: Math.max(0, limit - remaining), remaining, limitedBy };
 }
 
@@ -197,7 +205,7 @@ export async function buildAccount(db, config, { device, ipHash, xhHash = null, 
     user: device.user ? { email: device.user.email, name: device.user.name || null } : null,
     auth: {
       google: config.google.enabled,
-      signInRequired: entitlement.mode === "trial" && config.trial.requireSignIn && !device.user,
+      signInRequired: entitlement.mode === "free" && config.free.requireSignIn && !device.user,
     },
     accountLicense,
   };
@@ -230,14 +238,19 @@ export async function buildAccount(db, config, { device, ipHash, xhHash = null, 
     };
   }
 
-  const trial = await trialStatus(db, config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash: xhHash || device.xh_hash, now });
+  const free = await freeStatus(db, config, { deviceId: device.id, userKey: device.user?.trial_key, ipHash, xhHash: xhHash || device.xh_hash, now });
   return {
     ...base,
-    plan: "trial",
-    planLabel: "Free trial",
+    plan: "free",
+    planLabel: "Free",
     licensed: false,
     license: licenseInfo,
-    quota: { scope: "trial", limit: trial.limit, used: trial.used, remaining: trial.remaining, resetsAt: null, limitedBy: trial.limitedBy },
+    // What paying gets you, smallest first, so the extension can say it
+    // without carrying numbers of its own that would go stale.
+    upgrade: Object.values(config.plans)
+      .map((p) => ({ plan: p.label, perDay: p.dailyLimit }))
+      .sort((a, b) => a.perDay - b.perDay),
+    quota: { scope: "free", limit: free.limit, used: free.used, remaining: free.remaining, resetsAt: nextUtcMidnight(now), limitedBy: free.limitedBy },
     notice: entitlement.licenseState === "expired" ? "license_expired" : entitlement.licenseState === "revoked" ? "license_revoked" : null,
   };
 }

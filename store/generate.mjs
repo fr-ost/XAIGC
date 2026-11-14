@@ -37,9 +37,10 @@ const user = { name: "Alex Rivera", email: "alex.rivera@example.com" };
 const links = { buy: "https://uniquelabs.org", support: "https://uniquelabs.org", website: "https://uniquelabs.org" };
 const auth = { google: true, signInRequired: false };
 
-const trialAccount = {
-  plan: "trial", planLabel: "Free trial", licensed: false, license: null, notice: null, accountLicense: null, user, auth, links,
-  quota: { scope: "trial", limit: 20, used: 3, remaining: 17, resetsAt: null },
+const freeAccount = {
+  plan: "free", planLabel: "Free", licensed: false, license: null, notice: null, accountLicense: null, user, auth, links,
+  quota: { scope: "free", limit: 5, used: 2, remaining: 3, resetsAt: "2027-01-01T00:00:00.000Z" },
+  upgrade: [{ plan: "Starter", perDay: 60 }, { plan: "Pro", perDay: 200 }, { plan: "Agency", perDay: 600 }],
 };
 const proAccount = {
   plan: "pro", planLabel: "Pro", licensed: true, notice: null, accountLicense: null, user, auth, links,
@@ -78,7 +79,7 @@ const popupThread = { mode: "thread", inputs: { post: "", thread: "why distribut
 // What each page finds in extension storage. `frames` overrides it per iframe
 // name, so one screenshot can show two popups in different states.
 const preview = (storage, frames = {}) => ({ version: VERSION, deviceId: "4b7c1d2e-9a53-4f08-b6c1-7d2e5a903c41", replies, storage, frames });
-const TRIAL = preview({ account: trialAccount, settings: { outputMode: "insert", showQuestionButton: true } });
+const FREE = preview({ account: freeAccount, settings: { outputMode: "insert", showQuestionButton: true } });
 const PRO = preview({ account: proAccount, settings, popupState: popupPosts }, { thread: { popupState: popupThread } });
 
 /* ------------------------------ PNG without alpha ------------------------- */
@@ -236,7 +237,7 @@ await shot(1, {
     { text: "3 drafts from every click", icon: "3", x: 380, y: 78, rotate: 3 },
     { text: "Try another, free", icon: "↻", x: 36, y: 668, rotate: -3, dark: true },
   ],
-}, TRIAL, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
+}, FREE, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
 
 await shot(2, {
   badge: "9 tones",
@@ -245,7 +246,7 @@ await shot(2, {
   chips: ["!Auto", "Casual", "Witty", "Supportive", "Skeptical", "Analytical", "Blunt", "Technical", "Professional"],
   frames: [{ name: "x", src: TIMELINE, width: 660, height: 600, x: 40, y: 100 }],
   callouts: [{ text: "Asks a sharp question too", icon: "?", x: 30, y: 60, rotate: -3 }],
-}, TRIAL, (page) => openTones(page.frameLocator('iframe[name="x"]')));
+}, FREE, (page) => openTones(page.frameLocator('iframe[name="x"]')));
 
 await shot(3, {
   badge: "Compose",
@@ -273,7 +274,7 @@ await shot(4, {
 }, PRO, (page) => scrollFrameTo(page, "voice", "section:has(#persona)", 18));
 
 await shot(5, {
-  badge: "Free trial · 20 generations",
+  badge: "Free · 5 comments every day",
   headline: "Start free. Your plan *follows you*",
   sub: "Sign in with Google and it is there on every browser you use. No key to type, no API key to find.",
   chips: ["Starter $0.99", "!Pro $1.99", "Agency $4.99"],
@@ -290,7 +291,7 @@ for (const [size, width, height, file] of [
   ["marquee", 1400, 560, path.join(STORE_OUT, "promo-marquee.png")],
   ["og", 1200, 630, path.join(SITE_OUT, "og.png")],
 ]) {
-  const { context, page } = await open({ width, height, data: TRIAL });
+  const { context, page } = await open({ width, height, data: FREE });
   await page.goto(`${BASE}/store/scenes/promo.html?size=${size}`);
   await settle(page, 200);
   await save(file, await page.screenshot({ type: "png" }));
@@ -302,7 +303,7 @@ console.log("website screenshots (2x)");
 const SHOTS = path.join(SITE_OUT, "shots");
 
 for (const [name, act, height] of [["reply", draftReply, 520], ["tones", openTones, 640]]) {
-  const { context, page } = await open({ width: 700, height, scale: 2, data: TRIAL });
+  const { context, page } = await open({ width: 700, height, scale: 2, data: FREE });
   await page.goto(TIMELINE);
   await act(page);
   await settle(page);

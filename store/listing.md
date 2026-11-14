@@ -44,7 +44,7 @@ WHAT YOU CAN DO
 • Reply to any post with one click
 • Ask a short, specific question about a post
 • Pick a tone when you want one: casual, witty, supportive, skeptical, analytical, blunt, technical or professional. Auto picks one to fit the post.
-• Not happy with a draft? "Try another" steps through more drafts without using another generation
+• Not happy with a draft? "Try another" steps through more drafts without using another comment from your allowance
 • Copy a line for a quote post
 • Write original posts in three lengths from a rough idea
 • Turn one idea into a thread of three to eight posts
@@ -58,11 +58,12 @@ Describe your persona once, or start from a preset and edit it. XAICG is built t
 NO API KEY
 You do not need an OpenAI account or an API key. Install it, sign in with Google and start writing.
 
-FREE TRIAL AND PLANS
-• Free trial: 20 generations, with every tone and every writing mode. No card needed.
-• Starter, $0.99 a month: 60 generations a day, one browser
-• Pro, $1.99 a month: 200 generations a day, two browsers
-• Agency, $4.99 a month: 600 generations a day, five browsers
+FREE, WITH PLANS WHEN YOU NEED MORE
+• Free: 5 comments every day, with every tone and every writing mode. No card needed.
+• Starter, $0.99 a month: 60 comments a day, one browser
+• Pro, $1.99 a month: 200 comments a day, two browsers
+• Agency, $4.99 a month: 600 comments a day, five browsers
+A comment is one request for drafts: a reply, a question, a post, a thread or a rewrite. Allowances start again each day at 00:00 UTC.
 A license belongs to your Google account, so on a new computer you sign in and it is there. Licenses are sold at https://xaicg.uniquelabs.org.
 
 PRIVACY
@@ -80,7 +81,7 @@ XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
 XAICG is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. X and Twitter are trademarks of their owner.
 ```
 
-If you change `TRIAL_GENERATIONS` or the plans on the server, change the numbers here and in `website/config.js` as well. If you run without Google sign-in, change "sign in with Google and start writing" to "and start writing", and drop the sentence about the license belonging to a Google account.
+If you change `FREE_DAILY_LIMIT` or the plans on the server, change the numbers here and in `website/config.js` as well. If you run without Google sign-in, change "sign in with Google and start writing" to "and start writing", and drop the sentence about the license belonging to a Google account.
 
 ### Category and language
 
@@ -98,7 +99,7 @@ If you change `TRIAL_GENERATIONS` or the plans on the server, change the numbers
 | Screenshot 2 | `store/assets/screenshot-2.png` (tone menu) | 1280×800 |
 | Screenshot 3 | `store/assets/screenshot-3.png` (posts and threads) | 1280×800 |
 | Screenshot 4 | `store/assets/screenshot-4.png` (voice settings) | 1280×800 |
-| Screenshot 5 | `store/assets/screenshot-5.png` (trial and license) | 1280×800 |
+| Screenshot 5 | `store/assets/screenshot-5.png` (free plan and license) | 1280×800 |
 | Small promo tile | `store/assets/promo-small.png` | 440×280 |
 | Marquee promo tile | `store/assets/promo-marquee.png` | 1400×560 |
 
@@ -136,7 +137,7 @@ Stores the user's settings (tone, persona, language, whether sound effects are o
 **identity**
 
 ```
-Lets the user sign in with their Google account from inside the extension, using Chrome's own account prompt. The extension requests only the basic profile (openid, email, profile) to create the user's XAICG account, so that the free trial is one per person and a license follows them to their other browsers. The Google token is sent to the XAICG server once to confirm who the user is, and is not stored.
+Lets the user sign in with their Google account from inside the extension, using Chrome's own account prompt. The extension requests only the basic profile (openid, email, profile) to create the user's XAICG account, so that the daily free allowance is one per person and a license follows them to their other browsers. The Google token is sent to the XAICG server once to confirm who the user is, and is not stored.
 ```
 
 **clipboardWrite**
@@ -150,7 +151,7 @@ Copies a draft to the clipboard when the user presses a Copy button, when they c
 ```
 x.com and twitter.com: the extension adds its AI Reply and Question buttons to posts on these pages, reads the text of the one post the user clicked, and types the draft into the site's reply box. It runs on no other site.
 
-https://aigc.uniquelabs.org: this is XAICG's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's free trial and license there.
+https://aigc.uniquelabs.org: this is XAICG's own server. The extension sends it the post text and the user's writing settings and receives the draft. It also checks the user's plan and license there.
 ```
 
 ### Remote code
@@ -166,7 +167,7 @@ Tick the four marked Yes, and leave the rest unticked:
 | Personally identifiable information | Yes | Name and email address, when the user signs in with Google |
 | Authentication information | Yes | A license key the user types, the installation's access token, and the short-lived Google token used once to sign in |
 | Website content | Yes | The text of the post the user asks XAICG to answer |
-| Location | Yes | The server sees the user's IP address and keeps a keyed hash of it to limit trial abuse. The store counts an IP address as location data. |
+| Location | Yes | The server sees the user's IP address and keeps a keyed hash of it to limit abuse of the free plan. The store counts an IP address as location data. |
 | Health information | No | |
 | Financial and payment information | No | Payments happen on your website, not in the extension |
 | Personal communications | No | Direct messages are never read |
@@ -187,7 +188,7 @@ These are true of the code as it stands: the only third party that receives anyt
 https://xaicg.uniquelabs.org/privacy
 ```
 
-That page is generated from `PRIVACY-POLICY.md`. If you change how data is handled, change the policy, run `node scripts/build-privacy.mjs`, and update the answers above to match.
+That page is generated from `PRIVACY-POLICY.md`. If you change how data is handled, change the policy, run `node scripts/build-site.mjs`, and update the answers above to match.
 
 ---
 
@@ -205,12 +206,12 @@ Your publisher account will also ask whether you are a **trader** (a requirement
 
 ## 5. Test instructions tab
 
-A reviewer can sign in with any Google account and use the free trial. So that they do not have to, also give them a license key: in the admin dashboard, issue one Pro license with the note "Chrome Web Store review" and paste its key below. You can revoke it after approval.
+A reviewer can sign in with any Google account and use the free plan. So that they do not have to, also give them a license key: in the admin dashboard, issue one Pro license with the note "Chrome Web Store review" and paste its key below. You can revoke it after approval.
 
 ```
 XAICG needs no username or password. There are two ways to test it.
 
-A. With the free trial: click the XAICG icon in the toolbar and press "Sign in with Google". Chrome shows its own account prompt; any Google account works. This starts a free trial of 20 generations.
+A. On the free plan: click the XAICG icon in the toolbar and press "Sign in with Google". Chrome shows its own account prompt; any Google account works. The free plan gives 5 comments a day, which is enough to try a reply, a post and a thread.
 
 B. Without signing in, use this license key:
 
@@ -242,7 +243,7 @@ Notes for the reviewer:
 - [ ] The extension, loaded unpacked, can sign in, generate a reply on x.com and activate a license against the live server
 - [ ] `https://xaicg.uniquelabs.org/privacy`, `https://xaicg.uniquelabs.org/terms` and `https://xaicg.uniquelabs.org/support` open
 - [ ] The reviewer license key in the test instructions works
-- [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
+- [ ] The numbers in the description match the server (`FREE_DAILY_LIMIT`, plans) and `website/config.js`
 
 The server should accept only this extension. On Railway, set `ALLOWED_ORIGINS=chrome-extension://lpophlkocboadjhancbdikipnphffgil`: see [SETUP.md](../SETUP.md#9-lock-the-api-to-your-extension).
 

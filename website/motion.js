@@ -136,11 +136,11 @@
     const left = $("#demoLeft");
     const bar = $("#demoBar");
     const chips = $$("[data-tone]", demo);
-    const TRIAL = Number(left?.dataset.total || 20);
+    const TOTAL = Number(left?.dataset.total || 5); // free comments a day
 
     let tone = "auto";
     let variant = 0;
-    let remaining = TRIAL - 4;
+    let remaining = Math.max(TOTAL - 1, 1);
     let job = 0; // bumping this cancels whatever is being typed
     let touched = false;
     let cycle = null;
@@ -148,7 +148,7 @@
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const showQuota = () => {
       if (left) left.textContent = String(remaining);
-      if (bar) bar.style.width = `${((TRIAL - remaining) / TRIAL) * 100}%`;
+      if (bar) bar.style.width = `${((TOTAL - remaining) / TOTAL) * 100}%`;
     };
     const select = (name) => {
       tone = name;
@@ -179,7 +179,8 @@
         demo.classList.remove("typing");
       }
       if (spend) {
-        remaining = remaining > 6 ? remaining - 1 : TRIAL - 1;
+        // Never shown at zero: the demo is not there to say no.
+        remaining = remaining > 1 ? remaining - 1 : Math.max(TOTAL - 1, 1);
         showQuota();
       }
       toast?.classList.add("show");

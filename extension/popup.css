@@ -30,7 +30,7 @@ main {
   min-height: 44px;
 }
 
-/* First run: the trial offer comes before everything else. */
+/* First run: the free plan comes before everything else. */
 .start {
   display: grid;
   gap: 12px;

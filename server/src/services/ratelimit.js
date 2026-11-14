@@ -3,7 +3,7 @@
 // These guard against bursts and brute force. They live in process memory,
 // which is exactly right for a single Railway service. If you ever run
 // several replicas, each replica enforces its own bucket; the hard quotas
-// (trial, daily, global caps) are in Postgres and stay exact regardless.
+// (free allowance, daily, global caps) are in Postgres and stay exact regardless.
 
 const MAX_KEYS = 200_000;
 

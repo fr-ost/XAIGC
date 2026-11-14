@@ -76,8 +76,9 @@ async function main() {
   process.on("SIGINT", () => shutdown("SIGINT"));
 
   await app.listen({ port: config.port, host: config.host });
+  for (const notice of config.notices) app.log.warn(notice);
   app.log.info(
-    { version: config.version, database: db.kind, model: config.openai.model, admin: Boolean(config.adminToken) },
+    { version: config.version, database: db.kind, model: config.openai.model, admin: Boolean(config.adminToken), freePerDay: config.free.dailyLimit },
     "XAICG server ready",
   );
 }

@@ -8,9 +8,9 @@ import { num } from "../db/index.js";
 
 // Create the account on first sign-in, refresh email and name afterwards.
 //
-// `trialKey` is a keyed hash of the Google account id. The trial counter
+// `trialKey` is a keyed hash of the Google account id. The free-use counter
 // hangs off it instead of the row id, so an account that is deleted and comes
-// back does not get a second free trial.
+// back the same day does not get a second free allowance.
 //
 // Google guarantees an address belongs to one account at a time, so whichever
 // account just signed in with it is the current holder: any other row still
@@ -65,7 +65,10 @@ export async function signOutDevice(db, device, { ipHash = null } = {}) {
 
 /* ----------------------------- admin operations ----------------------------- */
 
-const USER_COLUMNS = `
+// `since` is the number of the query parameter holding today's midnight
+// (UTC). Free use is counted per day, so a counter last started before then
+// reads as nothing used.
+const userColumns = (since) => `
   u.id, u.email, u.name, u.blocked, u.blocked_reason, u.created_at, u.last_login_at,
   (SELECT count(*)::int FROM devices d WHERE d.user_id = u.id) AS devices,
   (SELECT COALESCE(sum(d.total_generations), 0)::int FROM devices d WHERE d.user_id = u.id) AS generations,
@@ -75,9 +78,12 @@ const USER_COLUMNS = `
   (SELECT l.plan FROM licenses l
      WHERE l.user_id = u.id AND l.status = 'active' AND (l.expires_at IS NULL OR l.expires_at > now())
      ORDER BY l.created_at DESC LIMIT 1) AS plan,
-  COALESCE((SELECT t.used FROM trial_counters t WHERE t.key = 'user:' || u.trial_key), 0) AS trial_used`;
+  COALESCE((SELECT t.used FROM trial_counters t
+              WHERE t.key = 'user:' || u.trial_key AND t.window_start >= $${since}::timestamptz), 0) AS free_used`;
 
-export async function listUsers(db, { q = "", filter = "", limit = 50, offset = 0 }) {
+const midnight = (day) => `${day}T00:00:00.000Z`;
+
+export async function listUsers(db, { q = "", filter = "", limit = 50, offset = 0, day }) {
   const where = [];
   const params = [];
   if (q) {
@@ -86,22 +92,22 @@ export async function listUsers(db, { q = "", filter = "", limit = 50, offset = 
   }
   const licensed = "EXISTS (SELECT 1 FROM licenses l WHERE l.user_id = u.id AND l.status = 'active' AND (l.expires_at IS NULL OR l.expires_at > now()))";
   if (filter === "licensed") where.push(licensed);
-  else if (filter === "trial") where.push(`NOT ${licensed}`);
+  else if (filter === "free") where.push(`NOT ${licensed}`);
   else if (filter === "blocked") where.push("u.blocked");
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const total = await db.query(`SELECT count(*)::int AS n FROM users u ${whereSql}`, params);
-  params.push(limit, offset);
+  params.push(limit, offset, midnight(day));
   const rows = await db.query(
-    `SELECT ${USER_COLUMNS} FROM users u ${whereSql}
-     ORDER BY u.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    `SELECT ${userColumns(params.length)} FROM users u ${whereSql}
+     ORDER BY u.created_at DESC LIMIT $${params.length - 2} OFFSET $${params.length - 1}`,
     params,
   );
   return { total: num(total.rows[0].n), users: rows.rows };
 }
 
-export async function getUserDetail(db, id) {
-  const user = await db.query(`SELECT ${USER_COLUMNS} FROM users u WHERE u.id = $1`, [id]);
+export async function getUserDetail(db, id, { day }) {
+  const user = await db.query(`SELECT ${userColumns(2)} FROM users u WHERE u.id = $1`, [id, midnight(day)]);
   if (!user.rows[0]) throw errors.notFound("User not found.");
   const [devices, licenses] = await Promise.all([
     db.query(
@@ -134,9 +140,9 @@ export async function setUserBlocked(db, id, blocked, reason) {
 // every license it owned, which become key-only licenses. Their browsers are
 // signed out and give back the seats that came with the account.
 //
-// Kept on purpose: the trial counter, which is keyed by a hash of the Google
-// id and holds a number, so the same Google account cannot collect a new free
-// trial by being deleted. Devices and usage rows remain too; they carry no
+// Kept on purpose: the free-use counter, which is keyed by a hash of the
+// Google id and holds a number, so the same Google account cannot collect a
+// second free allowance in a day by being deleted. Devices and usage rows remain too; they carry no
 // name, email or Google id.
 //
 // A block is part of the account row, so deleting a blocked account lifts the

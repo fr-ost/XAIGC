@@ -49,7 +49,7 @@ export async function registerAuthRoutes(app, { config, db, limiters, clock, req
         throw errors.badRequest(err.message, "google_token_rejected");
       }
 
-      // The trial counter hangs off a keyed hash of the Google id, so it
+      // The free-use counter hangs off a keyed hash of the Google id, so it
       // survives the account being deleted and created again.
       const user = await upsertGoogleUser(db, identity, hmac(config.appSecret, `gsub:${identity.sub}`));
       if (user.blocked) throw errors.forbidden("account_blocked", "This account has been blocked. Contact support.");
