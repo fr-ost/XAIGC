@@ -84,7 +84,7 @@ for (const page of pages) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escape(heading.trim())} | XAICG</title>
   <meta name="description" content="${escape(page.description)}">
-  <meta name="theme-color" content="#0a0b0d">
+  <meta name="theme-color" content="#2ba8a2">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png">
   <link rel="stylesheet" href="/styles.css">
 </head>

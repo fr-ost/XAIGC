@@ -1,72 +1,89 @@
-/* Promo tiles and the link-preview image, in the product's design system. */
+/* Promo tiles and the link-preview image, in the Flip7 look. */
 @font-face { font-family: "Inter"; src: url("/extension/fonts/inter.woff2") format("woff2"); font-weight: 100 900; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
+  --ink: #123532; --gold: #ffd23f; --gold-light: #ffe47a; --coral: #ef6c4a; --cream: #fff8e7; --cream-dark: #f3e7c6; --sky: #5dade2; --teal-light: #3cc4bd; --teal-dark: #1e8c86;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
-  background: #05070d;
+  background: radial-gradient(120% 120% at 74% 46%, #3cc4bd, #2ba8a2 46%, #1e8c86);
   color: #fff;
-  font-family: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-.glow { position: absolute; border-radius: 50%; pointer-events: none; }
-.glow.one { top: -55%; right: -12%; width: 70%; aspect-ratio: 1; background: radial-gradient(closest-side, rgba(0, 82, 255, 0.62), rgba(0, 82, 255, 0.14) 55%, rgba(0, 82, 255, 0)); }
-.glow.two { bottom: -80%; left: -18%; width: 60%; aspect-ratio: 1; background: radial-gradient(closest-side, rgba(92, 64, 255, 0.36), rgba(92, 64, 255, 0)); }
-.grid {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1.4px);
-  background-size: 26px 26px;
-  -webkit-mask-image: radial-gradient(60% 80% at 74% 46%, #000, transparent 78%);
-  mask-image: radial-gradient(60% 80% at 74% 46%, #000, transparent 78%);
+.rays {
+  position: absolute; top: 50%; left: 72%; width: 300vmax; height: 300vmax; margin: -150vmax 0 0 -150vmax; pointer-events: none;
+  background: repeating-conic-gradient(from 4deg, rgba(255, 255, 255, 0.1) 0deg 7.5deg, rgba(255, 255, 255, 0) 7.5deg 15deg);
 }
+.stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: var(--gold); border-top: 3px solid var(--ink); }
 .pitch, .demo { position: relative; z-index: 1; }
-.lockup { display: flex; align-items: center; font-weight: 600; }
-h1 em { font-style: normal; background: linear-gradient(100deg, #7fb0ff 0%, #3d7dff 55%, #8f7bff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* The brand: a fan of cards, a skewed cream plate, a folded ribbon. */
+.lockup { position: relative; display: inline-block; transform: rotate(-3deg); }
+.fan { position: absolute; left: 50%; top: 30%; width: 0; height: 0; }
+.fan i { position: absolute; left: calc(var(--card-w) / -2); bottom: 0; width: var(--card-w); height: calc(var(--card-w) * 1.42); border: 3px solid var(--ink); border-radius: 12px; transform-origin: 50% 130%; }
+.fan i:nth-child(1) { background: var(--coral); transform: rotate(-24deg); }
+.fan i:nth-child(2) { background: var(--sky); transform: rotate(-12deg); }
+.fan i:nth-child(3) { background: var(--cream); }
+.fan i:nth-child(4) { background: var(--teal-light); transform: rotate(12deg); }
+.fan i:nth-child(5) { background: var(--gold); transform: rotate(24deg); }
+.plate { position: relative; display: inline-flex; align-items: center; gap: 4px; border: 4px solid var(--ink); border-radius: 10px; background: var(--cream); transform: skewX(-6deg); box-shadow: 0 6px 0 rgba(18, 53, 50, 0.35); }
+.plate b { display: inline-block; color: var(--gold); line-height: 0.95; font-weight: 800; transform: skewX(6deg) rotate(5deg); text-shadow: 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink), 3px 3px 0 var(--ink), -3px 3px 0 var(--ink), 3px -3px 0 var(--ink), -3px -3px 0 var(--ink), 6px 7px 0 var(--ink); }
+.plate span { display: inline-block; color: var(--teal-dark); font-weight: 800; letter-spacing: 3px; transform: skewX(6deg); }
+.ribbon { position: relative; z-index: 0; display: inline-block; border: 3px solid var(--ink); background: var(--cream); color: var(--teal-dark); font-weight: 800; text-transform: uppercase; transform: rotate(-3deg); white-space: nowrap; }
+.ribbon::before, .ribbon::after { content: ""; position: absolute; top: 8px; z-index: -1; width: 34px; height: 100%; border: 3px solid var(--ink); background: var(--cream-dark); }
+.ribbon::before { left: -26px; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 38% 50%); }
+.ribbon::after { right: -26px; clip-path: polygon(0 0, 100% 0, 62% 50%, 100% 100%, 0 100%); }
+
+h1 { margin: 0; font-weight: 800; letter-spacing: 0.01em; line-height: 1.05; text-shadow: 0 4px 0 rgba(18, 53, 50, 0.32); }
+h1 em { font-style: normal; color: var(--gold); text-shadow: 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink), 3px 3px 0 var(--ink), -3px 3px 0 var(--ink), 3px -3px 0 var(--ink), -3px -3px 0 var(--ink), 5px 6px 0 var(--ink); }
 .chips { display: flex; gap: 10px; margin: 0; }
-.chips span { padding: 8px 16px; border-radius: 100px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.16); font-size: 16px; font-weight: 600; color: #e8eefc; }
-h1 { margin: 0; font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; }
-.tag, .by { margin: 0; color: #a8acb3; }
-.post { background: linear-gradient(180deg, #23272f, #15181d); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 24px; color: #ffffff; box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), 0 0 80px rgba(0, 82, 255, 0.3); transform: rotate(1.5deg); }
-.post p { margin: 0; }
-.who { display: flex; align-items: center; gap: 8px; color: #a8acb3; }
-.who b { color: #ffffff; font-weight: 600; }
-.av { display: grid; place-items: center; border-radius: 50%; background: #eef0f3; color: #0a0b0d; font-weight: 600; }
-.post .xaicg-wrap { margin: 0; }
+.chips span { padding: 7px 16px; border-radius: 999px; background: var(--cream); border: 3px solid var(--ink); font-size: 16px; font-weight: 800; color: var(--ink); }
+.chips span.on { background: linear-gradient(180deg, var(--gold-light), var(--gold)); }
+
+.post { background: #fff; border: 4px solid var(--ink); border-left: 14px solid var(--gold); border-radius: 24px; color: var(--ink); box-shadow: 0 30px 70px rgba(18, 53, 50, 0.5); transform: rotate(1.5deg); }
+.post p { margin: 0; font-weight: 600; }
+.who { display: flex; align-items: center; gap: 8px; color: #4b6b69; }
+.who b { color: var(--ink); font-weight: 800; }
+.av { display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--ink); background: linear-gradient(135deg, #ff8a6a, #ef6c4a); color: #fff; font-weight: 800; }
+.post .xaicg-wrap { margin: 0; animation: none; }
 .post .xaicg-btn { cursor: default; }
-.draft { background: #ffffff; color: #0a0b0d; border-radius: 24px; transform: rotate(-3deg); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55); }
-.draft span { display: block; color: #0052ff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.draft { background: var(--cream); color: var(--ink); border: 4px solid var(--ink); border-left: 14px solid var(--coral); border-radius: 24px; font-weight: 700; transform: rotate(-3deg); box-shadow: 0 24px 60px rgba(18, 53, 50, 0.5); }
+.draft span { display: block; color: #176f6a; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
 
 /* 1400 x 560 marquee, and 1200 x 630 social image */
-[data-size="marquee"] .pitch, [data-size="og"] .pitch { flex: none; width: 52%; padding-left: 88px; }
-[data-size="marquee"] .lockup, [data-size="og"] .lockup { gap: 14px; font-size: 28px; }
-[data-size="marquee"] .lockup img, [data-size="og"] .lockup img { width: 52px; height: 52px; }
-[data-size="marquee"] h1, [data-size="og"] h1 { margin-top: 32px; font-size: 68px; }
-[data-size="marquee"] .tag, [data-size="og"] .tag { margin-top: 20px; font-size: 22px; }
+[data-size="marquee"] .pitch, [data-size="og"] .pitch { flex: none; width: 52%; padding-left: 84px; }
+[data-size="marquee"] .lockup, [data-size="og"] .lockup { margin-left: 16px; }
+[data-size="marquee"] .fan, [data-size="og"] .fan { --card-w: 54px; }
+[data-size="marquee"] .plate, [data-size="og"] .plate { padding: 2px 22px 4px 16px; }
+[data-size="marquee"] .plate b, [data-size="og"] .plate b { font-size: 70px; }
+[data-size="marquee"] .plate span, [data-size="og"] .plate span { font-size: 46px; }
+[data-size="marquee"] .ribbon, [data-size="og"] .ribbon { display: block; width: max-content; margin: 18px 0 0 30px; padding: 6px 22px; font-size: 14px; letter-spacing: 3.5px; }
+[data-size="marquee"] h1, [data-size="og"] h1 { margin-top: 34px; font-size: 58px; }
 [data-size="marquee"] .chips, [data-size="og"] .chips { margin-top: 26px; }
-[data-size="marquee"] .by, [data-size="og"] .by { margin-top: 22px; font-size: 16px; }
 [data-size="marquee"] .demo, [data-size="og"] .demo { position: relative; flex: 1; height: 100%; }
-[data-size="marquee"] .post, [data-size="og"] .post { position: absolute; left: 40px; top: 96px; width: 520px; padding: 28px 28px 24px; font-size: 19px; line-height: 27px; }
+[data-size="marquee"] .post, [data-size="og"] .post { position: absolute; left: 40px; top: 86px; width: 520px; padding: 24px 26px 22px; font-size: 19px; line-height: 27px; }
 [data-size="marquee"] .who, [data-size="og"] .who { margin-bottom: 10px; font-size: 17px; }
-[data-size="marquee"] .av, [data-size="og"] .av { width: 38px; height: 38px; }
-[data-size="marquee"] .post .xaicg-wrap, [data-size="og"] .post .xaicg-wrap { margin-top: 18px; gap: 8px; }
-[data-size="marquee"] .post .xaicg-btn, [data-size="og"] .post .xaicg-btn { font-size: 15px; min-height: 36px; padding: 8px 16px; }
+[data-size="marquee"] .av, [data-size="og"] .av { width: 40px; height: 40px; }
+[data-size="marquee"] .post .xaicg-wrap, [data-size="og"] .post .xaicg-wrap { margin-top: 16px; gap: 8px; }
+[data-size="marquee"] .post .xaicg-btn, [data-size="og"] .post .xaicg-btn { font-size: 15px; min-height: 38px; padding: 8px 16px; }
 [data-size="marquee"] .post .xaicg-ico, [data-size="og"] .post .xaicg-ico { width: 15px; height: 15px; }
-[data-size="marquee"] .draft, [data-size="og"] .draft { position: absolute; left: 150px; top: 330px; width: 470px; padding: 24px 28px; font-size: 21px; line-height: 30px; }
-[data-size="marquee"] .draft span, [data-size="og"] .draft span { font-size: 13px; margin-bottom: 8px; }
-[data-size="og"] .pitch { width: 54%; padding-left: 72px; }
-[data-size="og"] h1 { font-size: 60px; }
-[data-size="og"] .post { top: 130px; left: 20px; width: 470px; }
-[data-size="og"] .draft { top: 372px; left: 80px; width: 430px; }
+[data-size="marquee"] .draft, [data-size="og"] .draft { position: absolute; left: 150px; top: 318px; width: 470px; padding: 20px 26px; font-size: 21px; line-height: 30px; }
+[data-size="marquee"] .draft span, [data-size="og"] .draft span { font-size: 13px; margin-bottom: 6px; }
+[data-size="og"] .pitch { width: 54%; padding-left: 68px; }
+[data-size="og"] h1 { font-size: 52px; }
+[data-size="og"] .post { top: 120px; left: 20px; width: 470px; }
+[data-size="og"] .draft { top: 362px; left: 80px; width: 430px; }
 
-/* 440 x 280 small tile: mark, name and one line */
+/* 440 x 280 small tile: the brand plate and its ribbon */
 [data-size="small"] body { justify-content: center; text-align: center; }
-[data-size="small"] .pitch { width: 100%; padding: 0 24px; }
-[data-size="small"] .lockup { justify-content: center; gap: 14px; font-size: 44px; letter-spacing: -0.02em; }
-[data-size="small"] .lockup img { width: 72px; height: 72px; }
-[data-size="small"] h1, [data-size="small"] .by, [data-size="small"] .demo, [data-size="small"] .chips { display: none; }
-[data-size="small"] .grid { -webkit-mask-image: radial-gradient(70% 90% at 50% 40%, #000, transparent 80%); mask-image: radial-gradient(70% 90% at 50% 40%, #000, transparent 80%); }
-[data-size="small"] .glow.one { top: -70%; right: 10%; width: 80%; }
-[data-size="small"] .tag { margin-top: 22px; font-size: 21px; font-weight: 500; }
+[data-size="small"] .rays { left: 50%; }
+[data-size="small"] .pitch { width: 100%; padding: 0 0 14px; }
+[data-size="small"] .fan { --card-w: 62px; top: 34%; }
+[data-size="small"] .plate { padding: 2px 24px 4px 18px; }
+[data-size="small"] .plate b { font-size: 84px; }
+[data-size="small"] .plate span { font-size: 54px; }
+[data-size="small"] .ribbon { display: block; width: max-content; margin: 22px auto 0; padding: 6px 18px; font-size: 13px; letter-spacing: 2.5px; }
+[data-size="small"] h1, [data-size="small"] .demo, [data-size="small"] .chips { display: none; }

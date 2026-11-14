@@ -90,12 +90,40 @@
     if (calm() || !box?.animate) return;
     try {
       box.animate(
-        [{ boxShadow: "0 0 0 0 rgba(0, 82, 255, 0.55)" }, { boxShadow: "0 0 0 12px rgba(0, 82, 255, 0)" }],
+        [{ boxShadow: "0 0 0 0 rgba(255, 210, 63, 0.7)" }, { boxShadow: "0 0 0 12px rgba(255, 210, 63, 0)" }],
         { duration: 750, easing: "ease-out" },
       );
     } catch {
       /* not supported */
     }
+  }
+  // A handful of coloured dots fly out of the button when a draft lands.
+  const DOT_COLORS = ["#ffd23f", "#ef6c4a", "#3cc4bd", "#5dade2", "#fff8e7", "#ffd23f", "#ef6c4a", "#3cc4bd"];
+  function burst(el) {
+    if (!el || calm() || !document.body.animate) return;
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    DOT_COLORS.forEach((color, i) => {
+      const dot = document.createElement("span");
+      dot.className = "xaicg-dot";
+      dot.style.left = `${x - 4}px`;
+      dot.style.top = `${y - 4}px`;
+      dot.style.background = color;
+      document.body.appendChild(dot);
+      const angle = (i / DOT_COLORS.length) * Math.PI * 2 + 0.4;
+      const reach = 30 + (i % 3) * 9;
+      dot
+        .animate(
+          [
+            { transform: "translate(0, 0) scale(1)", opacity: 1 },
+            { transform: `translate(${Math.cos(angle) * reach}px, ${Math.sin(angle) * reach}px) scale(0.3)`, opacity: 0 },
+          ],
+          { duration: 480, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)" },
+        )
+        .finished.catch(() => {})
+        .then(() => dot.remove());
+    });
   }
   // The reply box XAICG last filled, so the "sent" sound plays only for a
   // reply it helped write.
@@ -488,7 +516,8 @@
     try {
       const { text, note } = await nextDraft(article, kind, tone);
       await deliver(article, kind, text, note);
-      flash(btn, "xaicg-ok");
+      flash(btn, "xaicg-ok", 620);
+      burst(btn);
     } catch (err) {
       if (err?.code !== "context") console.warn("[XAICG]", err?.code, err?.message);
       showError(err);

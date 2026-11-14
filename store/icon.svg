@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="30" fill="#0052ff"/>
-  <path fill="#fff" d="M40 24h48a20 20 0 0 1 20 20v28a20 20 0 0 1-20 20H62l-22 18 3-18.3A20 20 0 0 1 20 72V44a20 20 0 0 1 20-20z"/>
-  <g fill="none" stroke="#0a0b0d" stroke-width="11" stroke-linecap="round">
-    <path d="M47 42l28 32"/>
-    <path d="M75 42L47 74"/>
+  <rect width="128" height="128" rx="30" fill="#2BA8A2"/>
+  <path fill="#123532" opacity=".18" d="M44 30h40a20 20 0 0 1 20 20v26a20 20 0 0 1-20 20H64l-22 18 3-18.3A20 20 0 0 1 24 76V50a20 20 0 0 1 20-20z"/>
+  <path fill="#FFF8E7" stroke="#123532" stroke-width="5" stroke-linejoin="round" d="M42 24h44a20 20 0 0 1 20 20v26a20 20 0 0 1-20 20H62l-22 18 3-18.3A20 20 0 0 1 22 70V44a20 20 0 0 1 20-20z"/>
+  <g fill="none" stroke="#123532" stroke-width="11" stroke-linecap="round">
+    <path d="M45 41l28 32"/>
+    <path d="M73 41L45 73"/>
   </g>
-  <path fill="#0052ff" d="M90 46c1.2 7 3.4 9.2 10.4 10.4-7 1.2-9.2 3.4-10.4 10.4-1.2-7-3.4-9.2-10.4-10.4 7-1.2 9.2-3.4 10.4-10.4z" transform="translate(2 2)"/>
+  <path fill="#FFD23F" stroke="#123532" stroke-width="3" stroke-linejoin="round" d="M90 42c1.4 8.4 4 11 12.4 12.4C94 55.800 91.400 58.400 90 66.800 88.600 58.400 86 55.800 77.600 54.400 86 53 88.600 50.400 90 42z"/>
 </svg>

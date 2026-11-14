@@ -146,6 +146,12 @@ Who owns a license: the Google account whose verified email the license was issu
 
    An unpacked copy has a different ID (shown at `chrome://extensions`). To keep testing with one, list both IDs, separated by a comma.
 
+## Design
+
+The extension, the website, the admin dashboard and the store images share one look, the Flip7 design system: retro and playful, in teal (`#2BA8A2`), gold (`#FFD23F`) and coral (`#EF6C4A`) on cream. Pill buttons that bounce, cream input surfaces, cards with a coloured bar down the left edge, dashed rules under section titles, coloured glows instead of grey shadows, extra-bold type, and a fan of cards with a folded ribbon for the brand.
+
+The tokens live at the top of `extension/ui.css` (popup and settings), `extension/content.css` (the buttons on X), `website/styles.css` and `server/src/admin-ui/admin.css`. The icon is `store/icon.svg`; `node store/build-icons.mjs` renders every size from it.
+
 ## The website
 
 `website/` is the product site: plain HTML, CSS and one small script, with no build step and no dependencies.
