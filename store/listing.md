@@ -25,7 +25,7 @@ The name and the short summary on the store come from `extension/manifest.json`,
 
 | Field | Value | Limit |
 | --- | --- | --- |
-| Name | `X AI Comment/Reply Generator (XAICG)` | 36 of 75 characters |
+| Name | `X AI Comment/Reply Generator for Twitter` | 40 of 75 characters |
 | Summary | `AI comments and replies for X (Twitter) in your own voice, plus questions, posts and threads. A product of Unique Labs.` | 119 of 132 characters |
 
 ---
@@ -35,7 +35,7 @@ The name and the short summary on the store come from `extension/manifest.json`,
 ### Description
 
 ```
-X AI Comment/Reply Generator (XAICG) drafts comments, replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
+X AI Comment/Reply Generator for Twitter (XAICG) drafts comments, replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
 
 HOW IT WORKS
 XAICG adds two buttons to every post on x.com: AI Reply and Question. Click one and a draft is typed into X's own reply box. Change it if you like, then press Reply. Nothing is ever posted for you.

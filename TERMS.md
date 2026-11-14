@@ -1,8 +1,8 @@
-# Terms and Conditions: X AI Comment/Reply Generator (XAICG)
+# Terms and Conditions: X AI Comment/Reply Generator for Twitter (XAICG)
 
 Last updated: November 14, 2026
 
-These terms are an agreement between you and Unique Labs ("we", "us"), the maker of X AI Comment/Reply Generator ("XAICG", "the service"): the browser extension, the XAICG server it talks to, and this website. By installing or using XAICG you agree to them. If you do not agree, do not use it.
+These terms are an agreement between you and Unique Labs ("we", "us"), the maker of X AI Comment/Reply Generator for Twitter ("XAICG", "the service"): the browser extension, the XAICG server it talks to, and this website. By installing or using XAICG you agree to them. If you do not agree, do not use it.
 
 ## 1. What XAICG does
 

@@ -11,7 +11,7 @@ export const CLIENT_VERSION = chrome.runtime.getManifest().version;
 
 export const PRODUCT = {
   name: "XAICG",
-  tagline: "X AI Comment/Reply Generator",
+  tagline: "X AI Comment/Reply Generator for Twitter",
   company: "Unique Labs",
   developer: "Shahriar Ahmed",
   website: "https://uniquelabs.org",

@@ -1,4 +1,4 @@
-# X AI Comment/Reply Generator (XAICG)
+# X AI Comment/Reply Generator for Twitter (XAICG)
 
 Replies, questions, quote lines, posts and threads for X (Twitter), written in the user's own voice.
 

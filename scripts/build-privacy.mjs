@@ -117,7 +117,7 @@ for (const page of pages) {
       <div class="footer-cols">
         <div class="footer-about">
           <a class="logo" href="/"><img src="/assets/icon-128.png" width="28" height="28" alt=""><span>XAICG</span></a>
-          <p>X AI Comment/Reply Generator. A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a>, developed by Shahriar Ahmed.</p>
+          <p>X AI Comment/Reply Generator for Twitter. A product of <a href="https://uniquelabs.org" rel="noopener">Unique Labs</a>, developed by Shahriar Ahmed.</p>
         </div>
         <nav aria-label="Product">
           <h3>Product</h3>

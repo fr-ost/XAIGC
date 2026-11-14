@@ -1,4 +1,4 @@
-# Privacy Policy: X AI Comment/Reply Generator (XAICG)
+# Privacy Policy: X AI Comment/Reply Generator for Twitter (XAICG)
 
 Last updated: November 14, 2026
 
