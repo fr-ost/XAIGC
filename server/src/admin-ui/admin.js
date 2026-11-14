@@ -124,7 +124,7 @@
       stat("Licensed installs", fmt(s.devices.licensed), `${fmt(s.devices.blocked)} blocked`),
     );
     $("usersNote").textContent = !s.signIn.google
-      ? "Google sign-in is not configured, so nobody can sign up yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and PUBLIC_URL on the server."
+      ? "Google sign-in is not switched on, so nobody can sign up yet. Set GOOGLE_CLIENT_ID on the server to the client ID of your Chrome Extension OAuth client (the same one that is in the extension), then redeploy. No secret or public address is needed."
       : s.signIn.requiredForTrial
         ? "Everyone who uses the free trial signs in with Google first, so they all appear here."
         : "Signing in is optional (TRIAL_REQUIRE_SIGN_IN=false), so only people who chose to sign in appear here.";
