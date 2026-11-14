@@ -38,6 +38,7 @@ Helper scripts, run from the top of the repository:
 | Command | What it does |
 | --- | --- |
 | `node scripts/set-api-url.mjs <server address>` | Points the extension at your deployed server. |
+| `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client. |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together. |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store. Refuses a build that points at localhost. |
 | `node scripts/set-site-url.mjs <site address>` | Tells the website its own address, for link previews and the sitemap. |
@@ -70,7 +71,7 @@ Railway was chosen over Vercel because this backend wants a long-running process
    | `OPENAI_MODEL` | OpenAI's current small, fast model (see the note below) |
    | `APP_SECRET` | 32+ random characters, for example from `openssl rand -base64 32` |
    | `ADMIN_TOKEN` | 24+ random characters. This is the admin dashboard password. |
-   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From Google, to switch on sign-in (see below). Optional. |
+   | `GOOGLE_CLIENT_ID` | From Google, to switch on sign-in (see below). Optional. |
 
 4. **Expose it.** Settings, Networking, Generate Domain. Set the health check path to `/health`.
 5. **Check it.** Open `https://<your-domain>/health`. It should return `{"ok":true,"version":"3.1.2"}`. The schema is created on first boot.
@@ -102,23 +103,26 @@ If you set `DATABASE_SSL` or `DATABASE_SSL_CA`, they take precedence over any `s
 
 ## Google sign-in
 
-Sign-in is off until you give the server Google credentials. With it on, people must sign in before the free trial starts, which limits the trial to one per Google account and gives you a list of who your users are.
+People sign in inside the extension. Chrome shows its own Google account prompt (`chrome.identity`); no tab opens and the server serves no sign-in pages. Sign-in is off until the server has a Google client ID. With it on, people must sign in before the free trial starts, which limits the trial to one per Google account and gives you a list of who your users are.
 
-1. In Google Cloud Console, create an OAuth client of type **Web application** (you will be asked to fill in the consent screen first: app name, support email, and the default `openid`, `email` and `profile` scopes).
-2. Add one **Authorized redirect URI**: `https://<your-domain>/auth/google/callback`
-3. Set on the server:
+1. Upload the extension to the Chrome Web Store as a draft, to get its **item ID** and **public key** (Package, View public key).
+2. In Google Cloud Console (Google Auth Platform), create an OAuth client of type **Chrome Extension** for that item ID. You will be asked to fill in the consent screen first: app name, support email, and the `openid`, `email` and `profile` scopes. Publish the app so anyone can sign in.
+3. Give the extension the client ID and the public key:
+
+   ```bash
+   node scripts/set-google-client.mjs <client-id> --key "<public key>"
+   ```
+
+   The key gives an unpacked copy the same ID as the store item, so sign-in works while you test. It is left out of the packaged zip.
+4. Set on the server:
 
    | Variable | Value |
    | --- | --- |
-   | `GOOGLE_CLIENT_ID` | the client ID |
-   | `GOOGLE_CLIENT_SECRET` | the client secret |
-   | `PUBLIC_URL` | `https://<your-domain>`. It must be the same address the extension uses (the one you gave `set-api-url`). On Railway it defaults to the generated domain; set it when you use a custom domain. |
+   | `GOOGLE_CLIENT_ID` | the same client ID. Several, separated by commas, if a development copy has its own. |
 
-4. Redeploy. The extension's settings page now shows **Sign in with Google**.
+There is no client secret and no redirect address. Set `TRIAL_REQUIRE_SIGN_IN=false` if you would rather keep signing in optional.
 
-Set `TRIAL_REQUIRE_SIGN_IN=false` if you would rather keep signing in optional.
-
-How it works: the extension opens Google in a normal tab and Google returns to the server with the account's basic profile (the `openid`, `email` and `profile` scopes). The server keeps the account ID, name and verified email, discards the rest, and stores no Google token. The sign-in only takes effect when the same browser that started it presents a one-time code together with its own device token, so a sign-in link sent to someone else does nothing.
+How it works: Chrome gives the extension a short-lived Google access token for the account the person chose. The extension sends it to the server once. The server asks Google two things about it: which app it was issued to (it must be this extension's own client, so a token another app obtained for someone cannot be replayed here), and whose it is. It keeps the account ID, name and verified email, and nothing else: the token is not stored on the server or in the extension.
 
 Who owns a license: the Google account whose verified email the license was issued to, and nobody else. Typing a key gives that browser a seat; it never makes the signed-in account the owner. So someone who was given one seat, or who got hold of a key, cannot move the license around or keep it after you rotate the key.
 
@@ -187,7 +191,7 @@ Licenses are issued by you. Hooking a payment provider up to `POST /admin/api/li
 | Harmful output | Safety rules in the system prompt, OpenAI moderation on every result, and a pseudonymous per-user id sent to OpenAI so misuse is attributed to one user. |
 | Stolen credentials | Device tokens, install IDs and license keys are stored only as hashes. IPs and X accounts are stored only as keyed hashes. Reinstalling rotates the device token. |
 | Taking over someone's license | A license is owned only by the Google account whose verified email it was issued to. A key gives a seat, never ownership, and an account whose address has since moved to another Google account can no longer claim it. Moving a license to another browser happens only when its owner asks. |
-| Account takeover through sign-in | The sign-in completes only when the browser that started it presents a one-time code plus its own device token. States and codes are single use and expire in ten minutes. Google's response is checked for issuer, audience, nonce, expiry and a verified email. |
+| Account takeover through sign-in | The Google token must have been issued to this extension's own OAuth client (audience and authorized party are checked with Google), must not be expired, and must belong to an account with a verified email. It signs in only the install that presents it, together with that install's device token, and is never stored. |
 | Abusive users | Block a user from the dashboard: every browser they are signed in on is refused immediately, and the licenses they own stop working everywhere, including on browsers that only have the key. |
 | Admin takeover | Constant-time token comparison, throttling of wrong tokens (the correct token is never locked out), and the admin surface does not exist unless `ADMIN_TOKEN` is set. |
 
@@ -230,9 +234,7 @@ All responses are JSON. Errors have the shape `{"error":{"code":"...","message":
 | `POST /v1/license/activate` | Bind a license key to this install |
 | `POST /v1/license/deactivate` | Release it |
 | `POST /v1/license/attach` | Bring the signed-in account's license to this install |
-| `POST /v1/auth/google/start` | Begin a sign-in, get the Google URL to open |
-| `GET /auth/google/callback` | Where Google sends the browser back |
-| `POST /v1/auth/google/complete` | Finish the sign-in with the one-time code |
+| `POST /v1/auth/google` | Sign this install in with a Google access token from `chrome.identity` |
 | `POST /v1/auth/signout` | Sign this install out |
 | `GET /health` | Health check |
 | `/admin`, `/admin/api/*` | Dashboard and admin API (Bearer `ADMIN_TOKEN`) |
@@ -244,7 +246,7 @@ All responses are JSON. Errors have the shape `{"error":{"code":"...","message":
 - Per-request usage records are pruned after 60 days (`USAGE_EVENT_RETENTION_DAYS`). They never contain post text or generated text.
 - Client addresses come from `X-Real-IP` on Railway. On any other host nothing is assumed and the socket address is used, so set `CLIENT_IP_HEADER` to a header your platform overwrites with the caller's address (never one a client can set freely). The admin dashboard header shows what the server sees for you.
 - Reinstalling the extension creates a new install. A customer whose license was issued to their email just signs in again and it comes back. A customer using only a key enters it again; if the old install still holds a seat, the settings page offers to move the license to the current browser.
-- The Google client secret stays on the server. If it leaks, rotate it in Google Cloud Console and update `GOOGLE_CLIENT_SECRET`; signed-in users are not affected.
+- Google sign-in uses no secret. The client ID is public by design (it is in the extension's manifest); what protects sign-in is that Google only issues tokens for that client to the extension with the matching ID.
 
 ## License
 

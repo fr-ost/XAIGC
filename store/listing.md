@@ -18,8 +18,8 @@ The name and the short summary on the store come from `extension/manifest.json`,
 
 | Field | Value | Limit |
 | --- | --- | --- |
-| Name | `XAICG - AI Content Generator for X` | 34 of 75 characters |
-| Summary | `AI replies, questions, posts and threads for X (Twitter) in your own voice. A product of Unique Labs.` | 101 of 132 characters |
+| Name | `X AI Comment/Reply Generator (XAICG)` | 36 of 75 characters |
+| Summary | `AI comments and replies for X (Twitter) in your own voice, plus questions, posts and threads. A product of Unique Labs.` | 119 of 132 characters |
 
 ---
 
@@ -28,7 +28,7 @@ The name and the short summary on the store come from `extension/manifest.json`,
 ### Description
 
 ```
-XAICG drafts replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
+X AI Comment/Reply Generator (XAICG) drafts comments, replies, posts and threads for X (Twitter) in your own voice. You read every draft and post it yourself.
 
 HOW IT WORKS
 XAICG adds two buttons to every post on x.com: AI Reply and Question. Click one and a draft is typed into X's own reply box. Change it if you like, then press Reply. Nothing is ever posted for you.
@@ -123,6 +123,12 @@ XAICG writes draft replies, posts and threads for X (Twitter). The user clicks a
 Stores the user's writing settings (tone, persona, language), their recent drafts so new drafts do not repeat them, the text in the popup's compose window so it is not lost when the popup closes, and the installation's ID and access token for the XAICG server.
 ```
 
+**identity**
+
+```
+Lets the user sign in with their Google account from inside the extension, using Chrome's own account prompt. The extension requests only the basic profile (openid, email, profile) to create the user's XAICG account, so that the free trial is one per person and a license follows them to their other browsers. The Google token is sent to the XAICG server once to confirm who the user is, and is not stored.
+```
+
 **clipboardWrite**
 
 ```
@@ -148,7 +154,7 @@ Tick the four marked Yes, and leave the rest unticked:
 | Category | Tick | Why |
 | --- | --- | --- |
 | Personally identifiable information | Yes | Name and email address, when the user signs in with Google |
-| Authentication information | Yes | A license key the user types, and the installation's access token |
+| Authentication information | Yes | A license key the user types, the installation's access token, and the short-lived Google token used once to sign in |
 | Website content | Yes | The text of the post the user asks XAICG to answer |
 | Location | Yes | The server sees the user's IP address and keeps a keyed hash of it to limit trial abuse. The store counts an IP address as location data. |
 | Health information | No | |
@@ -221,6 +227,6 @@ The extension sends the clicked post's text to our server at https://aigc.unique
 - [ ] The reviewer license key in the test instructions works
 - [ ] The numbers in the description match the server (`TRIAL_GENERATIONS`, plans) and `website/config.js`
 
-After the first upload the dashboard shows the item's ID (32 letters). Set `ALLOWED_ORIGINS=chrome-extension://<that id>` on the server then: see [SETUP.md](../SETUP.md#8-lock-the-api-to-your-extension).
+After the first upload the dashboard shows the item's ID (32 letters). Set `ALLOWED_ORIGINS=chrome-extension://<that id>` on the server then: see [SETUP.md](../SETUP.md#9-lock-the-api-to-your-extension).
 
 When the listing is approved, put its address in `website/config.js` (`chromeStoreUrl`) so the site's buttons read "Add to Chrome".

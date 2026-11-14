@@ -8,13 +8,22 @@
   "minimum_chrome_version": "111",
   "permissions": [
     "storage",
-    "clipboardWrite"
+    "clipboardWrite",
+    "identity"
   ],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
     "https://aigc.uniquelabs.org/*"
   ],
+  "oauth2": {
+    "client_id": "REPLACE_WITH_YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

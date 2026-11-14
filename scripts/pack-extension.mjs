@@ -48,6 +48,16 @@ if (!manifest.host_permissions?.includes(`${api.origin}/*`)) {
   );
 }
 
+// Without a real Google client the extension cannot sign anyone in.
+const googleClient = manifest.oauth2?.client_id || "";
+const signInReady = /\.apps\.googleusercontent\.com$/.test(googleClient) && !googleClient.startsWith("REPLACE_");
+
+// The store assigns the extension its ID, and rejects a manifest that brings
+// its own "key". The key is only there so an unpacked copy gets the same ID.
+const packedManifest = { ...manifest };
+delete packedManifest.key;
+const packedManifestBytes = Buffer.from(JSON.stringify(packedManifest, null, 2) + "\n");
+
 // ---- collect files -------------------------------------------------------------
 
 async function walk(dir, prefix = "") {
@@ -84,7 +94,7 @@ const parts = [];
 const directory = [];
 let offset = 0;
 for (const name of names) {
-  const data = await readFile(path.join(source, name));
+  const data = name === "manifest.json" ? packedManifestBytes : await readFile(path.join(source, name));
   const packed = deflateRawSync(data, { level: 9 });
   const nameBytes = Buffer.from(name, "utf8");
   const crc = crc32(data);
@@ -136,3 +146,7 @@ await writeFile(out, zip);
 console.log(`Packaged XAICG ${manifest.version} for ${api.origin}`);
 console.log(`  ${path.relative(root, out)}  (${names.length} files, ${Math.round(zip.length / 1024)} KB)`);
 if (local) console.log("  Note: this build talks to localhost. Do not upload it to the store.");
+if (!signInReady) {
+  console.log("  Note: Google sign-in is not set up in this build, so nobody can sign in with it.");
+  console.log("        Run:  node scripts/set-google-client.mjs <client-id>   (SETUP.md, Part 3)");
+}

@@ -185,12 +185,14 @@ $("deactivate").addEventListener("click", async () => {
 
 $("googleSignIn").addEventListener("click", async () => {
   $("googleSignIn").disabled = true;
-  setSignInStatus("Opening Google…");
+  setSignInStatus("Waiting for Google…");
   try {
-    await send("xaicg:signin");
-    setSignInStatus("Finish signing in in the tab that just opened. This page updates by itself.");
+    // Chrome shows its own account prompt; nothing opens in a tab.
+    const { account } = await send("xaicg:signin");
+    showAccount(account);
+    setSignInStatus("You're signed in.", "good");
   } catch (err) {
-    setSignInStatus(err.message, "error");
+    setSignInStatus(err.message, err.code === "sign_in_cancelled" ? "" : "error");
   } finally {
     $("googleSignIn").disabled = false;
   }
@@ -225,14 +227,10 @@ $("attachLicense").addEventListener("click", async () => {
   }
 });
 
-// The sign-in finishes in the service worker, in another tab. Follow it here.
+// Keep the page in step with the account when it changes elsewhere (the
+// popup, another settings tab, a generation on x.com).
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
-  if (changes.account?.newValue) showAccount(changes.account.newValue);
-  const status = changes.signInStatus?.newValue;
-  if (status?.state === "done") setSignInStatus("You're signed in.", "good");
-  else if (status?.state === "error") setSignInStatus(status.message, "error");
-  else if (status?.state === "cancelled") setSignInStatus("Sign-in was cancelled.");
+  if (area === "local" && changes.account?.newValue) showAccount(changes.account.newValue);
 });
 
 for (const id of ["tone", "length", "language", "emoji"]) {

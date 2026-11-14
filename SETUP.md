@@ -8,9 +8,9 @@ When you are done you will have:
 | --- | --- | --- |
 | The server (engine, licensing, trial, admin dashboard) | Railway | Part 2 |
 | The database | Railway Postgres | Part 2 |
-| Sign in with Google | Google Cloud | Part 3 |
-| The extension | Chrome Web Store | Parts 4 and 7 |
-| The product website | Vercel | Part 6 |
+| Sign in with Google | Google Cloud | Part 5 |
+| The extension | Chrome Web Store | Parts 3, 4 and 8 |
+| The product website | Vercel | Part 7 |
 
 Settings pages on these services get renamed from time to time. If a button is not called exactly what this guide says, look for the nearest match.
 
@@ -48,7 +48,7 @@ This guide writes `<your-server>` and `<your-site>` for those two addresses.
 
 ### Keep these somewhere safe
 
-You will create four secrets. Put them in a password manager as you go: `OPENAI_API_KEY`, `APP_SECRET`, `ADMIN_TOKEN`, `GOOGLE_CLIENT_SECRET`. They are only ever typed into Railway's Variables page. Never put them in the repository, the extension or the website.
+You will create three secrets. Put them in a password manager as you go: `OPENAI_API_KEY`, `APP_SECRET`, `ADMIN_TOKEN`. They are only ever typed into Railway's Variables page. Never put them in the repository, the extension or the website.
 
 ---
 
@@ -120,61 +120,19 @@ Never change `APP_SECRET` afterwards. It keys the hashes that free-trial trackin
 
 1. Server service, **Settings**, **Networking**, **Generate Domain**. If Railway asks for a port, accept the one it suggests. If it suggests nothing, add a variable `PORT` = `8787` and enter `8787`.
 2. Still in Settings, set the **health check path** to `/health`.
-3. To use your own domain (recommended before launch, see "Decide two addresses now"): in the same Networking section add a **Custom Domain**, create the DNS record Railway shows you, and then add one more variable:
-
-   | Variable | Value |
-   | --- | --- |
-   | `PUBLIC_URL` | `https://api.xaicg.yourdomain.com` (your server address, no trailing slash) |
+3. To use your own domain (recommended before launch, see "Decide two addresses now"): in the same Networking section add a **Custom Domain** and create the DNS record Railway shows you.
 
 ### 2.6 Check it
 
 1. Open `<your-server>/health`. You should see `{"ok":true,"version":"3.1.2"}`. The database tables are created on this first start.
 2. Open `<your-server>/admin` and sign in with `ADMIN_TOKEN`.
-3. Look at the top of the dashboard. It says `You: <an address> via x-real-ip`. That address should be your own public IP address (search "what is my IP" to compare). If it is a private address such as `10.x.x.x`, stop and read the [troubleshooting](#12-troubleshooting) entry about it: otherwise all your users share one rate limit.
+3. Look at the top of the dashboard. It says `You: <an address> via x-real-ip`. That address should be your own public IP address (search "what is my IP" to compare). If it is a private address such as `10.x.x.x`, stop and read the [troubleshooting](#13-troubleshooting) entry about it: otherwise all your users share one rate limit.
 
 If the deploy fails, open the **Deploy Logs**. The server lists exactly what is wrong (a missing variable, a rejected OpenAI key, a model name that does not exist) and refuses to start until it is fixed. Railway keeps the previous working version running in the meantime.
 
 ---
 
-## 3. Turn on Google sign-in
-
-With sign-in on, the free trial is one per Google account, licenses follow people between computers, and the dashboard shows you who your users are. You can skip this part and run without accounts, but do it before launch rather than after.
-
-In the [Google Cloud console](https://console.cloud.google.com):
-
-1. Create a project (the project picker at the top, **New project**). Call it XAICG.
-2. Open **Google Auth Platform** (older screens call it **APIs & Services**, **OAuth consent screen**).
-3. **Branding**: app name `XAICG`, your support email, and, once the website is up, its address and `<your-site>/privacy` as the privacy policy.
-4. **Audience**: choose **External**.
-5. **Data access**: the only scopes needed are `openid`, `email` and `profile`. These are the defaults and need no review from Google.
-6. **Clients**, **Create client**, type **Web application**. Under **Authorized redirect URIs** add exactly:
-
-   ```
-   <your-server>/auth/google/callback
-   ```
-
-   Copy the **client ID** and **client secret**.
-7. Back in **Audience**, press **Publish app**. Until you do, the app is in testing mode and only the test users you list can sign in.
-
-Then in Railway, add to the server's variables:
-
-| Variable | Value |
-| --- | --- |
-| `GOOGLE_CLIENT_ID` | the client ID |
-| `GOOGLE_CLIENT_SECRET` | the client secret |
-
-`PUBLIC_URL` must be the same address you put in the redirect URI. On a Railway-generated domain it is filled in for you. On your own domain you set it in 2.5.
-
-Two things to know:
-
-- If you later move the server to another address, add the new redirect URI in Google first, then change `PUBLIC_URL`.
-- Until Google has verified your branding (optional and free, started from the Branding page), the sign-in screen may show your server's address instead of the name XAICG.
-
-To keep signing in optional rather than required for the trial, set `TRIAL_REQUIRE_SIGN_IN=false`.
-
----
-
-## 4. Connect the extension and try it
+## 3. Connect the extension and try it
 
 From the top of the repository:
 
@@ -190,18 +148,81 @@ Load it in Chrome:
 2. Turn on **Developer mode** (top right).
 3. **Load unpacked**, and choose the `extension` folder.
 
-Now check each of these. This is the same list a customer will walk through.
+Now check each of these. Accounts come later, in Part 5: for now the trial works without signing in.
 
-- [ ] Click the XAICG icon, then **Settings**. Press **Sign in with Google**. A tab opens, you choose your account, and the settings page shows your name.
-- [ ] The settings page shows a free trial with 20 generations.
+- [ ] Click the XAICG icon, then **Settings**. It shows a free trial with 20 generations.
 - [ ] Click the XAICG icon, type an idea, press **Generate posts**. Three drafts appear.
 - [ ] Open `https://x.com/home`. Every post has **AI Reply** and **Question** buttons. (If the tab was already open, reload it.)
 - [ ] Press **AI Reply**. X's reply box opens with a draft in it. Nothing is posted.
-- [ ] In the admin dashboard, your account appears under **Users** and today's generations went up.
+- [ ] In the admin dashboard, today's generations went up.
 
 ---
 
-## 5. Issue your first license
+## 4. Reserve your place in the Chrome Web Store
+
+Google sign-in is tied to the extension's ID, and the ID comes from the store. So the extension is uploaded once now, as a draft that nobody can see, and submitted for review later in Part 8.
+
+1. Register as a developer in the [developer dashboard](https://chrome.google.com/webstore/devconsole) (one-time fee) and verify your email. The account settings also ask whether you are a trader: you are selling licenses, so yes.
+2. Package the extension:
+
+   ```bash
+   node scripts/pack-extension.mjs
+   ```
+
+   It writes `dist/xaicg-extension-3.1.2.zip`. It will mention that Google sign-in is not set up yet, which is expected at this point.
+3. In the dashboard: **New item**, upload the zip. Do not submit it.
+4. Note two things from the dashboard:
+   - the **item ID**: 32 letters, shown on the item and in its address
+   - the **public key**: **Package** tab, **View public key**. Copy the long line between the BEGIN and END lines.
+
+---
+
+## 5. Turn on Google sign-in
+
+People sign in inside the extension: Chrome shows its own Google account prompt, and no web page opens. With sign-in on, the free trial is one per Google account, licenses follow people between computers, and the dashboard shows you who your users are.
+
+In the [Google Cloud console](https://console.cloud.google.com):
+
+1. Create a project (the project picker at the top, **New project**). Call it XAICG.
+2. Open **Google Auth Platform** (older screens call it **APIs & Services**, **OAuth consent screen**).
+3. **Branding**: app name `XAICG`, your support email, and, once the website is up, its address and `<your-site>/privacy` as the privacy policy.
+4. **Audience**: choose **External**, then press **Publish app**. Until you do, the app is in testing mode and only the test users you list can sign in.
+5. **Data access**: the only scopes needed are `openid`, `email` and `profile`. These need no review from Google.
+6. **Clients**, **Create client**. Choose the type **Chrome Extension** (not Web application) and paste the **item ID** from Part 4. Copy the **client ID** it gives you. There is no client secret, and none is needed.
+
+Give the client ID to the extension, together with the public key from Part 4:
+
+```bash
+node scripts/set-google-client.mjs <client-id> --key "<public key>"
+```
+
+The key makes your unpacked copy use the same ID as the store item, so sign-in works while you test. It is left out of the zip you upload.
+
+Then in Railway, add to the server's variables:
+
+| Variable | Value |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` | the same client ID |
+
+If you used an earlier version of this project, delete `GOOGLE_CLIENT_SECRET` and `PUBLIC_URL` from Railway. They are no longer used.
+
+Now try it. At `chrome://extensions`, press the reload arrow on the extension (its ID changes to the store's ID, once), then:
+
+- [ ] Click the XAICG icon, then **Settings**. Press **Sign in with Google**. Chrome asks which account to use, and the page shows your name. No tab opens.
+- [ ] The settings page shows a free trial with 20 generations.
+- [ ] In the admin dashboard, your account appears under **Users**.
+
+Three things to know:
+
+- Chrome must be signed in to a Google account (the profile button at the top right). If it is not, Chrome asks the person to sign in first.
+- This kind of sign-in works in Google Chrome. Other Chromium browsers do not offer it.
+- Until Google has verified your branding (optional and free, started from the Branding page), the prompt may show less of your app's name and logo.
+
+To keep signing in optional rather than required for the trial, set `TRIAL_REQUIRE_SIGN_IN=false`.
+
+---
+
+## 6. Issue your first license
 
 In the admin dashboard:
 
@@ -214,7 +235,7 @@ That is the whole selling loop: take payment, issue a license to the customer's 
 
 ---
 
-## 6. Put the website on Vercel
+## 7. Put the website on Vercel
 
 The site is plain files in `website/`. There is nothing to build.
 
@@ -240,7 +261,7 @@ It is the only file you need to edit.
 
 | Setting | What to put |
 | --- | --- |
-| `chromeStoreUrl` | Leave empty for now. The buttons read "Coming soon". You fill it in after Part 7. |
+| `chromeStoreUrl` | Leave empty for now. The buttons read "Coming soon". You fill it in after Part 8. |
 | `buyUrl` | Where people pay. A payment link, or a page where they can reach you. |
 | `supportUrl` | Where people get help |
 | `trialGenerations` | Must equal the server's `TRIAL_GENERATIONS` (20 unless you changed it) |
@@ -261,57 +282,50 @@ These are where **Get a license** and **Support** inside the extension lead.
 
 ---
 
-## 7. Publish on the Chrome Web Store
+## 8. Publish on the Chrome Web Store
 
-Before this part, the server should be on the address it will keep (see "Decide two addresses now"). If you moved it since Part 4, run `set-api-url` again with the final address.
+Before this part, the server should be on the address it will keep (see "Decide two addresses now"). If you moved it since Part 3, run `set-api-url` again with the final address.
 
-1. Register as a developer in the [developer dashboard](https://chrome.google.com/webstore/devconsole) (one-time fee) and verify your email. The account settings also ask whether you are a trader: you are selling licenses, so yes.
-2. Package the extension:
+1. Package the extension again, now that it has its Google client:
 
    ```bash
    node scripts/pack-extension.mjs
    ```
 
-   It writes `dist/xaicg-extension-3.1.2.zip`, and refuses if the extension still points at `localhost`.
-3. In the dashboard: **New item**, upload the zip.
-4. Fill in the listing from [`store/listing.md`](store/listing.md). It has the text for every field, the answers for the privacy questions, and which image goes where. The images are in `store/assets/`.
-5. For the reviewers, issue a Pro license in the admin dashboard with the note "Chrome Web Store review" and paste its key into the test instructions, as `store/listing.md` shows.
-6. **Submit for review.** Reviews usually take a few days and can take longer for a new developer account.
+   It refuses if the extension still points at `localhost`, and it should no longer mention Google sign-in.
+2. In the dashboard, open the item from Part 4, **Package**, **Upload new package**.
+3. Fill in the listing from [`store/listing.md`](store/listing.md). It has the text for every field, the answers for the privacy questions, and which image goes where. The images are in `store/assets/`.
+4. For the reviewers, issue a Pro license in the admin dashboard with the note "Chrome Web Store review" and paste its key into the test instructions, as `store/listing.md` shows.
+5. **Submit for review.** Reviews usually take a few days and can take longer for a new developer account.
 
 ---
 
-## 8. Lock the API to your extension
-
-As soon as the zip is uploaded, the dashboard shows the item's ID: 32 letters, also visible in the item's address. You do not need to wait for the review.
+## 9. Lock the API to your extension
 
 In Railway, add:
 
 | Variable | Value |
 | --- | --- |
-| `ALLOWED_ORIGINS` | `chrome-extension://<the item ID>` |
+| `ALLOWED_ORIGINS` | `chrome-extension://<the item ID from Part 4>` |
 
-From then on the server takes requests only from your published extension.
+From then on the server takes requests only from your extension. You do not need to wait for the review.
 
-Your unpacked copy from Part 4 has a different ID (shown on its card at `chrome://extensions`), and will now be refused. To keep using it for testing, list both, separated by a comma:
-
-```
-ALLOWED_ORIGINS=chrome-extension://<store id>,chrome-extension://<unpacked id>
-```
+Your unpacked copy has the same ID (because of the public key from Part 5), so it keeps working. A copy loaded without that key has a different ID, shown on its card at `chrome://extensions`, and is refused. To allow one anyway, list both IDs, separated by a comma. Such a copy also needs its own Chrome Extension client in Google, added to `GOOGLE_CLIENT_ID` the same way.
 
 ---
 
-## 9. Go live
+## 10. Go live
 
 When the review is approved:
 
 - [ ] Put the store address in `website/config.js` as `chromeStoreUrl`, commit and push. The site's buttons change to **Add to Chrome**.
-- [ ] Install the extension from the store, in a Chrome profile that has never had it, and run the checklist from Part 4 once more.
+- [ ] Install the extension from the store, in a Chrome profile that has never had it, and run the checklists from Parts 3 and 5 once more.
 - [ ] Revoke the reviewers' license in the admin dashboard.
-- [ ] Read [Part 13](#13-before-you-take-money).
+- [ ] Read [Part 14](#14-before-you-take-money).
 
 ---
 
-## 10. Day to day
+## 11. Day to day
 
 Everything is done from `<your-server>/admin`.
 
@@ -340,7 +354,7 @@ Back up the database. Every license and account lives in it. Use Railway's backu
 
 ---
 
-## 11. Releasing updates
+## 12. Releasing updates
 
 ### The extension
 
@@ -389,18 +403,21 @@ That rebuilds `website/privacy.html`. Commit and push both files. If what the ex
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 | What you see | Cause and fix |
 | --- | --- |
 | The Railway deploy fails or keeps restarting | Open the Deploy Logs. The server names each problem: a missing variable, an OpenAI key that was rejected, or an `OPENAI_MODEL` that does not exist for your key. |
 | `/health` works but `/admin` is not found | `ADMIN_TOKEN` is not set. The dashboard does not exist without it. |
 | The dashboard says `You: 10.x.x.x` (or another private address) | The server is not seeing real visitor addresses, so everyone shares one rate limit. Set `CLIENT_IP_HEADER` to the header your host fills in with the caller's address. On Railway this is `x-real-ip` and is the default. |
-| Google says `redirect_uri_mismatch` | The redirect URI in Google must be exactly `PUBLIC_URL` followed by `/auth/google/callback`: same `https`, same domain, no trailing slash. |
+| Sign-in says it is not set up in this build | The extension has no Google client yet. Run `node scripts/set-google-client.mjs <client-id>` and reload the extension. |
+| Sign-in fails with a message about the client ID or OAuth | The Google client was created for a different extension ID. In Google Auth Platform, **Clients**, the Chrome Extension client's item ID must be the ID shown on the extension's card at `chrome://extensions`. An unpacked copy only has the store's ID if you passed `--key` in Part 5. |
+| "That Google sign-in was issued for a different app" | `GOOGLE_CLIENT_ID` on the server is not the client ID in the extension. They must be the same value. |
+| Sign-in asks to sign in to Chrome first | Chrome itself is not signed in to a Google account. Use the profile button at the top right of Chrome. |
 | Google says access is blocked, or the app is being tested | The app is still in testing mode. In Google Auth Platform, **Audience**, press **Publish app**, or add the person as a test user. |
-| The settings page has no **Sign in with Google** button | The server does not have both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, or was not redeployed after they were added. Press **Refresh** in settings afterwards. |
+| The settings page has no **Sign in with Google** button | The server has no `GOOGLE_CLIENT_ID`, or was not redeployed after it was added. Press **Refresh** in settings afterwards. |
 | The extension cannot reach the server | It points at the wrong address. Run `node scripts/set-api-url.mjs <your-server>` again, then press the reload arrow on the extension's card at `chrome://extensions`. |
-| "This client is not allowed to use the API" | `ALLOWED_ORIGINS` is set and does not include this copy of the extension. See Part 8. |
+| "This client is not allowed to use the API" | `ALLOWED_ORIGINS` is set and does not include this copy of the extension. See Part 9. |
 | No buttons on x.com | Reload the tab: the extension only joins pages opened after it was installed or updated. If they are still missing for everyone, X has changed its page and the extension needs an update. |
 | A tester's trial ran out at once | Trial use is also counted per network (three trials' worth per 30 days by default). Several testers on one office network share that. Raise `TRIAL_IP_LIMIT`, or give testers licenses. |
 | The website shows a 404 on Vercel | **Root Directory** is not `website`. Change it in the project's settings and redeploy. |
@@ -412,11 +429,11 @@ Every server setting, with its default, is described in [`server/.env.example`](
 
 ---
 
-## 13. Before you take money
+## 14. Before you take money
 
 The code is ready to sell. These parts are yours to add, and none of them are in this repository:
 
-- **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 10.
+- **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 11.
 - **Terms of service and a refund policy.** Payment providers and the Chrome Web Store both expect them. Add them as pages in `website/` and link them from the footer.
 - **A support address** that someone reads.
 - **Your business details** for the store's trader declaration and for invoices.
@@ -430,8 +447,10 @@ Run all of them from the top of the repository.
 | Command | What it does |
 | --- | --- |
 | `node scripts/set-api-url.mjs <your-server>` | Points the extension at your server |
+| `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store |
 | `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address |
 | `node scripts/build-privacy.mjs` | Rebuilds the website's privacy page from `PRIVACY-POLICY.md` |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots |
+| `node store/build-icons.mjs` | Renders `store/icon.svg` into every icon file |

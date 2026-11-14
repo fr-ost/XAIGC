@@ -90,27 +90,22 @@ export function loadConfig(env = process.env) {
   const onRailway = Object.keys(env).some((key) => key.startsWith("RAILWAY_"));
 
   const port = int(env.PORT, 8787, { min: 1, max: 65535 });
-  // Where browsers reach this server. Google sends people back here after
-  // sign-in, so it must be exactly the address registered with Google.
-  const publicUrl = (
-    env.PUBLIC_URL ||
-    (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : production ? "" : `http://localhost:${port}`)
-  ).replace(/\/+$/, "");
-  const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  // One OAuth client per extension ID. Usually that is one; a second (for an
+  // unpacked development copy with its own ID) can follow after a comma.
+  const googleClientIds = String(env.GOOGLE_CLIENT_ID || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const googleEnabled = googleClientIds.length > 0;
 
   const config = {
     version: SERVER_VERSION,
     production,
     port,
-    publicUrl,
 
-    // Sign in with Google. Enabled once both values are set.
+    // Sign in with Google, inside the extension. Enabled once GOOGLE_CLIENT_ID is set.
     google: {
       enabled: googleEnabled,
-      clientId: env.GOOGLE_CLIENT_ID || "",
-      clientSecret: env.GOOGLE_CLIENT_SECRET || "",
-      authUrl: env.GOOGLE_AUTH_URL || "https://accounts.google.com/o/oauth2/v2/auth",
-      tokenUrl: env.GOOGLE_TOKEN_URL || "https://oauth2.googleapis.com/token",
+      clientIds: googleClientIds,
+      tokenInfoUrl: env.GOOGLE_TOKENINFO_URL || "https://oauth2.googleapis.com/tokeninfo",
+      userInfoUrl: env.GOOGLE_USERINFO_URL || "https://openidconnect.googleapis.com/v1/userinfo",
     },
     host: env.HOST || "0.0.0.0",
     logLevel: env.LOG_LEVEL || (env.NODE_ENV === "test" ? "silent" : "info"),
@@ -204,17 +199,13 @@ export function loadConfig(env = process.env) {
     if (!config.openai.apiKey) problems.push("OPENAI_API_KEY is required in production.");
     if (config.appSecret.length < 24) problems.push("APP_SECRET is required in production (use 32+ random characters).");
   }
-  if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {
-    problems.push("Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither, to leave it off).");
-  }
-  if (googleEnabled && !/^https?:\/\/[^/\s]+$/.test(publicUrl)) {
-    problems.push("PUBLIC_URL is required for Google sign-in: the address of this server, for example https://xaicg.up.railway.app (no path).");
-  }
-  if (googleEnabled && production && !publicUrl.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(publicUrl)) {
-    problems.push("PUBLIC_URL must use https in production.");
+  for (const id of googleClientIds) {
+    if (!/^[\w-]+\.apps\.googleusercontent\.com$/.test(id)) {
+      problems.push(`GOOGLE_CLIENT_ID should be an OAuth client ID ending in .apps.googleusercontent.com (got "${id.slice(0, 24)}..."). Use the client of type "Chrome Extension".`);
+    }
   }
   if (config.trial.requireSignIn && !googleEnabled) {
-    problems.push("TRIAL_REQUIRE_SIGN_IN is on but Google sign-in is not configured (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET).");
+    problems.push("TRIAL_REQUIRE_SIGN_IN is on but Google sign-in is not configured (GOOGLE_CLIENT_ID).");
   }
   if (config.adminToken && config.adminToken.length < 24) {
     problems.push("ADMIN_TOKEN must be at least 24 characters. Leave it unset to disable the admin API.");

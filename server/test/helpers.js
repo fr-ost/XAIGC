@@ -14,7 +14,7 @@ import { buildApp } from "../src/app.js";
 
 export const ADMIN_TOKEN = "test-admin-token-0123456789abcdef";
 // Pass these to createTestApp() to switch Google sign-in on.
-export const GOOGLE = { GOOGLE_CLIENT_ID: "test-client.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "test-google-secret", PUBLIC_URL: "http://localhost:8787" };
+export const GOOGLE = { GOOGLE_CLIENT_ID: "test-client.apps.googleusercontent.com" };
 export const EXT_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
 
 const DEFAULT_CANDIDATES = [
@@ -50,37 +50,35 @@ export function createFakeOpenAI() {
     },
     moderation: (body) => json(200, { results: body.input.map(() => ({ flagged: false })) }),
     model: () => json(200, { id: "test-model", object: "model" }),
-    // Fake Google. A test "signs in at Google" by registering an account
-    // under an authorization code; the token endpoint then issues an ID
-    // token for it the way Google would. `claims` overrides let a test
+    // Fake Google. A test "signs in" by minting an access token for an
+    // account, the way Chrome would hand one to the extension. tokeninfo and
+    // userinfo then answer for it. `info` and `profile` overrides let a test
     // produce a token that should be rejected.
     google: {
-      codes: new Map(),
-      tokenCalls: [],
-      issue(code, { nonce, account, claims = {} }) {
-        fake.google.codes.set(code, { nonce, account, claims });
+      tokens: new Map(),
+      calls: [],
+      down: false, // set true to make Google answer 503
+      mint(account, { info = {}, profile = {}, clientId = "test-client.apps.googleusercontent.com" } = {}) {
+        const token = `ya29.test-${randomBytes(18).toString("base64url")}`;
+        fake.google.tokens.set(token, {
+          info: { azp: clientId, aud: clientId, sub: account.sub, scope: "openid email profile", exp: String(Math.floor(Date.now() / 1000) + 3600), email: account.email, email_verified: "true", ...info },
+          profile: { sub: account.sub, email: account.email, email_verified: true, name: account.name, picture: "https://example.com/p.png", ...profile },
+        });
+        return token;
       },
     },
     fetch: async (url, init = {}) => {
-      if (String(url).startsWith("https://oauth2.googleapis.com/token")) {
-        const form = Object.fromEntries(new URLSearchParams(init.body));
-        fake.google.tokenCalls.push(form);
-        const grant = fake.google.codes.get(form.code);
-        fake.google.codes.delete(form.code); // Google's codes are single use
-        if (!grant || form.client_secret !== "test-google-secret") return json(400, { error: "invalid_grant", error_description: "Bad Request" });
-        const payload = {
-          iss: "https://accounts.google.com",
-          aud: form.client_id,
-          sub: grant.account.sub,
-          email: grant.account.email,
-          email_verified: true,
-          name: grant.account.name,
-          nonce: grant.nonce,
-          exp: Math.floor(Date.now() / 1000) + 3600,
-          ...grant.claims,
-        };
-        const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
-        return json(200, { access_token: "ya29.fake", id_token: `${b64({ alg: "RS256" })}.${b64(payload)}.signature` });
+      const target = new URL(url);
+      if (target.origin + target.pathname === "https://oauth2.googleapis.com/tokeninfo") {
+        fake.google.calls.push({ endpoint: "tokeninfo", method: init.method, headers: init.headers || {} });
+        if (fake.google.down) return json(503, { error: "backend_error" });
+        const grant = fake.google.tokens.get(target.searchParams.get("access_token"));
+        return grant ? json(200, grant.info) : json(400, { error: "invalid_token", error_description: "Invalid Value" });
+      }
+      if (target.origin + target.pathname === "https://openidconnect.googleapis.com/v1/userinfo") {
+        fake.google.calls.push({ endpoint: "userinfo", method: init.method, headers: init.headers || {} });
+        const grant = fake.google.tokens.get(String(init.headers?.Authorization || "").replace(/^Bearer /, ""));
+        return grant ? json(200, grant.profile) : json(401, { error: "invalid_token" });
       }
       const path = new URL(url).pathname.replace(/^\/v1/, "");
       const body = init.body ? JSON.parse(init.body) : null;
@@ -195,31 +193,11 @@ export async function createTestApp(env = {}) {
         ...extra,
       }),
     me: (device) => call("GET", "/v1/me", { token: device.token, ip: device.ip }),
-    // The three steps of a sign-in, separately, so tests can interfere.
-    async startSignIn(device) {
-      const res = await call("POST", "/v1/auth/google/start", { token: device.token, ip: device.ip });
-      if (res.status !== 200) return { res };
-      const url = new URL(res.body.url);
-      return { res, url, state: url.searchParams.get("state"), nonce: url.searchParams.get("nonce") };
-    },
-    // What Google does after the person picks an account: send their browser
-    // back to our callback with a code. Returns the completion code that the
-    // browser ends up holding (or null with the error page).
-    async googleReturns(flow, account, { claims, code = `code-${randomBytes(6).toString("hex")}` } = {}) {
-      fake.google.issue(code, { nonce: flow.nonce, account, claims });
-      const res = await call("GET", `/auth/google/callback?code=${code}&state=${encodeURIComponent(flow.state)}`, { ip: nextIp() });
-      const location = res.headers.location || "";
-      return { res, completion: location.startsWith("/auth/done#code=") ? location.slice("/auth/done#code=".length) : null };
-    },
-    completeSignIn: (device, completion) => call("POST", "/v1/auth/google/complete", { token: device.token, ip: device.ip, body: { code: completion } }),
-    // The whole thing, as one honest user would do it.
-    async signIn(device, account) {
-      const flow = await t.startSignIn(device);
-      if (!flow.state) throw new Error(`sign-in start failed: ${flow.res.status} ${flow.res.raw}`);
-      const back = await t.googleReturns(flow, account);
-      if (!back.completion) throw new Error(`google callback failed: ${back.res.status} ${back.res.raw.slice(0, 200)}`);
-      return t.completeSignIn(device, back.completion);
-    },
+    // Hand the server a Google access token, as the extension does.
+    signInWith: (device, accessToken, extra = {}) => call("POST", "/v1/auth/google", { token: device.token, ip: device.ip, body: { accessToken }, ...extra }),
+    // The whole thing, as one honest user would do it: Chrome gives the
+    // extension a token for their account, and the extension presents it.
+    signIn: (device, account) => t.signInWith(device, fake.google.mint(account)),
     signOut: (device) => call("POST", "/v1/auth/signout", { token: device.token, ip: device.ip }),
     attach: (device, body = {}) => call("POST", "/v1/license/attach", { token: device.token, ip: device.ip, body }),
     activate: (device, key, extra = {}) => call("POST", "/v1/license/activate", { token: device.token, ip: device.ip, body: { key, ...extra } }),

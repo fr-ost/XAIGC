@@ -45,7 +45,7 @@ Raw IP addresses are held in memory only, for short-lived rate limiting, and are
 
 ### Signing in with Google
 
-Signing in is handled by Google. XAICG asks only for your basic profile (`openid`, `email`, `profile`). Google's answer contains your Google account ID, email address, name, profile picture address and language; XAICG keeps the first three and discards the rest. It does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. No Google access token is stored. You can remove XAICG's access at any time at https://myaccount.google.com/permissions and sign out in the extension's settings.
+Signing in happens inside the extension, through Chrome's own Google account prompt. XAICG asks only for your basic profile (`openid`, `email`, `profile`). Chrome gives the extension a short-lived Google access token for the account you chose; the extension sends it to the XAICG server once, and the server uses it to ask Google who you are. Google's answer contains your Google account ID, email address, name, profile picture address and language; XAICG keeps the first three and discards the rest. The token is not stored, on the server or in the extension. XAICG does not receive your password, and it cannot read or change your email, contacts, files or anything else in your Google account. You can remove XAICG's access at any time at https://myaccount.google.com/permissions and sign out in the extension's settings.
 
 ## 3. What stays in your browser
 

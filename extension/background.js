@@ -219,64 +219,68 @@ async function remember(text) {
 
 /* ----------------------------- Google sign-in ---------------------------- */
 
-// Signing in happens in an ordinary tab: the server sends the browser to
-// Google and back. When Google is done, the tab lands on the server's
-// /auth/done page with a one-time completion code in the URL fragment. This
-// worker sees that tab (it has host access to the server), presents the code
-// together with this install's device token, and closes the tab. The server
-// only signs in the install that started the attempt, so a completion code
-// is useless to anyone else, and a sign-in link sent by someone else does
-// nothing here.
-const AUTH_DONE_URL = `${API_BASE}/auth/done`;
-const SIGN_IN_WINDOW_MS = 15 * 60_000;
-const finishing = new Set();
+// Signing in happens inside the extension. Chrome itself asks which Google
+// account to use (chrome.identity) and hands this worker a short-lived
+// access token. No tab is opened and no web page is involved. The token is
+// sent to the XAICG server once, which checks with Google that it was issued
+// to this extension and reads the account's id, name and email from it.
+// Nothing is kept here afterwards: the token is dropped from Chrome's cache.
+const GOOGLE_CLIENT = chrome.runtime.getManifest().oauth2?.client_id || "";
+const GOOGLE_READY = /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT) && !GOOGLE_CLIENT.startsWith("REPLACE_");
 
-async function startSignIn() {
-  const { url, done } = await request("/v1/auth/google/start", { method: "POST" });
-  // The worker can only see the tab come back on the server it talks to. If
-  // the server announces a different public address, say so now instead of
-  // leaving the user on a page that never closes.
-  if (done && !String(done).startsWith(AUTH_DONE_URL)) {
-    throw new ApiError("server_misconfigured", `Sign-in is not set up correctly: the server's PUBLIC_URL (${new URL(done).origin}) is not the address this extension uses (${new URL(API_BASE).origin}).`);
+// Chrome reports sign-in problems as plain strings. Turn the ones a person
+// can act on into something readable.
+function googleError(err) {
+  const text = String(err?.message || err || "");
+  if (/did not approve|denied|cancel|closed/i.test(text)) return new ApiError("sign_in_cancelled", "Sign-in was cancelled.");
+  if (/not signed in|turned off|sign.?in.*chrome/i.test(text)) {
+    return new ApiError("chrome_signed_out", "Sign in to Chrome with your Google account first (the profile button at the top right of Chrome), then try again.");
   }
-  const tab = await chrome.tabs.create({ url });
-  await chrome.storage.session.set({ signIn: { tabId: tab.id, startedAt: Date.now() } });
-  await local.set({ signInStatus: { state: "pending", at: Date.now() } });
-  return {};
+  if (/client id|oauth2|invalid_client|not granted/i.test(text)) {
+    return new ApiError("google_not_configured", `Google sign-in is not set up correctly for this extension (${text}).`);
+  }
+  return new ApiError("google_sign_in_failed", `Google sign-in didn't work${text ? ` (${text})` : ""}. Try again.`);
 }
 
-// Only the tab this worker opened for the sign-in counts. Any other page
-// that shows up at the done address (a stray link, another site opening it)
-// is ignored and cannot use up or cancel the real attempt.
-async function finishSignIn(tabId, url) {
-  const { signIn } = await chrome.storage.session.get("signIn");
-  if (!signIn || signIn.tabId !== tabId || Date.now() - signIn.startedAt > SIGN_IN_WINDOW_MS) return;
-  const code = new URLSearchParams(new URL(url).hash.slice(1)).get("code");
-  if (!code || finishing.has(code)) return;
-  finishing.add(code);
+async function googleToken() {
+  if (!chrome.identity?.getAuthToken) throw new ApiError("unsupported_browser", "Signing in with Google needs Google Chrome.");
+  if (!GOOGLE_READY) throw new ApiError("google_not_configured", "Google sign-in is not set up in this build of the extension.");
   try {
-    await request("/v1/auth/google/complete", { method: "POST", body: { code } });
-    await local.set({ signInStatus: { state: "done", at: Date.now() } });
-    chrome.tabs.remove(tabId).catch(() => {});
+    const result = await chrome.identity.getAuthToken({ interactive: true });
+    const token = typeof result === "string" ? result : result?.token;
+    if (!token) throw new Error("Chrome returned no token");
+    return token;
   } catch (err) {
-    await local.set({ signInStatus: { state: "error", message: err.message || "Sign-in did not finish.", at: Date.now() } });
-  } finally {
-    await chrome.storage.session.remove("signIn");
+    throw err instanceof ApiError ? err : googleError(err);
   }
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.url && changeInfo.url.startsWith(AUTH_DONE_URL)) finishSignIn(tabId, changeInfo.url);
-});
+const forgetToken = (token) => chrome.identity.removeCachedAuthToken({ token }).catch(() => {});
 
-// If the user closes the sign-in tab, stop waiting for it.
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  const { signIn } = await chrome.storage.session.get("signIn");
-  if (signIn?.tabId !== tabId) return;
-  await chrome.storage.session.remove("signIn");
-  const { signInStatus } = await local.get("signInStatus");
-  if (signInStatus?.state === "pending") await local.set({ signInStatus: { state: "cancelled", at: Date.now() } });
-});
+async function signIn() {
+  let token = await googleToken();
+  try {
+    try {
+      return await request("/v1/auth/google", { method: "POST", body: { accessToken: token } });
+    } catch (err) {
+      if (err.code !== "google_token_rejected") throw err;
+      // Chrome hands out cached tokens, and a cached one can have gone stale.
+      // Drop it and ask once more before giving up.
+      await forgetToken(token);
+      token = await googleToken();
+      return await request("/v1/auth/google", { method: "POST", body: { accessToken: token } });
+    }
+  } finally {
+    await forgetToken(token);
+  }
+}
+
+async function signOut() {
+  const result = await request("/v1/auth/signout", { method: "POST" });
+  // Forget what Chrome cached, so the next sign-in starts clean.
+  await chrome.identity?.clearAllCachedAuthTokens?.().catch(() => {});
+  return result;
+}
 
 const handlers = {
   "xaicg:generate": (msg) => generate(msg.payload || {}),
@@ -288,8 +292,8 @@ const handlers = {
   "xaicg:activate": (msg) => request("/v1/license/activate", { method: "POST", body: { key: String(msg.key || ""), replaceOldest: msg.replaceOldest === true } }),
   "xaicg:deactivate": () => request("/v1/license/deactivate", { method: "POST" }),
   "xaicg:attach-license": (msg) => request("/v1/license/attach", { method: "POST", body: { replaceOldest: msg.replaceOldest === true } }),
-  "xaicg:signin": () => startSignIn(),
-  "xaicg:signout": () => request("/v1/auth/signout", { method: "POST" }),
+  "xaicg:signin": () => signIn(),
+  "xaicg:signout": () => signOut(),
   "xaicg:clear-memory": async () => {
     await local.remove("recentReplies");
     return {};

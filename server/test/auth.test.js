@@ -2,7 +2,7 @@ import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
 
 import { loadConfig } from "../src/config.js";
-import { googleAuthUrl, GoogleAuthError, validateClaims } from "../src/services/google.js";
+import { checkTokenInfo, GoogleAuthError, readProfile } from "../src/services/google.js";
 import { chatResponse, createTestApp, EXT_ORIGIN, GOOGLE, nextIp } from "./helpers.js";
 
 const alice = { sub: "google-sub-alice", email: "alice@example.com", name: "Alice Example" };
@@ -14,46 +14,41 @@ const person = (n) => ({ sub: `google-sub-${n}`, email: `${n}@example.com`, name
 describe("Google identity checks", () => {
   const config = loadConfig(GOOGLE);
   const now = Date.parse("2026-11-14T00:00:00Z");
-  const good = {
-    iss: "https://accounts.google.com",
-    aud: GOOGLE.GOOGLE_CLIENT_ID,
-    sub: "123",
-    email: "Someone@Example.com",
-    email_verified: true,
-    name: " Some One ",
-    nonce: "n1",
-    exp: now / 1000 + 600,
-  };
-  const check = (claims) => validateClaims(config, claims, { nonce: "n1", now });
-  const rejects = (claims, code) => assert.throws(() => check(claims), (err) => err instanceof GoogleAuthError && err.code === code);
+  const info = { azp: GOOGLE.GOOGLE_CLIENT_ID, aud: GOOGLE.GOOGLE_CLIENT_ID, sub: "123", exp: String(now / 1000 + 600) };
+  const profile = { sub: "123", email: "Someone@Example.com", email_verified: true, name: " Some One " };
+  const rejects = (fn, code) => assert.throws(fn, (err) => err instanceof GoogleAuthError && err.code === code);
 
-  test("accepts a well-formed identity and normalizes it", () => {
-    assert.deepEqual(check(good), { sub: "123", email: "someone@example.com", name: "Some One" });
-    assert.deepEqual(check({ ...good, iss: "accounts.google.com", email_verified: "true", name: undefined }).name, null);
+  test("a token is accepted only if it was issued to this product's own client", () => {
+    assert.equal(checkTokenInfo(config, info, { now }), info);
+    rejects(() => checkTokenInfo(config, { ...info, aud: "another-app.apps.googleusercontent.com" }, { now }), "bad_audience");
+    rejects(() => checkTokenInfo(config, { ...info, azp: "another-app.apps.googleusercontent.com" }, { now }), "bad_audience");
+    rejects(() => checkTokenInfo(config, { ...info, aud: undefined }, { now }), "bad_audience");
+    rejects(() => checkTokenInfo(config, { ...info, exp: String(now / 1000 - 1) }, { now }), "expired");
+    rejects(() => checkTokenInfo(config, { ...info, exp: undefined }, { now }), "expired");
+    rejects(() => checkTokenInfo(config, null, { now }), "bad_token");
   });
 
-  test("rejects anything that is not this app's own fresh, verified sign-in", () => {
-    rejects({ ...good, iss: "https://evil.example" }, "bad_issuer");
-    rejects({ ...good, aud: "another-app.apps.googleusercontent.com" }, "bad_audience");
-    rejects({ ...good, exp: now / 1000 - 3600 }, "expired");
-    rejects({ ...good, nonce: "someone-elses" }, "bad_nonce");
-    rejects({ ...good, nonce: undefined }, "bad_nonce");
-    rejects({ ...good, sub: "" }, "bad_token");
-    rejects({ ...good, email: undefined }, "no_email");
-    rejects({ ...good, email_verified: false }, "email_unverified");
-    rejects({ ...good, email_verified: undefined }, "email_unverified");
-    rejects(null, "bad_token");
+  test("several client IDs can be configured, for a development copy of the extension", () => {
+    const two = loadConfig({ GOOGLE_CLIENT_ID: `${GOOGLE.GOOGLE_CLIENT_ID}, dev-copy.apps.googleusercontent.com` });
+    assert.deepEqual(two.google.clientIds, [GOOGLE.GOOGLE_CLIENT_ID, "dev-copy.apps.googleusercontent.com"]);
+    assert.ok(checkTokenInfo(two, { ...info, aud: "dev-copy.apps.googleusercontent.com", azp: "dev-copy.apps.googleusercontent.com" }, { now }));
   });
 
-  test("the authorization URL asks for identity only and returns to this server", () => {
-    const url = new URL(googleAuthUrl(config, { state: "st_abc", nonce: "n_abc" }));
-    assert.equal(url.origin + url.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
-    assert.equal(url.searchParams.get("redirect_uri"), "http://localhost:8787/auth/google/callback");
-    assert.equal(url.searchParams.get("response_type"), "code");
-    assert.equal(url.searchParams.get("scope"), "openid email profile");
-    assert.equal(url.searchParams.get("state"), "st_abc");
-    assert.equal(url.searchParams.get("nonce"), "n_abc");
-    assert.ok(!url.toString().includes(GOOGLE.GOOGLE_CLIENT_SECRET));
+  test("the profile is normalized, and must be a verified address for the same account", () => {
+    assert.deepEqual(readProfile(profile, info), { sub: "123", email: "someone@example.com", name: "Some One" });
+    assert.equal(readProfile({ ...profile, email_verified: "true", name: undefined }, info).name, null);
+    rejects(() => readProfile({ ...profile, sub: "" }, info), "bad_token");
+    rejects(() => readProfile({ ...profile, sub: "456" }, info), "bad_token");
+    rejects(() => readProfile({ ...profile, email: undefined }, info), "no_email");
+    rejects(() => readProfile({ ...profile, email_verified: false }, info), "email_unverified");
+    rejects(() => readProfile({ ...profile, email_verified: undefined }, info), "email_unverified");
+    rejects(() => readProfile(null, info), "bad_token");
+  });
+
+  test("the server needs only the client ID: no secret, no public address", () => {
+    assert.equal(loadConfig(GOOGLE).google.enabled, true);
+    assert.equal(loadConfig({}).google.enabled, false);
+    assert.throws(() => loadConfig({ NODE_ENV: "production", GOOGLE_CLIENT_ID: "GOCSPX-this-is-a-secret-not-an-id" }), /Chrome Extension/);
   });
 });
 
@@ -88,11 +83,12 @@ describe("sign in with Google", () => {
     assert.equal((await t.generate(d)).status, 200);
     assert.equal((await t.me(d)).body.account.user.email, "alice@example.com");
 
-    // What was sent to Google: the code, our secret, our callback. Nothing else.
-    const sent = t.fake.google.tokenCalls.at(-1);
-    assert.deepEqual(Object.keys(sent).sort(), ["client_id", "client_secret", "code", "grant_type", "redirect_uri"]);
-    assert.equal(sent.grant_type, "authorization_code");
-    assert.equal(sent.redirect_uri, "http://localhost:8787/auth/google/callback");
+    // What Google was asked: who the token belongs to, and nothing else.
+    const asked = t.fake.google.calls.slice(-2);
+    assert.deepEqual(asked.map((c) => [c.endpoint, c.method]), [["tokeninfo", "GET"], ["userinfo", "GET"]]);
+    // The token is not kept anywhere.
+    const stored = JSON.stringify((await t.db.query("SELECT * FROM users")).rows) + JSON.stringify((await t.db.query("SELECT * FROM devices")).rows);
+    assert.ok(!stored.includes("ya29."), "no Google token is stored");
   });
 
   test("signing in again finds the same account and refreshes its details", async () => {
@@ -120,97 +116,79 @@ describe("sign in with Google", () => {
     assert.equal(res.body.error.code, "trial_ended");
   });
 
-  test("a sign-in link sent to someone else gains nothing", async () => {
-    // The attacker starts a sign-in for their own install and tricks a victim
-    // into opening the link. The victim really does sign in at Google.
+  test("a token issued to another app cannot be replayed here", async () => {
+    // Some other app (or site) the victim used holds a perfectly valid Google
+    // token for them. Presenting it here must not sign anyone in as them.
     const attacker = await t.install();
-    const victimInstall = await t.install();
-    const flow = await t.startSignIn(attacker);
-    const back = await t.googleReturns(flow, person("victim"));
-    assert.ok(back.completion, "the victim's browser lands on the done page holding a completion code");
-
-    // The attacker never sees that code, and guessing is hopeless.
-    assert.equal((await t.completeSignIn(attacker, "ac_guess-guess-guess-guess")).status, 400);
-    assert.equal((await t.me(attacker)).body.account.user, null, "the attacker is not signed in as the victim");
-
-    // The victim's own install holds the code but did not start this sign-in.
-    const wrongInstall = await t.completeSignIn(victimInstall, back.completion);
-    assert.equal(wrongInstall.status, 400);
-    assert.equal(wrongInstall.body.error.code, "sign_in_expired");
-    assert.equal((await t.me(victimInstall)).body.account.user, null);
+    const foreign = t.fake.google.mint(person("victim"), { clientId: "some-other-app.apps.googleusercontent.com" });
+    const res = await t.signInWith(attacker, foreign);
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error.code, "google_token_rejected");
+    assert.equal((await t.me(attacker)).body.account.user, null);
     assert.equal((await t.db.query("SELECT 1 FROM users WHERE email = 'victim@example.com'")).rows.length, 0, "no account was created");
-
-    // Only the install that started it, holding the code, completes it.
-    assert.equal((await t.completeSignIn(attacker, back.completion)).status, 200);
-    // ...and the code is single use.
-    assert.equal((await t.completeSignIn(attacker, back.completion)).status, 400);
   });
 
-  test("states are single use, expire, and are replaced by a newer attempt", async () => {
-    const d = await t.install();
-    const flow = await t.startSignIn(d);
-    const first = await t.googleReturns(flow, alice);
-    assert.equal(first.res.status, 303);
-    const replay = await t.googleReturns(flow, alice);
-    assert.equal(replay.res.status, 400, "the same state cannot be used twice");
-    assert.match(replay.res.raw, /expired or was already used/);
-
-    const stale = await t.startSignIn(d);
-    await t.db.query("UPDATE auth_flows SET expires_at = now() - interval '1 minute' WHERE device_id = $1", [d.deviceId]);
-    assert.equal((await t.googleReturns(stale, alice)).res.status, 400, "an expired state is refused");
-
-    const older = await t.startSignIn(d);
-    const newer = await t.startSignIn(d);
-    assert.equal((await t.googleReturns(older, alice)).res.status, 400, "starting again abandons the previous attempt");
-    const ok = await t.googleReturns(newer, alice);
-    await t.db.query("UPDATE auth_flows SET expires_at = now() - interval '1 minute' WHERE device_id = $1", [d.deviceId]);
-    assert.equal((await t.completeSignIn(d, ok.completion)).status, 400, "a completion code expires too");
-
-    const junk = await t.call("GET", "/auth/google/callback?code=x&state=st_never-issued");
-    assert.equal(junk.status, 400);
-    assert.equal((await t.call("GET", "/auth/google/callback")).status, 400);
+  test("a sign-in applies to the install that presents it, and no other", async () => {
+    const mine = await t.install();
+    const other = await t.install();
+    await t.signIn(mine, person("gina"));
+    assert.equal((await t.me(mine)).body.account.user.email, "gina@example.com");
+    assert.equal((await t.me(other)).body.account.user, null);
   });
 
-  test("tokens that are not a fresh, verified sign-in for this app are refused", async () => {
+  test("tokens that are not a valid, verified sign-in for this app are refused", async () => {
     const d = await t.install();
     const before = (await t.db.query("SELECT count(*)::int AS n FROM users")).rows[0].n;
-    const tryWith = async (claims) => {
-      const flow = await t.startSignIn(d);
-      const back = await t.googleReturns(flow, person("mallory"), { claims });
-      assert.equal(back.res.status, 400, JSON.stringify(claims));
-      assert.equal(back.completion, null);
-      assert.match(back.res.headers["content-type"], /text\/html/);
-      // The failed state is spent.
-      assert.equal((await t.googleReturns(flow, person("mallory"))).res.status, 400);
+    const refused = async (overrides, why) => {
+      const res = await t.signInWith(d, t.fake.google.mint(person("mallory"), overrides));
+      assert.equal(res.status, 400, why);
+      assert.equal(res.body.error.code, "google_token_rejected", why);
     };
-    await tryWith({ aud: "someone-else.apps.googleusercontent.com" });
-    await tryWith({ iss: "https://accounts.evil.example" });
-    await tryWith({ nonce: "not-ours" });
-    await tryWith({ email_verified: false });
-    await tryWith({ exp: Math.floor(Date.now() / 1000) - 3600 });
-    await tryWith({ sub: "" });
+    await refused({ info: { aud: "someone-else.apps.googleusercontent.com" } }, "wrong audience");
+    await refused({ info: { azp: "someone-else.apps.googleusercontent.com" } }, "wrong authorized party");
+    await refused({ info: { exp: String(Math.floor(Date.now() / 1000) - 3600) } }, "expired");
+    await refused({ profile: { email_verified: false } }, "unverified email");
+    await refused({ profile: { email: undefined } }, "no email");
+    await refused({ profile: { sub: "" } }, "no account id");
+    await refused({ profile: { sub: "google-sub-someone-else" } }, "the two answers disagree about the account");
 
-    // A code Google does not recognize.
-    const flow = await t.startSignIn(d);
-    const bad = await t.call("GET", `/auth/google/callback?code=never-issued&state=${encodeURIComponent(flow.state)}`);
-    assert.equal(bad.status, 400);
-    assert.match(bad.raw, /Google did not accept the sign-in/);
+    // A token Google does not recognize.
+    const unknown = await t.signInWith(d, "ya29.never-issued-never-issued-never-issued");
+    assert.equal(unknown.status, 400);
+    assert.equal(unknown.body.error.code, "google_token_rejected");
+    assert.match(unknown.body.error.message, /Google did not accept that sign-in/);
+
+    // Malformed requests never reach Google.
+    const asked = t.fake.google.calls.length;
+    assert.equal((await t.call("POST", "/v1/auth/google", { token: d.token, body: {} })).status, 400);
+    assert.equal((await t.call("POST", "/v1/auth/google", { token: d.token, body: { accessToken: "short" } })).status, 400);
+    assert.equal((await t.call("POST", "/v1/auth/google", { token: d.token, body: { accessToken: "x".repeat(5000) } })).status, 400);
+    assert.equal(t.fake.google.calls.length, asked);
 
     assert.equal((await t.db.query("SELECT count(*)::int AS n FROM users")).rows[0].n, before, "no accounts were created");
     assert.equal((await t.me(d)).body.account.user, null);
   });
 
-  test("cancelling at Google shows a plain page, safely", async () => {
-    const res = await t.call("GET", "/auth/google/callback?error=access_denied&state=whatever");
-    assert.equal(res.status, 400);
-    assert.match(res.raw, /cancelled the Google sign-in/);
-    assert.match(res.headers["content-security-policy"], /default-src 'none'/);
-    const done = await t.call("GET", "/auth/done");
-    assert.equal(done.status, 200);
-    assert.ok(!/<script/i.test(done.raw), "the done page runs no script");
-    assert.equal((await t.call("GET", "/auth/style.css")).status, 200);
-    const reflected = await t.call("GET", `/auth/google/callback?error=${encodeURIComponent("<script>alert(1)</script>")}`);
-    assert.ok(!reflected.raw.includes("<script>alert(1)</script>"), "query input is never echoed into the page");
+  test("if Google cannot be reached the person is told to try again", async () => {
+    const d = await t.install();
+    t.fake.google.down = true;
+    try {
+      const res = await t.signInWith(d, t.fake.google.mint(person("harold")));
+      assert.equal(res.status, 503);
+      assert.equal(res.body.error.code, "google_unreachable");
+    } finally {
+      t.fake.google.down = false;
+    }
+    assert.equal((await t.signIn(d, person("harold"))).status, 200, "and it works once Google answers");
+  });
+
+  test("the server has no sign-in pages: nothing for a browser to be redirected to", async () => {
+    for (const path of ["/auth/google/callback?code=a&state=b", "/auth/done", "/auth/style.css"]) {
+      assert.equal((await t.call("GET", path)).status, 404, path);
+    }
+    const d = await t.install();
+    assert.equal((await t.call("POST", "/v1/auth/google/start", { token: d.token })).status, 404);
+    assert.equal((await t.call("POST", "/v1/auth/google/complete", { token: d.token, body: { code: "ac_0123456789" } })).status, 404);
   });
 
   test("signing out", async () => {
@@ -228,26 +206,18 @@ describe("sign in with Google", () => {
     const limited = await createTestApp({ ...GOOGLE, SIGN_IN_STARTS_PER_10MIN: "2" });
     try {
       const d = await limited.install();
-      assert.equal((await limited.startSignIn(d)).res.status, 200);
-      assert.equal((await limited.startSignIn(d)).res.status, 200);
-      const third = await limited.startSignIn(d);
-      assert.equal(third.res.status, 429);
-      assert.equal((await limited.startSignIn(await limited.install())).res.status, 200);
+      assert.equal((await limited.signIn(d, person("ivy"))).status, 200);
+      assert.equal((await limited.signInWith(d, "ya29.not-a-real-token-not-a-real-token")).status, 400);
+      const third = await limited.signIn(d, person("ivy"));
+      assert.equal(third.status, 429);
+      assert.equal((await limited.signIn(await limited.install(), person("ivy"))).status, 200);
     } finally {
       await limited.close();
     }
   });
 
-  test("start tells the extension where the browser will land", async () => {
-    const d = await t.install();
-    const { res } = await t.startSignIn(d);
-    assert.equal(res.body.done, "http://localhost:8787/auth/done");
-    assert.deepEqual(Object.keys(res.body).sort(), ["done", "url"]);
-  });
-
-  test("starting and finishing need the install's own token", async () => {
-    assert.equal((await t.call("POST", "/v1/auth/google/start")).status, 401);
-    assert.equal((await t.call("POST", "/v1/auth/google/complete", { body: { code: "ac_0123456789" } })).status, 401);
+  test("signing in and out need the install's own token", async () => {
+    assert.equal((await t.call("POST", "/v1/auth/google", { body: { accessToken: t.fake.google.mint(person("jon")) } })).status, 401);
     assert.equal((await t.call("POST", "/v1/auth/signout")).status, 401);
   });
 });
@@ -260,10 +230,10 @@ describe("sign-in configuration", () => {
     try {
       const d = await t.install();
       assert.deepEqual(d.account.auth, { google: false, signInRequired: false });
-      const start = await t.call("POST", "/v1/auth/google/start", { token: d.token });
-      assert.equal(start.status, 404);
-      assert.equal(start.body.error.code, "sign_in_unavailable");
-      assert.equal((await t.call("GET", "/auth/google/callback?code=a&state=b")).status, 404);
+      const attempt = await t.signIn(d, person("nobody"));
+      assert.equal(attempt.status, 404);
+      assert.equal(attempt.body.error.code, "sign_in_unavailable");
+      assert.equal(t.fake.google.calls.length, 0, "Google is not asked when sign-in is off");
       assert.equal((await t.generate(d)).status, 200);
     } finally {
       await t.close();
@@ -289,20 +259,15 @@ describe("sign-in configuration", () => {
     }
   });
 
-  test("the callback works when the API is locked to the extension's origin", async () => {
+  test("with the API locked to the extension's origin, only the extension can sign in", async () => {
     const t = await createTestApp({ ...GOOGLE, ALLOWED_ORIGINS: EXT_ORIGIN });
     try {
       const origin = { origin: EXT_ORIGIN };
       const reg = await t.call("POST", "/v1/devices", { body: { installId: "install-id-for-origin-test-0001" }, ip: nextIp(), headers: origin });
-      const start = await t.call("POST", "/v1/auth/google/start", { token: reg.body.token, headers: origin });
-      const url = new URL(start.body.url);
-      t.fake.google.issue("c1", { nonce: url.searchParams.get("nonce"), account: person("fay") });
-      // Google's redirect arrives from a normal browser tab: no extension origin.
-      const back = await t.call("GET", `/auth/google/callback?code=c1&state=${encodeURIComponent(url.searchParams.get("state"))}`);
-      assert.equal(back.status, 303);
-      const completion = back.headers.location.split("#code=")[1];
-      assert.equal((await t.call("POST", "/v1/auth/google/complete", { token: reg.body.token, body: { code: completion } })).status, 403, "finishing still needs the extension");
-      const done = await t.call("POST", "/v1/auth/google/complete", { token: reg.body.token, body: { code: completion }, headers: origin });
+      const accessToken = t.fake.google.mint(person("fay"));
+      assert.equal((await t.call("POST", "/v1/auth/google", { token: reg.body.token, body: { accessToken } })).status, 403, "not from another origin");
+      assert.equal((await t.call("POST", "/v1/auth/google", { token: reg.body.token, body: { accessToken }, headers: { origin: "https://evil.example" } })).status, 403);
+      const done = await t.call("POST", "/v1/auth/google", { token: reg.body.token, body: { accessToken }, headers: origin });
       assert.equal(done.status, 200);
       assert.equal(done.body.account.user.email, "fay@example.com");
     } finally {
@@ -721,9 +686,7 @@ describe("managing users", () => {
     assert.equal((await t.admin("GET", "/users?filter=blocked")).body.total, 1);
     // A blocked account cannot be signed in to from a fresh browser either.
     const fresh = await t.install();
-    const flow = await t.startSignIn(fresh);
-    const back = await t.googleReturns(flow, person("quinn"));
-    const done = await t.completeSignIn(fresh, back.completion);
+    const done = await t.signIn(fresh, person("quinn"));
     assert.equal(done.status, 403);
     assert.equal(done.body.error.code, "account_blocked");
     assert.equal((await t.me(fresh)).body.account.user, null);
