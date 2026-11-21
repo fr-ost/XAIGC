@@ -498,3 +498,68 @@ main > :nth-child(n + 5) {
     transition: none !important;
   }
 }
+
+/* ---- on this computer (Unlimited edition only; never shown in the standard edition) ---- */
+.device {
+  box-shadow: inset 2px 0 0 var(--muted);
+}
+.device.on {
+  box-shadow: inset 2px 0 0 var(--up);
+}
+.device.setup,
+.device.ready {
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+.device-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.device-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.device-dot.on {
+  background: var(--up);
+  box-shadow: 0 0 0 4px rgba(14, 203, 129, 0.16);
+}
+.device-dot.setup,
+.device-dot.ready {
+  background: var(--primary);
+}
+.device-title {
+  margin: 0;
+  color: var(--on-dark);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.device-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.device .bar {
+  margin-top: 12px;
+}
+.device .bar + p {
+  margin: 6px 0 0;
+}
+.device-actions {
+  margin-top: 12px;
+}
+.device .status {
+  margin-top: 8px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .device-dot.on {
+    animation: device-pulse 2.4s ease-in-out infinite;
+  }
+}
+@keyframes device-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(14, 203, 129, 0.06);
+  }
+}

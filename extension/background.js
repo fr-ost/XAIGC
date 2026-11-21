@@ -6,9 +6,13 @@
 // a cached copy of the account (plan, remaining quota) in storage so every
 // surface can render without a network round trip.
 //
-// No OpenAI key lives in the extension. Generation happens on the server.
+// No OpenAI key lives in the extension. Generation happens on the server,
+// except in the Unlimited edition, where free users' drafts are written on
+// their own computer by Chrome's built-in AI (lib/ondevice.js). In the
+// standard edition that module is empty and nothing below changes.
 
-import { API_BASE, CLIENT_VERSION, DEFAULT_SETTINGS } from "./config.js";
+import { API_BASE, CLIENT_VERSION, DEFAULT_SETTINGS, EDITION } from "./config.js";
+import { onDevice } from "./lib/ondevice.js";
 
 const RECENT_MAX = 30;
 const RECENT_SENT = 8;
@@ -40,7 +44,8 @@ async function saveAccount(account) {
 function updateBadge(account) {
   try {
     // On the free plan, the icon counts down the last of the day's comments.
-    const free = account && !account.licensed && !account.auth?.signInRequired;
+    // Drafts written on this computer are not counted, so there is nothing to show.
+    const free = account && !account.licensed && !account.auth?.signInRequired && lastRoute?.engine !== "device";
     const left = account?.quota?.remaining ?? 0;
     chrome.action.setBadgeText({ text: free && left <= 2 ? String(left) : "" });
     chrome.action.setBadgeBackgroundColor({ color: left === 0 ? "#c0362c" : "#4b5563" });
@@ -159,6 +164,63 @@ async function cachedAccount({ maxAgeMs = 5 * 60_000 } = {}) {
   return refreshAccount();
 }
 
+/* ------------------------- on this computer (Unlimited) ------------------------- */
+
+// Where the next draft is written, and why. The answer is kept in storage
+// (deviceRoute) so the buttons on x.com can say "unlimited" without asking.
+let lastRoute = null;
+const ROUTE_FIELDS = ["engine", "why", "state", "setting"];
+
+async function route({ fresh = false } = {}) {
+  if (!onDevice) return { engine: "server", why: "edition" };
+  const settings = await getSettings();
+  const { account } = await local.get("account");
+  let state = "unavailable";
+  try {
+    state = (await onDevice.status({ fresh })).state;
+  } catch {
+    /* treated as unavailable */
+  }
+  const setting = ["auto", "device", "server"].includes(settings.engine) ? settings.engine : "auto";
+  let r;
+  if (setting === "server") r = { engine: "server", why: "setting" };
+  else if (setting === "auto" && account?.licensed) r = { engine: "server", why: "plan" };
+  else if (state !== "available") r = { engine: "server", why: state };
+  else r = { engine: "device", why: setting };
+  const next = { ...r, state, setting };
+  if (!lastRoute || ROUTE_FIELDS.some((k) => lastRoute[k] !== next[k])) {
+    lastRoute = next;
+    await local.set({ deviceRoute: next });
+    updateBadge(account);
+  }
+  return next;
+}
+
+// What a person is told when this computer could not write a draft and the
+// server did instead.
+function fallbackNote(err) {
+  switch (err?.code) {
+    case "language":
+      return "The on-device AI doesn't write this language, so the XAICG server wrote it.";
+    case "not_ready":
+      return "The on-device AI isn't set up yet, so the XAICG server wrote it.";
+    case "unavailable":
+      return "The on-device AI isn't available, so the XAICG server wrote it.";
+    default:
+      return "The on-device AI couldn't write this one, so the XAICG server did.";
+  }
+}
+
+async function generateOnDevice(body) {
+  const input = { kind: body.kind, options: body.options, recent: body.recent, rejected: body.rejected };
+  if (body.post) input.post = body.post;
+  if (body.idea) input.idea = body.idea;
+  if (body.draft) input.draft = body.draft;
+  const out = await onDevice.generate(input);
+  const { account } = await local.get("account");
+  return { kind: body.kind, ...out, account: account || null, engine: "device" };
+}
+
 async function generate(payload) {
   const settings = await getSettings();
   const kind = payload.kind;
@@ -197,18 +259,41 @@ async function generate(payload) {
     if (xh) body.xh = xh;
   }
 
+  // Unlimited edition: on this computer when that is where the draft belongs.
+  // If it cannot write this one, the server does, unless the person chose
+  // "always on this computer".
+  let fellBack = null;
+  if (onDevice) {
+    const r = await route();
+    if (r.engine === "device") {
+      try {
+        return await generateOnDevice(body);
+      } catch (err) {
+        if (r.setting === "device") {
+          const hint = err.code === "language" ? " It writes English, Spanish, German, French and Japanese." : "";
+          throw new ApiError(`device_${err.code || "failed"}`, `${err.message || "The on-device AI couldn't write this."}${hint} To let the XAICG server write it, change "Where drafts are written" in Settings.`);
+        }
+        fellBack = err;
+      }
+    }
+  }
+
+  let result;
   try {
-    return await request("/v1/generate", { method: "POST", body });
+    result = await request("/v1/generate", { method: "POST", body });
   } catch (err) {
     // The server asks for a short pause between generations. Rather than
     // show an error for a quick second click, wait it out once.
     const pause = Number(err?.extra?.retryAfter) || 0;
     if (err?.code === "cooldown" && pause > 0 && pause <= 3) {
       await new Promise((resolve) => setTimeout(resolve, pause * 1000));
-      return request("/v1/generate", { method: "POST", body });
+      result = await request("/v1/generate", { method: "POST", body });
+    } else {
+      throw err;
     }
-    throw err;
   }
+  if (fellBack) return { ...result, engine: "server", fallbackNote: fallbackNote(fellBack) };
+  return result;
 }
 
 async function remember(text) {
@@ -295,6 +380,13 @@ const handlers = {
   "xaicg:attach-license": (msg) => request("/v1/license/attach", { method: "POST", body: { replaceOldest: msg.replaceOldest === true } }),
   "xaicg:signin": () => signIn(),
   "xaicg:signout": () => signOut(),
+  // Unlimited edition: whether this computer can write drafts, and where the
+  // next one goes. `fresh` asks Chrome again instead of using the last answer.
+  "xaicg:device": async (msg) => ({
+    edition: EDITION,
+    languages: onDevice?.languages || [],
+    ...(await route({ fresh: msg.fresh === true })),
+  }),
   "xaicg:clear-memory": async () => {
     await local.remove("recentReplies");
     return {};
@@ -347,9 +439,19 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   } catch {
     /* the server may be unreachable right now; the first real action retries */
   }
+  if (onDevice) await route({ fresh: true }).catch(() => {});
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   const { account } = await local.get("account");
   updateBadge(account);
+  if (onDevice) await route({ fresh: true }).catch(() => {});
 });
+
+// Unlimited edition: a new plan, or a change to "Where drafts are written",
+// can move drafts between this computer and the server.
+if (onDevice) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && (changes.settings || changes.account)) route().catch(() => {});
+  });
+}

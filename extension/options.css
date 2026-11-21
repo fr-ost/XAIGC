@@ -271,3 +271,11 @@ fieldset {
     grid-column: auto;
   }
 }
+
+/* The on-device card is a grid like the other cards: its parts need no margins of their own. */
+.device.options > * {
+  margin: 0;
+}
+.device.options .device-title {
+  font-size: 20px;
+}

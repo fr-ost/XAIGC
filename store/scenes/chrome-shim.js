@@ -37,11 +37,18 @@
     switch (message.type) {
       case "xaicg:account":
         return { account };
+      case "xaicg:device":
+        // Unlimited edition previews set preview.device; the standard edition has none.
+        return preview.device || { edition: "standard", engine: "server", why: "edition", state: "unsupported", setting: "auto", languages: [] };
       case "xaicg:info":
         return { deviceId: preview.deviceId || null, apiBase: "https://api.example", version: preview.version };
       case "xaicg:generate": {
         const kind = message.payload?.kind || "reply";
         await new Promise((r) => setTimeout(r, 30));
+        // Unlimited edition, written on this computer: nothing is counted.
+        if (preview.device?.engine === "device") {
+          return kind === "thread" ? { kind, thread: replies.thread, account, engine: "device" } : { kind, variants: replies[kind] || replies.reply, account, engine: "device" };
+        }
         const next = { ...account, quota: { ...account.quota, used: account.quota.used + 1, remaining: Math.max(0, account.quota.remaining - 1) } };
         await local.set({ account: next });
         return kind === "thread" ? { kind, thread: replies.thread, account: next } : { kind, variants: replies[kind] || replies.reply, account: next };

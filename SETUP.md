@@ -476,9 +476,21 @@ Every server setting, with its default, is described in [`server/.env.example`](
 The code is ready to sell. These parts are yours to add, and none of them are in this repository:
 
 - **A way to pay.** A payment link or a checkout from a provider such as Stripe, Paddle or Lemon Squeezy. Put its address in `website/config.js` as `buyUrl`. Issue licenses by hand at first, or automatically with the admin API call in Part 11.
-- **Terms and a refund policy that are really yours.** The site has a terms page, built from `TERMS.md`. It is a sensible starting text, not legal advice: read it, set the refund rule you actually want in section 6, add the country whose law applies, and have it checked before you rely on it. After editing, run `node scripts/build-privacy.mjs`.
+- **Terms and a refund policy that are really yours.** The site has a terms page, built from `TERMS.md`. It is a sensible starting text, not legal advice: read it, set the refund rule you actually want in section 6, add the country whose law applies, and have it checked before you rely on it. After editing, run `node scripts/build-site.mjs`.
 - **A support address** that someone reads. Put it in `website/config.js` as `supportEmail`, so the contact and support pages can offer it.
 - **Your business details** for the store's trader declaration and for invoices.
+
+---
+
+## 15. Optional: publish XAICG Unlimited as well
+
+XAICG Unlimited is a second edition of the extension. Free users get unlimited comments, written on their own computer by Chrome's built-in AI (Gemini Nano), on computers that can run it; everyone else gets the standard edition's 5 a day from your server. The standard edition is not affected.
+
+```bash
+node scripts/pack-extension.mjs --edition unlimited
+```
+
+Load `dist/xaicg-unlimited/` at `chrome://extensions` to try it, then publish `dist/xaicg-unlimited-<version>.zip` as a **new item** in the store. It gets its own ID, so it needs its own Google sign-in client and an entry in `ALLOWED_ORIGINS`. Every step is in [editions/unlimited/README.md](editions/unlimited/README.md), and the store text is in [editions/unlimited/listing.md](editions/unlimited/listing.md).
 
 ---
 
@@ -492,6 +504,8 @@ Run all of them from the top of the repository.
 | `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store |
+| `node scripts/pack-extension.mjs --edition unlimited` | Builds XAICG Unlimited (Part 15) |
+| `node scripts/set-google-client.mjs --edition unlimited <client-id>` | Gives XAICG Unlimited its own Google sign-in client |
 | `node scripts/build-site.mjs` | Rebuilds every page of the website, the sitemap and the blog's feed from `website/config.js`, `content/` and `PRIVACY-POLICY.md`, `TERMS.md` and `SUPPORT.md` |
 | `node scripts/set-site-url.mjs <your-site>` | Tells the website its own address and rebuilds it |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots |

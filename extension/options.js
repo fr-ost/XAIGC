@@ -2,9 +2,14 @@
 
 import { DEFAULT_SETTINGS } from "./config.js";
 import { $, renderAccount, send } from "./lib/client.js";
+import { deviceUi } from "./lib/device-ui.js";
 
 let settings = { ...DEFAULT_SETTINGS };
 let pendingKey = "";
+let lastAccount = null;
+// Unlimited edition: where drafts are written (null in the standard edition).
+let route = null;
+const onDevice = () => route?.engine === "device";
 
 /* -------------------------------- account -------------------------------- */
 
@@ -15,6 +20,7 @@ function setLicenseStatus(message, kind = "") {
 }
 
 function showAccount(account) {
+  if (account) lastAccount = account;
   const d = renderAccount(account, {
     badge: $("planBadge"),
     left: $("quotaLeft"),
@@ -65,6 +71,18 @@ function showAccount(account) {
   $("buy").className = spent || lapsed ? "btn primary" : "btn";
   $("serverProblem").hidden = true;
   $("support").href = d.supportUrl;
+
+  // Unlimited edition, drafts written on this computer: those are not
+  // counted, and the server's free comments are only the fallback.
+  if (onDevice() && free) {
+    $("planBadge").textContent = "Unlimited";
+    $("planBadge").className = "badge pro";
+    $("planTitle").textContent = "Free plan: unlimited on this computer";
+    $("planLead").textContent = d.signInRequired
+      ? "Drafts written on this computer are unlimited and need no account. Sign in to also get the XAICG server's free comments, for languages and posts this computer can't do."
+      : `Drafts written on this computer are unlimited. The XAICG server's ${q.limit} free comments a day cover what this computer can't do.${more}`;
+    $("planBody").hidden = d.signInRequired;
+  }
 }
 
 // The account card (Google sign-in) and the "your account has a license"
@@ -75,17 +93,22 @@ function showSignIn(account) {
   $("account").hidden = !auth.google && !user;
   $("signedOut").hidden = Boolean(user);
   $("signedIn").hidden = !user;
-  $("welcomeSignIn").hidden = !auth.signInRequired;
+  // The first step after installing: signing in, or in the Unlimited
+  // edition, setting up this computer (device-ui.js words it).
+  const setUpFirst = route?.state === "downloadable";
+  $("welcomeSignIn").hidden = !(setUpFirst || (auth.signInRequired && !onDevice()));
   if (user) {
     $("accountTitle").textContent = "Account";
     $("userName").textContent = user.name || user.email;
     $("userEmail").textContent = user.name ? user.email : "";
     $("avatar").textContent = (user.name || user.email).trim().charAt(0);
   } else {
-    $("accountTitle").textContent = auth.signInRequired ? "Start for free" : "Account";
-    $("signInWhy").textContent = auth.signInRequired
-      ? "Sign in with Google to get your free comments. It costs nothing, and there is no card to enter. Your free comments and any license then follow your account to every browser you sign in on."
-      : "Signing in is optional. It keeps your license with your Google account, so a new browser only needs you to sign in.";
+    $("accountTitle").textContent = auth.signInRequired && !onDevice() ? "Start for free" : "Account";
+    $("signInWhy").textContent = onDevice()
+      ? "Signing in is optional for drafts written on this computer. Sign in to use the XAICG server's free comments too, and to keep a license with your Google account."
+      : auth.signInRequired
+        ? "Sign in with Google to get your free comments. It costs nothing, and there is no card to enter. Your free comments and any license then follow your account to every browser you sign in on."
+        : "Signing in is optional. It keeps your license with your Google account, so a new browser only needs you to sign in.";
   }
 
   showAccountLicense(account.accountLicense);
@@ -303,6 +326,20 @@ $("clearMemory").addEventListener("click", async () => {
     $("licenseKey").focus();
   }
   if (location.hash === "#account") $("account").scrollIntoView({ block: "start" });
+  if (deviceUi) {
+    deviceUi
+      .mount($("device"), {
+        variant: "options",
+        settings,
+        save,
+        onRoute: (info) => {
+          route = info;
+          if (lastAccount) showAccount(lastAccount);
+        },
+      })
+      .then(() => location.hash === "#device" && $("device").scrollIntoView({ block: "start" }))
+      .catch(() => {});
+  }
 
   loadAccount(true);
   try {

@@ -1,0 +1,13 @@
+{
+  "id": "unlimited",
+  "title": "XAICG Unlimited",
+  "files": "extension",
+  "engineFiles": ["parse.js", "select.js", "text.js"],
+  "manifest": {
+    "name": "XAICG Unlimited: On-Device AI Replies for X (Twitter)",
+    "short_name": "XAICG",
+    "description": "Unlimited AI comments and replies for X (Twitter), written on your computer by Chrome's built-in AI. A product of Unique Labs.",
+    "action": { "default_title": "XAICG Unlimited" }
+  },
+  "googleClientId": ""
+}

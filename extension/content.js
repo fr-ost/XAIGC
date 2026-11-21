@@ -133,13 +133,16 @@
   // and kept fresh through change events.
   let settings = { ...DEFAULT_SETTINGS };
   let account = null;
+  // Unlimited edition: where drafts are written. Never set in the standard edition.
+  let deviceRoute = null;
 
   async function loadState() {
     if (!runtimeAlive()) return;
     try {
-      const stored = await chrome.storage.local.get(["settings", "account"]);
+      const stored = await chrome.storage.local.get(["settings", "account", "deviceRoute"]);
       settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
       account = stored.account || null;
+      deviceRoute = stored.deviceRoute || null;
       applySound();
     } catch {
       /* extension context gone */
@@ -154,8 +157,9 @@
         applySound();
         document.querySelectorAll(".xaicg-btn.q").forEach((b) => (b.hidden = !settings.showQuestionButton));
       }
-      if (changes.account) {
-        account = changes.account.newValue || null;
+      if (changes.account || changes.deviceRoute) {
+        if (changes.account) account = changes.account.newValue || null;
+        if (changes.deviceRoute) deviceRoute = changes.deviceRoute.newValue || null;
         document.querySelectorAll(".xaicg-btn").forEach(applyGauge);
       }
     });
@@ -210,6 +214,13 @@
         return toast(err.message || "You've used today's free comments. They come back at 00:00 UTC.", { error: true, action: { label: "See plans", run: openPlans } });
       case "free_busy":
         return toast(err.message, { error: true, action: { label: "See plans", run: openPlans } });
+      case "device_language":
+      case "device_failed":
+      case "device_no_usable_output":
+      case "device_blocked":
+      case "device_not_ready":
+      case "device_unavailable":
+        return toast(err.message, { error: true, ms: 6000, action: { label: "Settings", run: () => send("xaicg:open-options", { section: "device" }).catch(() => {}) } });
       case "cooldown":
       case "busy":
       case "rate_limited":
@@ -455,6 +466,12 @@
     return ` ${left} free ${left === 1 ? "comment" : "comments"} left today.`;
   }
 
+  // What to add to the "draft inserted" message.
+  function resultNote(data) {
+    if (data.engine === "device") return " Written on this computer.";
+    return `${data.fallbackNote ? ` ${data.fallbackNote}` : ""}${quotaNote(data.account)}`;
+  }
+
   async function nextDraft(article, kind, tone) {
     const state = drafts.get(article);
     if (state && state.kind === kind && state.tone === tone && state.index + 1 < state.variants.length) {
@@ -472,7 +489,7 @@
     const variants = data.variants || [];
     if (!variants.length) throw fail("empty", "Nothing came back. Try again.");
     drafts.set(article, { kind, tone, variants, index: 0, shown: rejected });
-    return { text: variants[0], note: quotaNote(data.account) };
+    return { text: variants[0], note: resultNote(data) };
   }
 
   async function deliver(article, kind, text, note, knownBox = null) {
@@ -712,6 +729,11 @@
   // from 90%, with the exact numbers in the tooltip.
   function applyGauge(btn) {
     btn.classList.remove("gauge-warn", "gauge-bad");
+    if (deviceRoute?.engine === "device") {
+      btn.dataset.quota = "Unlimited, written on this computer";
+      btn.title = `${btn.dataset.baseTitle} · ${btn.dataset.quota}`;
+      return;
+    }
     const q = account?.quota;
     if (!q || !q.limit) return;
     const pct = (q.used / q.limit) * 100;

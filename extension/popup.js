@@ -1,6 +1,7 @@
 // XAICG popup: account status and the compose studio (posts, threads, rewrites).
 
 import { $, copy, renderAccount, send } from "./lib/client.js";
+import { deviceUi } from "./lib/device-ui.js";
 
 const MODES = {
   post: {
@@ -26,6 +27,10 @@ const MODES = {
 // The popup closes whenever it loses focus, so its state lives in storage.
 const state = { mode: "post", inputs: { post: "", thread: "", rewrite: "" }, tone: "", size: "medium", tweets: "5", result: null };
 let buyUrl = "https://uniquelabs.org";
+let lastAccount = null;
+// Unlimited edition: where drafts are written (null in the standard edition).
+let route = null;
+const onDevice = () => route?.engine === "device";
 
 const persist = () => chrome.storage.local.set({ popupState: state });
 
@@ -36,6 +41,7 @@ function setStatus(message, kind = "") {
 }
 
 function showAccount(account) {
+  if (account) lastAccount = account;
   const d = renderAccount(account, {
     badge: $("planBadge"),
     left: $("quotaLeft"),
@@ -58,6 +64,18 @@ function showAccount(account) {
   $("usage").hidden = d.signInRequired;
   $("startCount").textContent = String(account.quota?.limit || 5);
   $("problem").hidden = true;
+  // Drafts written on this computer need no account and are not counted:
+  // the sign-in offer and the meter would only confuse.
+  if (onDevice()) {
+    $("start").hidden = true;
+    $("usage").hidden = true;
+    if (d.free) {
+      $("planBadge").textContent = "Unlimited";
+      $("planBadge").className = "badge pro";
+      upgrade.className = "btn sm";
+      upgrade.textContent = "See plans";
+    }
+  }
 }
 
 function applyMode() {
@@ -157,14 +175,14 @@ async function generate() {
   const button = $("generate");
   button.disabled = true;
   button.classList.add("busy");
-  setStatus("Writing…");
+  setStatus(onDevice() ? "Writing on this computer…" : "Writing…");
   sfx("start");
   try {
     const data = await send("xaicg:generate", { payload });
     sfx("done");
     state.result = { kind: data.kind, items: data.thread || data.variants || [] };
     showAccount(data.account);
-    setStatus("");
+    setStatus(data.fallbackNote || "");
     renderResult();
     persist();
     $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -246,11 +264,23 @@ $("startSignIn").addEventListener("click", async () => {
   applyMode();
   renderResult();
   if (stored.account) showAccount(stored.account);
+  if (deviceUi) {
+    deviceUi
+      .mount($("device"), {
+        variant: "popup",
+        onRoute: (info) => {
+          route = info;
+          if (lastAccount) showAccount(lastAccount);
+          if (onDevice()) $("problem").hidden = true;
+        },
+      })
+      .catch(() => {});
+  }
   try {
     const { account } = await send("xaicg:account", { refresh: true });
     showAccount(account);
   } catch (err) {
-    if (!stored.account) {
+    if (!stored.account && !onDevice()) {
       $("problem").textContent = `${err.message} Your plan will show here once the server answers.`;
       $("problem").hidden = false;
       $("usage").hidden = true; // nothing to count without the server

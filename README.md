@@ -25,7 +25,8 @@ Version 3 is a full reboot. The old extension called OpenAI from the browser wit
 | Path | What it is |
 | --- | --- |
 | `SETUP.md` | The step-by-step setup guide. |
-| `extension/` | The Chrome extension (Manifest V3). Load this folder unpacked, or package it for the Chrome Web Store. |
+| `extension/` | The Chrome extension (Manifest V3), standard edition. Load this folder unpacked, or package it for the Chrome Web Store. |
+| `editions/unlimited/` | **XAICG Unlimited**, a second edition: free users' drafts are written on their own computer by Chrome's built-in AI (Gemini Nano), with no daily limit. Built from `extension/` plus the files here. See its [README](editions/unlimited/README.md). |
 | `server/` | Node.js API: engine, licensing, the free plan, quotas, admin. |
 | `server/test/` | The test suite. Runs on an embedded Postgres or a real one. |
 | `website/` | The product website, as plain files ready to serve: home, blog, FAQ, about, contact, support, privacy and terms. Deploys to Vercel with Root Directory `website`. |
@@ -44,6 +45,7 @@ Helper scripts, run from the top of the repository:
 | `node scripts/set-google-client.mjs <client-id>` | Gives the extension its Google sign-in client. |
 | `node scripts/set-version.mjs 3.2.0` | Sets the version of the extension and the server together. |
 | `node scripts/pack-extension.mjs` | Makes the zip to upload to the Chrome Web Store. Refuses a build that points at localhost. |
+| `node scripts/pack-extension.mjs --edition unlimited` | Builds XAICG Unlimited: `dist/xaicg-unlimited/` to load unpacked, and its zip. |
 | `node scripts/build-site.mjs` | Rebuilds every page of the website from `website/config.js`, `content/` and the three documents above, with the sitemap, `robots.txt` and the blog's feed. Fails if a link between pages leads nowhere. |
 | `node scripts/set-site-url.mjs <site address>` | Tells the website its own address and rebuilds it. |
 | `node store/generate.mjs` | Rebuilds the store images and the website's screenshots. Needs Playwright. |
@@ -246,6 +248,12 @@ The suite covers the free plan, licensing, quotas, every abuse control, the engi
 
 ```bash
 TEST_DATABASE_URL=postgres://postgres@localhost:5432/postgres npm test
+```
+
+XAICG Unlimited has its own tests, run from the top of the repository. They build the edition and run it with a stand-in for Chrome's built-in AI, and check that the standard edition never uses it:
+
+```bash
+node --test "editions/unlimited/test/*.test.mjs"
 ```
 
 ## API

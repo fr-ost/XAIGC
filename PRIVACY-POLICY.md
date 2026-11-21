@@ -1,6 +1,6 @@
 # Privacy Policy: X AI Comment/Reply Generator for Twitter (XAICG)
 
-Last updated: November 14, 2026
+Last updated: November 21, 2026
 
 XAICG ("the extension") is a product of Unique Labs, developed by Shahriar Ahmed. Website: https://uniquelabs.org
 
@@ -10,6 +10,7 @@ This policy explains what the extension and the XAICG server process, why, and w
 
 - XAICG writes drafts. It never posts, likes, follows or sends anything on your behalf.
 - To write a draft, the text of the post you chose (or the idea or draft you typed) is sent to the XAICG server and on to OpenAI. The XAICG server does not save that text or the generated draft.
+- In XAICG Unlimited, drafts can instead be written on your own computer by Chrome's built-in AI. Those drafts, and the post they answer, are not sent anywhere.
 - No OpenAI API key is needed from you, and none is stored in the extension.
 - If you sign in with Google, XAICG keeps your Google account ID, name and email address, and nothing else from your Google account.
 - Your X password, direct messages, followers and other account data are never read.
@@ -24,6 +25,14 @@ When you press a XAICG button on a post, or use the compose window, the extensio
 - **A few of your recent drafts.** Up to eight, so new drafts do not repeat old ones.
 
 The server forwards this to OpenAI to generate the draft, checks the result with OpenAI's moderation service, and returns it to your browser. **The XAICG server does not store this content in its database and does not write it to its logs.**
+
+### Drafts written on your computer (XAICG Unlimited)
+
+XAICG Unlimited is a second edition of the extension. Where your computer can run it, it writes drafts with the AI model built into Google Chrome, on your computer. For those drafts, nothing described above is sent to the XAICG server or to OpenAI: the material, your voice settings and your recent drafts are given to Chrome's model on your device, and the draft stays there. The XAICG server is not told that a draft was written.
+
+Chrome downloads its model from Google once, when you press Set up. That download is between Chrome and Google; XAICG sends nothing with it. Google's own terms and privacy policy apply to Chrome and its built-in AI.
+
+Drafts that your computer cannot write (for example in a language it does not support), and all drafts if you choose the XAICG server in Settings, are written by the XAICG server as described above. The extension still registers with the XAICG server and checks your plan, as in section 2.
 
 ## 2. What the XAICG server stores
 
@@ -51,7 +60,8 @@ Signing in happens inside the extension, through Chrome's own Google account pro
 
 Stored with Chrome's extension storage on your device:
 
-- Your settings (tone, persona, language, output mode)
+- Your settings (tone, persona, language, output mode, and in XAICG Unlimited where drafts are written)
+- In XAICG Unlimited, whether Chrome's built-in AI is ready on this computer
 - Your last 30 drafts, used to avoid repetition. You can clear them at any time in Settings.
 - Your install ID and access token
 - A one-way hash of your X handle (never the handle itself)
@@ -63,7 +73,7 @@ None of this is synced to other devices. Removing the extension deletes it.
 
 ## 4. Who receives data
 
-- **OpenAI** receives the material described in section 1 in order to generate and moderate drafts, together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: https://openai.com/policies/privacy-policy
+- **OpenAI** receives the material described in section 1 in order to generate and moderate drafts written by the XAICG server (not drafts written on your computer), together with a pseudonymous identifier (a hash, not your name, handle or email) that lets OpenAI attribute misuse to one user rather than to the whole service. OpenAI's handling is governed by its own policies: https://openai.com/policies/privacy-policy
 - **Google** handles sign-in if you choose to sign in, under its own privacy policy: https://policies.google.com/privacy
 - **Our hosting and database providers** run the XAICG server and store the records in section 2.
 
