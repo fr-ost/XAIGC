@@ -1,309 +1,403 @@
     <section class="hero">
-      <div class="wrap hero-grid">
-        <div>
-          <span class="badge">Free forever · No sign-up · No limit</span>
-          <h1 class="display-mega">Free AI replies for X, in <em>your own voice</em>.</h1>
-          <p class="lead">XAICG is a free Chrome extension that adds an AI Reply button to every post on X (Twitter). One click drafts a comment that sounds like you, written privately on your own computer. You read it, change what you like, and post it yourself.</p>
-          <div class="actions">
-            <a class="btn primary lg" data-link="store" href="#free">Add to Chrome</a>
-            <a class="btn lg" href="#how">See how it works</a>
-          </div>
-          <p class="fine">Unlimited and free forever. No account, no API key, no card.</p>
+      <div class="wrap hero-inner">
+        <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Free forever · No sign-up · No daily limit</p>
+        <h1 class="display-mega">Free AI replies for X, in <em>your own voice</em>.</h1>
+        <p class="lead">XAICG is a free Chrome extension that adds an AI Reply button to every post on X (Twitter). One click drafts a comment that sounds like you, written privately on your own computer. You read it, change what you like, and post it yourself.</p>
+        <div class="actions">
+          <a class="btn primary lg" data-link="store" href="#free">Add to Chrome, it's free</a>
+          <a class="btn ghost lg" href="#how">See how it works</a>
         </div>
-        <div class="stack">
-          <div class="mini" aria-hidden="true">
-            <span class="mini-label">Written today</span>
-            <span class="mini-value"><b class="num" id="demoWritten" data-start="41">41</b> drafts · <span class="unlimited">no limit</span></span>
-          </div>
-          <div class="ui-card demo" id="demo">
-            <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
-              <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
-              <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
-              <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
-              <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
-              <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
+        <ul class="assure">
+          <li>No account</li>
+          <li>No API key</li>
+          <li>Unlimited replies</li>
+        </ul>
+      </div>
+
+      <div class="wrap">
+        <div class="showcase">
+          <div class="window">
+            <div class="window-bar" aria-hidden="true">
+              <span class="window-dots"><i></i><i></i><i></i></span>
+              <span class="window-url"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/></svg>x.com/home</span>
+              <span class="window-ext"><img src="/favicon.svg" width="20" height="20" alt=""></span>
             </div>
-            <div class="demo-post">
-              <span class="demo-av" aria-hidden="true">N</span>
-              <div class="demo-body">
-                <p class="demo-who"><b>Nova Protocol</b> <span>@novaprotocol · 2h</span></p>
-                <p class="demo-text">We just cut bridge fees by 80% for every user, starting Monday. Withdrawals included.</p>
-                <div class="demo-bar">
-                  <span class="demo-stats" aria-hidden="true"><span>38</span><span>112</span><span>906</span></span>
-                  <button type="button" class="demo-ai" id="demoRun"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</button>
+            <div class="demo" id="demo">
+              <div class="demo-toolbar">
+                <span class="demo-tone-label">Tone</span>
+                <div class="demo-tones" role="group" aria-label="Pick a tone to see a sample draft">
+                  <button type="button" data-tone="auto" aria-pressed="true">Auto</button>
+                  <button type="button" data-tone="witty" aria-pressed="false">Witty</button>
+                  <button type="button" data-tone="skeptical" aria-pressed="false">Skeptical</button>
+                  <button type="button" data-tone="supportive" aria-pressed="false">Supportive</button>
+                  <button type="button" data-tone="blunt" aria-pressed="false">Blunt</button>
+                </div>
+              </div>
+              <div class="demo-post">
+                <span class="demo-av" aria-hidden="true">N</span>
+                <div class="demo-body">
+                  <p class="demo-who"><b>Nova Protocol</b> <span>@novaprotocol · 2h</span></p>
+                  <p class="demo-text">We just cut bridge fees by 80% for every user, starting Monday. Withdrawals included.</p>
+                  <div class="demo-bar">
+                    <span class="demo-stats" aria-hidden="true">
+                      <span><svg viewBox="0 0 16 16"><path d="M2.5 7.6c0-2.9 2.5-5 5.5-5s5.5 2.1 5.5 5-2.5 5-5.5 5c-.8 0-1.6-.1-2.3-.4L2.8 13.3l.8-2.6c-.7-.9-1.1-1.9-1.1-3.1z"/></svg>38</span>
+                      <span><svg viewBox="0 0 16 16"><path d="M4.5 2.5L2 5l2.5 2.5M2 5h8.5a3 3 0 0 1 3 3v.5M11.5 13.5L14 11l-2.5-2.5M14 11H5.5a3 3 0 0 1-3-3v-.5"/></svg>112</span>
+                      <span><svg viewBox="0 0 16 16"><path d="M8 13.5S2.5 10.3 2.5 6.3A2.8 2.8 0 0 1 8 5a2.8 2.8 0 0 1 5.5 1.3c0 4-5.5 7.2-5.5 7.2z"/></svg>906</span>
+                    </span>
+                    <span class="demo-buttons">
+                      <button type="button" class="demo-ai" id="demoRun"><svg viewBox="0 0 16 16"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</button>
+                      <span class="demo-q" aria-hidden="true">? Question</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="demo-reply">
+                <p class="demo-label">Replying to <b>@novaprotocol</b></p>
+                <div class="demo-compose">
+                  <span class="demo-av me" aria-hidden="true">Y</span>
+                  <p class="demo-draft" id="demoDraft" aria-live="polite">Cheaper is nice, but the bridge has to stay up on a busy day for the cut to mean anything.</p>
+                </div>
+                <div class="demo-foot">
+                  <span class="num" id="demoCount">90 / 280</span>
+                  <span class="demo-actions">
+                    <button type="button" class="demo-again" id="demoAgain"><svg viewBox="0 0 16 16"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>Try another</button>
+                    <span class="demo-send" aria-hidden="true">Reply</span>
+                  </span>
                 </div>
               </div>
             </div>
-            <div class="demo-reply">
-              <p class="demo-label">Your draft</p>
-              <p class="demo-draft" id="demoDraft" aria-live="polite">Cheaper is nice, but the bridge has to stay up on a busy day for the cut to mean anything.</p>
-              <div class="demo-foot">
-                <span class="num" id="demoCount">88 / 280</span>
-                <span class="demo-actions">
-                  <button type="button" class="demo-again" id="demoAgain">Try another</button>
-                  <span class="demo-send" aria-hidden="true">Reply</span>
-                </span>
-              </div>
-            </div>
-            <p class="demo-note">A live example with sample drafts. Pick a tone, or press AI Reply.</p>
           </div>
-          <p class="toast" id="demoToast" aria-hidden="true">Draft inserted. Review it before posting.</p>
+          <div class="float float-count" aria-hidden="true">
+            <span class="float-label">Written today</span>
+            <span class="float-value"><b class="num" id="demoWritten" data-start="41">41</b> drafts</span>
+            <span class="float-note">No limit to count down to</span>
+          </div>
+          <div class="float float-private" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+            <span><b>Private</b>Written on this computer</span>
+          </div>
+          <p class="float toast" id="demoToast" aria-hidden="true">Draft inserted. Review it before posting.</p>
         </div>
-      </div>
-      <div class="wrap">
+        <p class="demo-note">A live example with sample drafts. Pick a tone, or press AI Reply.</p>
+
         <dl class="stats">
-          <div class="stat"><dt><span class="num">$0</span></dt><dd>forever: no plans, no ads</dd></div>
-          <div class="stat"><dt><span class="num">∞</span></dt><dd>replies a day, no limit</dd></div>
+          <div class="stat"><dt><span class="num">$0</span></dt><dd>forever, no plans or ads</dd></div>
+          <div class="stat"><dt><span class="num">∞</span></dt><dd>replies a day</dd></div>
           <div class="stat"><dt><span class="num" data-count="9">9</span></dt><dd>tones, including Auto</dd></div>
-          <div class="stat"><dt><span class="num">0</span></dt><dd>posts made without you</dd></div>
+          <div class="stat"><dt><span class="num" data-count="5">5</span></dt><dd>languages</dd></div>
         </dl>
       </div>
     </section>
 
     <section id="features" class="band">
       <div class="wrap">
-        <div class="band-head">
-          <span class="badge">Features</span>
-          <h2 class="display-lg">A free AI comment generator built for the way you use X</h2>
+        <div class="section-head">
+          <p class="kicker">Features</p>
+          <h2>A free AI comment generator built for the way you use X</h2>
           <p class="lead">Everything happens where you already are: in the timeline, on the post you want to answer.</p>
         </div>
-        <div class="grid">
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.9 2.9M15.5 15.5l2.9 2.9M5.6 18.4l2.9-2.9M15.5 8.5l2.9-2.9"/></svg></span>
+        <div class="bento">
+          <article class="tile wide">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.9 2.9M15.5 15.5l2.9 2.9M5.6 18.4l2.9-2.9M15.5 8.5l2.9-2.9"/></svg></span>
             <h3>One click on any post</h3>
-            <p>AI Reply and Question buttons sit in each post's action bar. The draft lands in X's own reply box, ready for you to read.</p>
+            <p>AI Reply and Question buttons sit in each post's action bar. The draft lands in X's own reply box, ready for you to read, change and send.</p>
+            <figure class="tile-shot">
+              <img src="/assets/shots/reply.png" loading="lazy" decoding="async" alt="A post on X with the XAICG AI Reply and Question buttons, and a drafted reply waiting in X's reply box.">
+            </figure>
           </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="1.6"/></svg></span>
+          <article class="tile">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="1.6"/></svg></span>
             <h3>A tone for the moment</h3>
-            <p>Auto fits each post. Or pick casual, witty, supportive, skeptical, analytical, blunt, technical or professional.</p>
+            <p>Auto reads each post. Or pick the tone yourself.</p>
+            <ul class="chips" aria-label="Tones">
+              <li class="on">Auto</li><li>Casual</li><li>Witty</li><li>Supportive</li><li>Skeptical</li><li>Analytical</li><li>Blunt</li><li>Technical</li><li>Professional</li>
+            </ul>
           </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></span>
+          <article class="tile">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg></span>
             <h3>Try another, instantly</h3>
-            <p>Each click brings back several drafts. Step through them in a moment, and ask for more as often as you like.</p>
+            <p>Each click brings back several drafts. Step through them, and ask for more as often as you like.</p>
+            <div class="deck" aria-hidden="true">
+              <span class="deck-card back"></span>
+              <span class="deck-card mid"></span>
+              <span class="deck-card front"><small>Draft 2 of 3</small>80% off is real money on small transfers. Curious what it does to your revenue.</span>
+            </div>
           </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
+          <article class="tile">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
             <h3>Posts, threads and rewrites</h3>
             <p>The toolbar popup turns a rough idea into post drafts or a full thread, and tightens a draft you already wrote.</p>
+            <div class="seg" aria-hidden="true"><span>Post</span><span class="on">Thread</span><span>Rewrite</span></div>
           </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
+          <article class="tile">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
             <h3>Your voice, saved once</h3>
-            <p>Describe how you sound. Set reply length, language and emoji. It applies to everything XAICG writes.</p>
+            <p>Describe how you sound, or start from a preset. It shapes everything XAICG writes.</p>
+            <ul class="chips" aria-label="Persona presets">
+              <li>Skeptical trader</li><li>Blunt founder</li><li>Developer</li><li>Supportive realist</li>
+            </ul>
           </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span>
-            <h3>You stay in control</h3>
-            <p>Nothing is ever posted for you. Every draft waits in the box until you press Reply. A copy-only mode never touches the page.</p>
+          <article class="tile">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg></span>
+            <h3>Five languages</h3>
+            <p>Pick one, or let each reply match the language of the post.</p>
+            <ul class="chips" aria-label="Languages">
+              <li>English</li><li>Español</li><li>Deutsch</li><li>Français</li><li lang="ja">日本語</li>
+            </ul>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="how" class="band light">
+    <section id="how" class="band tint">
       <div class="wrap">
-        <div class="band-head">
-          <span class="badge">How it works</span>
-          <h2 class="display-lg">Up and running in a few minutes</h2>
+        <div class="section-head">
+          <p class="kicker">How it works</p>
+          <h2>Up and running in a few minutes</h2>
+          <p class="lead">Three steps, and the first two happen only once.</p>
         </div>
-        <ol class="grid">
-          <li class="card"><span class="plate-box step" aria-hidden="true">1</span><h3>Add XAICG to Chrome</h3><p>Install the free extension from the Chrome Web Store. There is no account to make and no API key to find.</p></li>
-          <li class="card"><span class="plate-box step" aria-hidden="true">2</span><h3>Press Set up, once</h3><p>XAICG's AI model is downloaded to your computer. It takes a few minutes, one time, and then it works right there.</p></li>
-          <li class="card"><span class="plate-box step" aria-hidden="true">3</span><h3>Click AI Reply on any post</h3><p>A draft appears in the reply box. Keep it, edit it, or ask for another, as often as you like. You press Reply.</p></li>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num" aria-hidden="true">1</span>
+            <h3>Add XAICG to Chrome</h3>
+            <p>Install the free extension from the Chrome Web Store. There is no account to make and no API key to find.</p>
+            <div class="step-ui" aria-hidden="true"><span class="ui-btn yellow">Add to Chrome</span></div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <h3>Press Set up, once</h3>
+            <p>XAICG's AI model is downloaded to your computer. It takes a few minutes, one time, and then it works right there.</p>
+            <div class="step-ui" aria-hidden="true"><span class="ui-ready"><i></i>Ready: free and unlimited</span></div>
+          </li>
+          <li class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <h3>Click AI Reply on any post</h3>
+            <p>A draft appears in the reply box. Keep it, edit it, or ask for another, as often as you like. You press Reply.</p>
+            <div class="step-ui" aria-hidden="true"><span class="ui-btn yellow sm"><svg viewBox="0 0 16 16"><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M3.4 12.6l2.1-2.1M10.5 5.5l2.1-2.1"/></svg>AI Reply</span><span class="ui-btn sm">? Question</span></div>
+          </li>
         </ol>
       </div>
     </section>
 
     <section class="band">
-      <div class="wrap split">
-        <div class="split-text">
-          <span class="badge">Tones</span>
-          <h2 class="display-md">Pick a tone when you want one</h2>
-          <p>Most of the time Auto reads the room. When you want something specific, the arrow next to the buttons opens the tones, and the same menu copies a line for a quote post.</p>
-          <ul class="ticks">
-            <li>Eight tones, plus Auto</li>
-            <li>A short, specific question with one click</li>
-            <li>English, Spanish, German, French or Japanese, or the post's own language</li>
-          </ul>
-        </div>
-        <figure class="frame dark">
-          <img src="/assets/shots/tones.png" width="1400" height="1280" loading="lazy" decoding="async" alt="The XAICG tone menu open on a post on X, listing Auto, Casual, Witty, Supportive, Skeptical, Analytical, Blunt, Technical and Professional.">
-        </figure>
-      </div>
-    </section>
-
-    <section class="band alt">
-      <div class="wrap split reverse">
-        <div class="split-text">
-          <span class="badge">Compose</span>
-          <h2 class="display-md">Write the post you meant to write</h2>
-          <p>Open XAICG from the toolbar and say what the post should be about. You get drafts to copy or open in X, a thread of the length you choose, or a tighter version of something you already wrote.</p>
-          <ul class="ticks">
-            <li>Posts in three lengths</li>
-            <li>Threads from three to eight posts</li>
-            <li>Rewrites that keep your facts, names and links</li>
-          </ul>
-        </div>
-        <div class="pair">
-          <figure class="frame light"><img src="/assets/shots/compose.png" width="760" height="2106" loading="lazy" decoding="async" alt="The XAICG popup with an idea typed in and three post drafts for X, each with Copy and Open in X buttons."></figure>
-          <figure class="frame light"><img src="/assets/shots/thread.png" width="760" height="2400" loading="lazy" decoding="async" alt="The XAICG popup showing a four-post thread generated from one idea, with a Copy thread button."></figure>
-        </div>
-      </div>
-    </section>
-
-    <section class="band">
-      <div class="wrap split">
-        <div class="split-text">
-          <span class="badge">Your voice</span>
-          <h2 class="display-md">Sounds like you, not like an assistant</h2>
-          <p>XAICG is built to avoid the tells. No generic praise, no hype words, no em dashes, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it remembers your recent drafts so it does not repeat itself.</p>
-          <p>Describe your persona once, or start from a preset and edit it. Our guide to <a href="/blog/make-ai-replies-sound-like-you">making AI replies sound like you</a> shows how.</p>
-        </div>
-        <figure class="frame bare">
-          <img src="/assets/shots/voice.png" width="1456" height="1108" loading="lazy" decoding="async" alt="XAICG settings: default tone, reply length, language, emoji, and a persona description with presets such as Skeptical trader and Blunt founder.">
-        </figure>
-      </div>
-    </section>
-
-    <section id="private" class="band alt">
-      <div class="wrap split reverse">
-        <div class="split-text">
-          <span class="badge">On your computer</span>
-          <h2 class="display-md">Your replies never leave your computer</h2>
-          <p>XAICG writes with an AI model that runs on your own computer. The post you answer, your persona and your drafts are not sent to us, to an AI company or to anyone else.</p>
-          <ul class="ticks">
-            <li>No account, no sign-up, no email</li>
-            <li>No API key, so nothing of yours to leak or pay for</li>
-            <li>Works even when the connection drops, once it's set up</li>
-          </ul>
-        </div>
-        <figure class="frame bare">
-          <img src="/assets/shots/ai.png" loading="lazy" decoding="async" alt="XAICG settings: the on-device AI is ready, free and unlimited, and writes on this computer.">
-        </figure>
-      </div>
-    </section>
-
-    <section class="band">
       <div class="wrap">
-        <div class="band-head">
-          <span class="badge">Privacy</span>
-          <h2 class="claim">Nothing is posted for you</h2>
-          <p class="lead">What XAICG sees, and what it keeps.</p>
+        <div class="feature">
+          <div class="feature-text">
+            <p class="kicker">Tones</p>
+            <h2>Pick a tone when you want one</h2>
+            <p>Most of the time Auto reads the room. When you want something specific, the arrow next to the buttons opens the tones, and the same menu copies a line for a quote post.</p>
+            <ul class="ticks">
+              <li>Eight tones, plus Auto</li>
+              <li>A short, specific question with one click</li>
+              <li>English, Spanish, German, French or Japanese, or the post's own language</li>
+            </ul>
+          </div>
+          <figure class="stage">
+            <img class="crop-tones" src="/assets/shots/tones.png" loading="lazy" decoding="async" alt="The XAICG tone menu open on a post on X, listing Auto, Casual, Witty, Supportive, Skeptical, Analytical, Blunt, Technical and Professional.">
+          </figure>
         </div>
-        <div class="grid two">
-          <article class="card">
+
+        <div class="feature flip">
+          <div class="feature-text">
+            <p class="kicker">Compose</p>
+            <h2>Write the post you meant to write</h2>
+            <p>Open XAICG from the toolbar and say what the post should be about. You get drafts to copy or open in X, a thread of the length you choose, or a tighter version of something you already wrote.</p>
+            <ul class="ticks">
+              <li>Posts in three lengths</li>
+              <li>Threads from three to eight posts</li>
+              <li>Rewrites that keep your facts, names and links</li>
+            </ul>
+          </div>
+          <figure class="stage popups">
+            <img src="/assets/shots/compose.png" loading="lazy" decoding="async" alt="The XAICG popup with an idea typed in and three post drafts for X, each with Copy and Open in X buttons.">
+            <img src="/assets/shots/thread.png" loading="lazy" decoding="async" alt="The XAICG popup showing a four-post thread generated from one idea, with a Copy thread button.">
+          </figure>
+        </div>
+
+        <div class="feature">
+          <div class="feature-text">
+            <p class="kicker">Your voice</p>
+            <h2>Sounds like you, not like an assistant</h2>
+            <p>XAICG is built to avoid the tells. No generic praise, no hype words, no em dashes, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it remembers your recent drafts so it does not repeat itself.</p>
+            <p>Describe your persona once, or start from a preset and edit it. Our guide to <a href="/blog/make-ai-replies-sound-like-you">making AI replies sound like you</a> shows how.</p>
+          </div>
+          <figure class="stage">
+            <img src="/assets/shots/voice.png" loading="lazy" decoding="async" alt="XAICG settings: default tone, reply length, language, emoji, and a persona description with presets such as Skeptical trader and Blunt founder.">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="private" class="band tint">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Privacy</p>
+          <h2>Your replies never leave your computer</h2>
+          <p class="lead">XAICG writes with an AI model that runs on your own computer. The post you answer, your persona and your drafts are not sent to us, to an AI company or to anyone else.</p>
+        </div>
+        <div class="flow">
+          <div class="flow-box">
+            <p class="flow-label">Your computer</p>
+            <div class="flow-row">
+              <div class="flow-node">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>
+                <b>The post you click</b>
+                <span>Read from the page</span>
+              </div>
+              <span class="flow-arrow" aria-hidden="true"></span>
+              <div class="flow-node hot">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 2.5V6M14 2.5V6M10 18v3.5M14 18v3.5M2.5 10H6M2.5 14H6M18 10h3.5M18 14h3.5"/></svg>
+                <b>XAICG's AI</b>
+                <span>Runs right here</span>
+              </div>
+              <span class="flow-arrow" aria-hidden="true"></span>
+              <div class="flow-node">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+                <b>Your draft</b>
+                <span>Typed into the reply box</span>
+              </div>
+            </div>
+          </div>
+          <div class="flow-out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/><path d="M4 4l16 16"/></svg>
+            <b>Nothing sent out</b>
+            <span>Not to us, not to an AI company, not to anyone</span>
+          </div>
+        </div>
+        <div class="points">
+          <div class="point">
             <h3>Only the post you click</h3>
-            <p>XAICG reads the post you ask it to answer, and nothing else on the page. It never reads your messages, followers or account details, and it cannot post for you.</p>
-          </article>
-          <article class="card">
-            <h3>Written on your computer</h3>
-            <p>The draft is written by XAICG's on-device AI, on your own computer. The post and the draft stay there.</p>
-          </article>
-          <article class="card">
+            <p>XAICG reads the post you ask it to answer, and nothing else. Never your messages, followers or account details.</p>
+          </div>
+          <div class="point">
+            <h3>Nothing is posted for you</h3>
+            <p>Every draft waits in the box until you press Reply. A copy-only mode never touches the page.</p>
+          </div>
+          <div class="point">
+            <h3>No account, no API key</h3>
+            <p>No sign-up and no email. No key either, so there is nothing of yours to leak or pay for.</p>
+          </div>
+          <div class="point">
             <h3>Counts, not content</h3>
-            <p>To know how many people use it, XAICG tells its server that an install exists and how many drafts of each kind it wrote. Never what they say, and nothing about you.</p>
-          </article>
-          <article class="card">
-            <h3>Plain about the rest</h3>
-            <p>Everything XAICG keeps, and why, is in the <a href="/privacy">privacy policy</a>, in ordinary language.</p>
-          </article>
+            <p>XAICG reports that an install exists and how many drafts it wrote, never what they say. The <a href="/privacy">privacy policy</a> has the rest.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="free" class="band light">
+    <section id="free" class="band">
       <div class="wrap">
-        <div class="band-head">
-          <span class="badge">Free forever</span>
-          <h2 class="display-lg">Free, unlimited, and staying that way</h2>
+        <div class="section-head">
+          <p class="kicker">Free forever</p>
+          <h2>Free, unlimited, and staying that way</h2>
           <p class="lead">There are no plans, no trial and no daily limit. Because the AI runs on your computer, a draft costs us nothing, so it costs you nothing.</p>
         </div>
-        <div class="grid">
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0"/><path d="M9.5 9.8c.4-1 1.4-1.6 2.5-1.6 1.5 0 2.6.9 2.6 2.1 0 2.4-3.5 2-3.5 4.3M12 17.2v.1"/></svg></span>
-            <h3>$0, for every feature</h3>
-            <p>Every tone, replies and questions, posts, threads and rewrites. Nothing is held back for a paid version, because there isn't one.</p>
-          </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.5 9.5c-2 0-3.5 1.1-3.5 2.5s1.5 2.5 3.5 2.5c3 0 8-5 11-5 2 0 3.5 1.1 3.5 2.5s-1.5 2.5-3.5 2.5c-3 0-8-5-11-5z"/></svg></span>
-            <h3>No limit</h3>
-            <p>Reply to as many posts as you like, every day. "Try another" as often as you want. Nothing counts down.</p>
-          </article>
-          <article class="card">
-            <span class="plate-box" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8M12 17v3"/></svg></span>
+        <div class="free-grid">
+          <div class="compare">
+            <div class="table-wrap">
+              <table>
+                <caption class="sr-only">XAICG compared with how cloud AI reply tools usually work</caption>
+                <thead>
+                  <tr><th scope="col"><span class="sr-only">What you get</span></th><th scope="col" class="us">XAICG</th><th scope="col">Typical cloud AI tools</th></tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row">Price</th><td class="us yes">$0, forever</td><td>A monthly plan or credits, usually</td></tr>
+                  <tr><th scope="row">Daily limit</th><td class="us yes">None</td><td>Usually set by your plan</td></tr>
+                  <tr><th scope="row">Account</th><td class="us yes">Not needed</td><td>Usually required</td></tr>
+                  <tr><th scope="row">API key</th><td class="us yes">Not needed</td><td>Some ask for your own</td></tr>
+                  <tr><th scope="row">Where drafts are written</th><td class="us yes">On your computer</td><td>On the provider's servers</td></tr>
+                  <tr><th scope="row">Works when the connection drops</th><td class="us yes">Yes, once set up</td><td>No</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="compare-note">Cloud tools differ. This compares how they usually work, not any one product.</p>
+          </div>
+          <aside class="needs">
+            <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 20h8M12 17v3"/></svg></span>
             <h3>What your computer needs</h3>
-            <p>Desktop Chrome on Windows, macOS, Linux or a Chromebook Plus, about 22 GB of free disk space, and a graphics card with more than 4 GB of memory, or 16 GB of RAM. <a href="/blog/on-device-ai-explained">What on-device AI is</a>.</p>
-          </article>
+            <ul>
+              <li><b>Desktop Chrome</b> on Windows, macOS, Linux or a Chromebook Plus</li>
+              <li><b>About 22 GB</b> of free disk space</li>
+              <li><b>A graphics card</b> with more than 4 GB of memory, or 16 GB of RAM</li>
+            </ul>
+            <p>XAICG's settings tell you straight away whether your computer can run it. <a href="/blog/on-device-ai-explained">What on-device AI is</a>.</p>
+            <a class="btn primary" data-link="store" href="#free">Add to Chrome</a>
+            <p class="fine">Using XAICG means accepting the <a href="/terms">terms</a>.</p>
+          </aside>
         </div>
-        <p class="plans-note">Using XAICG means accepting the <a href="/terms">terms</a>.</p>
       </div>
     </section>
 
-    <section id="faq" class="band">
-      <div class="wrap narrow faq">
-        <div class="band-head">
-          <span class="badge">FAQ</span>
-          <h2 class="display-lg">Questions</h2>
+    <section id="faq" class="band tint">
+      <div class="wrap faq-grid">
+        <div class="faq-side">
+          <p class="kicker">FAQ</p>
+          <h2>Questions, answered</h2>
+          <p>The short version of what people ask most. The full list covers setup, privacy and the buttons on X.</p>
+          <a class="btn ghost" href="/faq">See all questions</a>
         </div>
-        <details>
-          <summary>Is XAICG really free?</summary>
-          <p>Yes, free forever, with no limit. There are no plans, no trial and no ads. The writing is done by an AI model on your own computer, so a draft costs nothing to make.</p>
-        </details>
-        <details>
-          <summary>Does XAICG post for me?</summary>
-          <p>No. It types a draft into the reply box and stops. You decide whether to post it, edit it or throw it away. If you prefer, switch to copy-only mode and it will not touch the page at all.</p>
-        </details>
-        <details>
-          <summary>Do I need an account or an API key?</summary>
-          <p>No. There is nothing to sign up for and no key to paste. Install it, press Set up once, and start replying.</p>
-        </details>
-        <details>
-          <summary>Where does the AI run?</summary>
-          <p>On your computer. XAICG's AI model is downloaded once, the first time you press Set up, and from then on every draft is written right there. That is why it can be free, unlimited and private.</p>
-        </details>
-        <details>
-          <summary>Will it work on my computer?</summary>
-          <p>It needs desktop Chrome on Windows, macOS, Linux or a Chromebook Plus, about 22 GB of free disk space, and either a graphics card with more than 4 GB of memory or 16 GB of RAM. XAICG's settings tell you straight away if your computer can run it. Phones and tablets are not supported.</p>
-        </details>
-        <details>
-          <summary>Which languages does it write in?</summary>
-          <p>English, Spanish, German, French and Japanese. Choose one, or have it match the language of each post.</p>
-        </details>
-        <details>
-          <summary>What happens to the posts I reply to?</summary>
-          <p>Nothing leaves your computer: the post is read by the on-device AI right there, and the draft is written there. The <a href="/privacy">privacy policy</a> has the details.</p>
-        </details>
-        <details>
-          <summary>Is XAICG made by X?</summary>
-          <p>No. XAICG is an independent product of Unique Labs and is not affiliated with or endorsed by X Corp.</p>
-        </details>
-        <p class="more"><a href="/faq">See all questions and answers</a></p>
+        <div class="faq">
+          <details>
+            <summary>Is XAICG really free?</summary>
+            <p>Yes, free forever, with no limit. There are no plans, no trial and no ads. The writing is done by an AI model on your own computer, so a draft costs nothing to make.</p>
+          </details>
+          <details>
+            <summary>Does XAICG post for me?</summary>
+            <p>No. It types a draft into the reply box and stops. You decide whether to post it, edit it or throw it away. If you prefer, switch to copy-only mode and it will not touch the page at all.</p>
+          </details>
+          <details>
+            <summary>Do I need an account or an API key?</summary>
+            <p>No. There is nothing to sign up for and no key to paste. Install it, press Set up once, and start replying.</p>
+          </details>
+          <details>
+            <summary>Where does the AI run?</summary>
+            <p>On your computer. XAICG's AI model is downloaded once, the first time you press Set up, and from then on every draft is written right there. That is why it can be free, unlimited and private.</p>
+          </details>
+          <details>
+            <summary>Will it work on my computer?</summary>
+            <p>It needs desktop Chrome on Windows, macOS, Linux or a Chromebook Plus, about 22 GB of free disk space, and either a graphics card with more than 4 GB of memory or 16 GB of RAM. XAICG's settings tell you straight away if your computer can run it. Phones and tablets are not supported.</p>
+          </details>
+          <details>
+            <summary>Which languages does it write in?</summary>
+            <p>English, Spanish, German, French and Japanese. Choose one, or have it match the language of each post.</p>
+          </details>
+          <details>
+            <summary>What happens to the posts I reply to?</summary>
+            <p>Nothing leaves your computer: the post is read by the on-device AI right there, and the draft is written there. The <a href="/privacy">privacy policy</a> has the details.</p>
+          </details>
+          <details>
+            <summary>Is XAICG made by X?</summary>
+            <p>No. XAICG is an independent product of Unique Labs and is not affiliated with or endorsed by X Corp.</p>
+          </details>
+        </div>
       </div>
     </section>
 
-    <section class="band alt">
+    <section class="band">
       <div class="wrap">
-        <div class="band-head">
-          <span class="badge">Blog</span>
-          <h2 class="display-lg">Guides to replying well on X</h2>
-          <p class="lead">Practical writing on replies, threads, and using AI on X without sounding like it.</p>
+        <div class="section-head split-head">
+          <div>
+            <p class="kicker">Blog</p>
+            <h2>Guides to replying well on X</h2>
+            <p class="lead">Practical writing on replies, threads, and using AI on X without sounding like it.</p>
+          </div>
+          <a class="btn ghost" href="/blog">Read all articles</a>
         </div>
         <div class="grid posts">
 {{posts}}
         </div>
-        <p class="more"><a href="/blog">Read all articles</a></p>
       </div>
     </section>
 
-    <section class="band">
+    <section class="band cta-band">
       <div class="wrap">
-        <div class="cta-card">
-          <h2>Answer more posts, and still sound like yourself. Free.</h2>
+        <div class="cta-banner">
+          <img src="/favicon.svg" width="56" height="56" alt="">
+          <h2>Answer more posts, and still sound like yourself.</h2>
+          <p>Free forever. No sign-up, no API key, no limit.</p>
           <div class="actions">
-            <a class="btn primary" data-link="store" href="#free">Add to Chrome</a>
-            <a class="btn" href="/faq">Read the FAQ</a>
+            <a class="btn primary lg" data-link="store" href="#free">Add to Chrome, it's free</a>
+            <a class="btn ghost lg" href="/faq">Read the FAQ</a>
           </div>
         </div>
       </div>

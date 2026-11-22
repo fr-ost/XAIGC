@@ -16,7 +16,11 @@
 
   const top = $(".top");
   if (top) {
-    const onScroll = () => top.classList.toggle("scrolled", window.scrollY > 8);
+    const onScroll = () => {
+      top.classList.toggle("scrolled", window.scrollY > 8);
+      // Back at the top, no section is being read.
+      if (window.scrollY < 200) for (const a of $$('nav a[href^="#"]', top)) a.classList.remove("current");
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -50,7 +54,7 @@
 
   /* --------------------------- ease in on scroll --------------------------- */
 
-  const revealable = $$(".band-head, .card, .split-text, .frame, .plan, .faq details, .cta h2, .cta .actions, .stat, .prose > *");
+  const revealable = $$(".section-head, .tile, .step, .feature-text, .stage, .flow, .point, .compare, .needs, .faq-side, .faq details, .card, .cta-banner, .cta-card, .stat, .prose > *");
   if (calm || !("IntersectionObserver" in window)) {
     revealable.forEach((node) => node.classList.add("in"));
   } else {
@@ -67,7 +71,11 @@
     for (const node of revealable) {
       // Cards in a row arrive one after another.
       const index = node.parentElement ? [...node.parentElement.children].indexOf(node) : 0;
-      if (node.matches(".card, .plan, .stat")) node.style.transitionDelay = `${Math.min(index, 5) * 70}ms`;
+      if (node.matches(".tile, .step, .point, .card, .stat")) {
+        node.style.transitionDelay = `${Math.min(index, 5) * 70}ms`;
+        // Once it has arrived, hover effects answer at once.
+        node.addEventListener("transitionend", () => node.style.removeProperty("transition-delay"), { once: true });
+      }
       node.classList.add("reveal");
       seen.observe(node);
     }

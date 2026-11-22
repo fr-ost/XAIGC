@@ -229,6 +229,7 @@ function footer() {
         <div class="footer-about">
           <a class="logo" href="/"><img src="/favicon.svg" width="28" height="28" alt=""><span>${NAME}</span></a>
           <p>${FULL_NAME}. A product of <a href="${MAKER_URL}" rel="noopener">${MAKER}</a>, developed by Shahriar Ahmed.</p>
+          <a class="btn primary small" data-link="store" href="/#free">Add to Chrome</a>
         </div>
         ${columns.join("\n        ")}
       </div>
@@ -346,7 +347,7 @@ const pageHead = ({ trail, heading, lead = "", meta = "" }) => `  <div class="pa
     </div>
   </div>`;
 
-const closingCard = ({ heading, text, button }) => `    <section class="band alt">
+const closingCard = ({ heading, text, button }) => `    <section class="band closing">
       <div class="wrap narrow">
         <div class="cta-card">
           <div>
