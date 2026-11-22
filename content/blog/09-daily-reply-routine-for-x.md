@@ -2,6 +2,7 @@
 title: A Daily Reply Routine for X: How Many Replies Is Enough?
 description: How many replies a day make sense on X, and a 20-minute routine for doing them well. Realistic numbers for beginners, regulars and teams.
 date: 2026-11-14
+updated: 2026-11-22
 tag: Growth
 related: grow-on-x-by-replying, how-to-write-better-replies-on-x, reply-types-that-start-conversations
 ---
@@ -26,7 +27,7 @@ So the right number is the largest one at which you would still be happy to see 
 
 Five considered replies a day is a real habit. It takes fifteen to twenty minutes, and over a month it puts your name under 150 conversations in your field. At this level you learn what gets answered, which is worth more than volume.
 
-Five is also where a free tool is enough. [XAICG](/) gives {{free}} comments a day at no cost, so a beginner's routine fits inside the free plan.
+It is also a good size for trying a drafting tool. [XAICG](/) is free with no limit, so the number you choose is the only one that matters.
 
 ### A serious daily habit: 20 to 50 a day
 
@@ -68,18 +69,11 @@ Stop when any of these is true:
 
 Past that point each extra reply lowers the average, and the average is what people judge you by.
 
-## What the numbers mean for a plan
+## A tool should not set your number
 
-If you use XAICG for the first draft, the plans line up with these levels. A plan's number is a ceiling, not a target.
+Many AI tools sell replies by the day: so many free, more on a paid plan. That quietly sets your target for you. A plan's number is a ceiling, not a goal, and a limit that runs out at the wrong moment pushes you to reply to whatever is in front of you rather than to the posts that matter.
 
-| Level | Replies a day | Plan | Allowance |
-| --- | --- | --- | --- |
-| Starting out | About 5 | Free | {{free}} comments a day |
-| Serious daily habit | 20 to 50 | Starter | {{perDay.Starter}} comments a day |
-| Heavy use, two browsers | 50 to 150 | Pro | {{perDay.Pro}} comments a day |
-| Teams and client accounts | More | Agency | {{perDay.Agency}} comments a day |
-
-A comment is one request for drafts. Each request returns several, and stepping through them is free, so the allowance goes further than the number suggests. Posts, threads and rewrites from the popup count the same way. Allowances start again every day at 00:00 UTC.
+[XAICG](/) has no limit and no paid plan: it writes on your own computer with on-device AI, so a draft costs nothing to make. Use the levels above to choose your number, and let the quality of each reply decide whether to raise it. Each click brings back several drafts, and posts, threads and rewrites from the popup are free too.
 
 ## Start smaller than you think
 

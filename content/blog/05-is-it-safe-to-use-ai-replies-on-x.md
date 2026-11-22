@@ -2,6 +2,7 @@
 title: Is It Safe to Use AI for Replies on X?
 description: What separates an AI writing assistant from a reply bot, what X's rules on spam and automation are aimed at, and the habits that protect your account.
 date: 2026-11-14
+updated: 2026-11-22
 tag: AI tools
 related: chrome-extension-permissions-x-twitter, ai-reply-generator-for-x-guide, signs-a-reply-was-written-by-ai
 ---
@@ -58,7 +59,7 @@ An extension that helps with replies runs inside the pages you visit. Before ins
 
 - **Which sites it runs on.** A reply tool for X needs x.com. It does not need every site.
 - **What it reads.** It should need the post you clicked, and nothing else.
-- **Whether text is stored.** Ask whether the posts you reply to and the drafts are kept on a server.
+- **Where the writing happens.** A tool using a cloud AI sends the post to a server; ask whether it is stored. A tool using an on-device AI keeps it on your computer.
 - **Whether it needs your API key.** A key stored in a browser is a secret that can leak.
 - **Who is behind it.** A company name, a privacy policy and a contact.
 
@@ -75,7 +76,7 @@ There is no single answer, and communities differ. A practical view: if you read
 - It never posts, likes or follows. A draft is typed into X's reply box and waits. You press Reply.
 - It works one post at a time, on the post you clicked. There is no bulk mode and no scheduler.
 - It writes each draft from the post in front of it, and it keeps track of your recent drafts so that it does not repeat itself.
-- It reads only the post you click. The server does not store the post or the draft. See the [privacy policy](/privacy).
-- It never asks for your X password or an API key.
+- It reads only the post you click, and writes the draft on your computer with on-device AI. Neither leaves your computer. See the [privacy policy](/privacy).
+- It never asks for your X password, an account or an API key.
 
 You remain responsible for what you post, as you would with any writing tool. Used the way it is meant to be used, to get a first draft of a reply you then make your own, an assistant changes how long a good reply takes. It does not change who is replying.

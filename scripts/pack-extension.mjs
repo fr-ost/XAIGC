@@ -1,29 +1,21 @@
 #!/usr/bin/env node
 // Package the extension for the Chrome Web Store.
 //
-//   node scripts/pack-extension.mjs                       the standard edition
-//   node scripts/pack-extension.mjs --edition unlimited   XAICG Unlimited
+//   node scripts/pack-extension.mjs
 //
-// The standard edition is extension/ as it is, and becomes
-// dist/xaicg-extension-<version>.zip.
+// Writes dist/xaicg-extension-<version>.zip, the file you upload in the
+// developer dashboard. --out <dir> also writes an unpacked copy there;
+// --no-zip skips the zip.
 //
-// An edition is extension/ plus the files in editions/<name>/extension/,
-// which replace or add to it, with the manifest changes and settings in
-// editions/<name>/edition.json. XAICG Unlimited also takes the draft cleanup
-// from server/src/engine/, so drafts written on a computer are tidied the
-// same way as the server's. It becomes dist/xaicg-<name>-<version>.zip, and
-// an unpacked copy in dist/xaicg-<name>/ to load at chrome://extensions.
-//
-// It refuses to package a build that still points at localhost, because
-// that build would install fine and then fail for every user. (Pass
-// --allow-local to package one anyway, for your own testing.) --out <dir>
-// writes the unpacked copy somewhere else; --no-zip skips the zip.
+// It refuses to package a build that still points its counter at
+// localhost, because that build would install fine and then report to
+// nowhere for every user. (Pass --allow-local to package one anyway, for
+// your own testing.)
 //
 // No dependencies: the zip is written here, so this works the same on
 // Windows, macOS and Linux.
 
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -37,24 +29,11 @@ const option = (name) => {
   return i === -1 ? null : args[i + 1];
 };
 const allowLocal = flag("--allow-local");
-const editionName = option("--edition") || "standard";
 
 const fail = (message) => {
   console.error(message);
   process.exit(1);
 };
-
-// ---- the edition ------------------------------------------------------------
-
-let edition = null;
-if (editionName !== "standard") {
-  const file = path.join(root, "editions", editionName, "edition.json");
-  if (!/^[a-z0-9-]+$/.test(editionName) || !existsSync(file)) {
-    const known = existsSync(path.join(root, "editions")) ? (await readdir(path.join(root, "editions"))).join(", ") : "none";
-    fail(`There is no edition called "${editionName}". Editions: standard, ${known}.`);
-  }
-  edition = JSON.parse(await readFile(file, "utf8"));
-}
 
 // ---- collect files -------------------------------------------------------------
 
@@ -72,18 +51,6 @@ async function walk(dir, prefix = "") {
 const files = new Map(); // path inside the package -> contents
 for (const name of await walk(source)) files.set(name, await readFile(path.join(source, name)));
 if (!files.has("manifest.json")) fail("extension/manifest.json is missing.");
-
-if (edition) {
-  const overlay = path.join(root, "editions", editionName, edition.files || "extension");
-  for (const name of await walk(overlay)) files.set(name, await readFile(path.join(overlay, name)));
-  for (const name of edition.engineFiles || []) {
-    files.set(`lib/engine/${name}`, await readFile(path.join(root, "server", "src", "engine", name)));
-  }
-  const config = files.get("config.js").toString("utf8");
-  const marked = /export const EDITION = "[^"]*";/;
-  if (!marked.test(config)) fail("Could not find EDITION in extension/config.js.");
-  files.set("config.js", Buffer.from(config.replace(marked, `export const EDITION = "${edition.id}";`)));
-}
 
 // ---- checks ------------------------------------------------------------------
 
@@ -108,23 +75,7 @@ if (!manifest.host_permissions?.includes(`${api.origin}/*`)) {
   );
 }
 
-// The edition's own name, description and Google sign-in client.
 const packedManifest = { ...manifest };
-let ownClient = true;
-if (edition) {
-  for (const [key, value] of Object.entries(edition.manifest || {})) {
-    packedManifest[key] = value && typeof value === "object" && !Array.isArray(value) ? { ...(manifest[key] || {}), ...value } : value;
-  }
-  if (edition.googleClientId) packedManifest.oauth2 = { ...manifest.oauth2, client_id: edition.googleClientId };
-  else ownClient = false;
-  for (const [field, limit] of [["name", 75], ["description", 132]]) {
-    if ((packedManifest[field] || "").length > limit) fail(`The ${field} in editions/${editionName}/edition.json is longer than the store allows (${limit} characters).`);
-  }
-}
-
-// Without a real Google client the extension cannot sign anyone in.
-const googleClient = packedManifest.oauth2?.client_id || "";
-const signInReady = /\.apps\.googleusercontent\.com$/.test(googleClient) && !googleClient.startsWith("REPLACE_");
 
 // The store assigns the extension its ID, and rejects a manifest that brings
 // its own "key". The key is only there so an unpacked copy gets the same ID.
@@ -133,11 +84,11 @@ files.set("manifest.json", Buffer.from(JSON.stringify(packedManifest, null, 2) +
 
 const names = [...files.keys()].sort((a, b) => a.localeCompare(b));
 
-// ---- an unpacked copy (editions) ------------------------------------------------
+// ---- an unpacked copy ------------------------------------------------------------
 
-const slug = edition ? `xaicg-${edition.id}` : "xaicg-extension";
-if (edition || option("--out")) {
-  const outDir = path.resolve(option("--out") || path.join(root, "dist", slug));
+const slug = "xaicg-extension";
+if (option("--out")) {
+  const outDir = path.resolve(option("--out"));
   if (outDir === source || outDir === root) fail("--out must not be the extension folder or the repository itself.");
   await rm(outDir, { recursive: true, force: true });
   for (const name of names) {
@@ -145,7 +96,7 @@ if (edition || option("--out")) {
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, files.get(name));
   }
-  console.log(`Unpacked ${edition?.title || "XAICG"} ${manifest.version}: ${path.relative(root, outDir) || outDir}  (load it at chrome://extensions)`);
+  console.log(`Unpacked XAICG ${manifest.version}: ${path.relative(root, outDir) || outDir}  (load it at chrome://extensions)`);
 }
 
 // ---- write the zip ----------------------------------------------------------------
@@ -219,16 +170,8 @@ if (!flag("--no-zip")) {
   const zip = Buffer.concat([...parts, ...directory, end]);
   await writeFile(out, zip);
 
-  console.log(`Packaged ${edition?.title || "XAICG"} ${manifest.version} for ${api.origin}`);
+  console.log(`Packaged XAICG ${manifest.version} (counts go to ${api.origin})`);
   console.log(`  ${path.relative(root, out)}  (${names.length} files, ${Math.round(zip.length / 1024)} KB)`);
 }
 
-if (local) console.log("  Note: this build talks to localhost. Do not upload it to the store.");
-if (!signInReady) {
-  console.log("  Note: Google sign-in is not set up in this build, so nobody can sign in with it.");
-  console.log("        Run:  node scripts/set-google-client.mjs <client-id>   (SETUP.md, Part 3)");
-} else if (!ownClient) {
-  console.log(`  Note: ${edition.title} still uses the standard edition's Google sign-in client. Once it has`);
-  console.log("        its own Chrome Web Store ID, give it its own client:");
-  console.log(`        node scripts/set-google-client.mjs --edition ${edition.id} <client-id>   (editions/${editionName}/README.md)`);
-}
+if (local) console.log("  Note: this build reports to localhost. Do not upload it to the store.");

@@ -2,28 +2,19 @@
   "manifest_version": 3,
   "name": "X AI Comment/Reply Generator for Twitter",
   "short_name": "XAICG",
-  "version": "3.2.0",
-  "description": "AI comments and replies for X (Twitter) in your own voice, plus questions, posts and threads. A product of Unique Labs.",
+  "version": "4.0.0",
+  "description": "Free, unlimited AI comments and replies for X (Twitter), written privately on your computer. No sign-up, no API key.",
   "homepage_url": "https://xaicg.uniquelabs.org",
-  "minimum_chrome_version": "111",
+  "minimum_chrome_version": "138",
   "permissions": [
     "storage",
-    "clipboardWrite",
-    "identity"
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
     "https://aigc.uniquelabs.org/*"
   ],
-  "oauth2": {
-    "client_id": "202381471175-a18meita7gtrlengtnudeqlk26cakmt4.apps.googleusercontent.com",
-    "scopes": [
-      "openid",
-      "email",
-      "profile"
-    ]
-  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

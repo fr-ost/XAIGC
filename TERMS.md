@@ -1,81 +1,69 @@
 # Terms and Conditions: X AI Comment/Reply Generator for Twitter (XAICG)
 
-Last updated: November 14, 2026
+Last updated: November 22, 2026
 
-These terms are an agreement between you and Unique Labs ("we", "us"), the maker of X AI Comment/Reply Generator for Twitter ("XAICG", "the service"): the browser extension, the XAICG server it talks to, and this website. By installing or using XAICG you agree to them. If you do not agree, do not use it.
+These terms are an agreement between you and Unique Labs ("we", "us"), the maker of X AI Comment/Reply Generator for Twitter ("XAICG", "the service"): the browser extension, the XAICG server it reports counts to, and this website. By installing or using XAICG you agree to them. If you do not agree, do not use it.
 
 ## 1. What XAICG does
 
-XAICG writes draft comments, replies, posts and threads for X (Twitter) at your request. It never posts for you. Every draft is a suggestion that you read, change if you wish, and choose whether to post.
+XAICG writes draft comments, replies, posts and threads for X (Twitter) at your request, using an AI model that runs on your own computer. It never posts for you. Every draft is a suggestion that you read, change if you wish, and choose whether to post.
 
-## 2. Who can use it
+## 2. Free to use
+
+XAICG is free. There are no plans, no subscriptions and no limit on how many drafts you ask for. There is no account to create. We do not sell anything inside it and we do not show advertising.
+
+## 3. Who can use it
 
 You must be old enough to have an X account under X's own rules, and at least 13. If you use XAICG for a company or a client, you confirm that you are allowed to accept these terms for them.
 
-## 3. Your account
+## 4. What your computer needs
 
-You can sign in with Google. You are responsible for what happens under your account and on the browsers where you are signed in. Tell us if you believe someone else is using your account or your license.
+The AI model runs on your computer, so XAICG works only on computers and versions of Chrome that can run it. The requirements are listed on this website and in the extension's settings. The model is downloaded once, when you press Set up. We cannot promise that XAICG will run on any particular computer.
 
-## 4. Free plan
-
-XAICG is free to use for a limited number of comments each day. The number is shown in the extension and on our website, and it starts again at 00:00 UTC. The free allowance is one per person. Creating extra accounts, reinstalling, or otherwise working around the limit is not allowed, and we may limit or end free use that is being abused. We may change the size of the free allowance, or withdraw it, at any time.
-
-## 5. Plans, licenses and payment
-
-- Paid plans give you a number of generations per day on a number of browsers, as shown on the pricing section of this website at the time you buy.
-- Plans are billed in advance for each period, at the price shown when you buy. Prices may change for later periods; a change never applies to a period you have already paid for.
-- A license is for you. It is issued to your Google account's email address, or as a license key. Do not share, resell or publish it. A license used by more people or browsers than the plan allows may be suspended.
-- Unused generations do not carry over from one day to the next.
-- Payments are taken by a third-party payment provider. We do not receive or store your card details.
-
-## 6. Refunds
-
-If XAICG does not work for you, contact us through https://uniquelabs.org and we will try to put it right. Refunds are decided case by case, unless the law where you live gives you a right to one, in which case that right applies.
-
-## 7. Acceptable use
+## 5. Acceptable use
 
 You agree not to use XAICG to:
 
 - send spam, run automated or bulk posting, or manipulate engagement
-- harass, threaten or impersonate anyone, or post content that is unlawful, hateful or deceptive
+- harass, threaten or impersonate anyone, or create content that is unlawful, hateful, sexually explicit, violent or deceptive
+- create content that could cause real harm, such as dangerous instructions or misleading medical, legal or financial claims
 - break X's terms or rules, which apply to everything you post
-- get around usage limits, share access beyond your plan, or use the XAICG server from anything other than the extension
-- probe, overload, reverse engineer or interfere with the service
+- send false counts to the XAICG server, or probe, overload, reverse engineer or interfere with the service
 
-We may limit, suspend or end access for use that breaks these terms or puts the service or other people at risk.
+We may block an install from the XAICG server for use that breaks these terms or puts the service or other people at risk.
 
-## 8. Your content, and what the AI writes
+## 6. Your content, and what the AI writes
 
 - You keep whatever rights you have in the text you type and in the drafts you choose to use.
 - Drafts are generated by an AI model. They can be wrong, out of date, unsuitable or similar to text produced for other people. Read every draft before you post it.
 - **You are responsible for what you post.** We are not responsible for the consequences of a post, including action X takes on your account.
-- How post text and drafts are handled is described in the privacy policy on this website.
+- What XAICG keeps, and what it sends, is described in the privacy policy on this website.
 
-## 9. Other companies' services
+## 7. Other companies' services
 
-XAICG works alongside services that are not ours: X, Google (for sign-in) and OpenAI (which generates the drafts). Their terms apply to your use of them. XAICG is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. If one of these services changes or stops working with XAICG, part or all of XAICG may stop working, and we will try to restore it.
+XAICG works alongside software and services that are not ours, including X, your browser, and the AI model XAICG uses. Their own terms apply to your use of them. XAICG is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. If one of them changes or stops working with XAICG, part or all of XAICG may stop working, and we will try to restore it.
 
-## 10. Changes and availability
+## 8. Changes and availability
 
-We may change, add or remove features, and we may change these terms. If a change to the terms matters, we will update the date at the top and, where we reasonably can, tell you in the extension or on this website. Using XAICG after a change means you accept it. We aim to keep the service available but do not promise that it will be uninterrupted or free of errors.
+We may change, add or remove features, and we may change these terms. If a change to the terms matters, we will update the date at the top and, where we reasonably can, tell you in the extension or on this website. Using XAICG after a change means you accept it. We aim to keep XAICG working but do not promise that it will be uninterrupted or free of errors.
 
-## 11. Ending your use
+## 9. Ending your use
 
-You can stop at any time by uninstalling the extension, and you can ask us to delete your account. We may end or suspend your access if you break these terms. Sections that by their nature should continue (such as 8, 12 and 13) continue after your use ends.
+You can stop at any time by uninstalling the extension, which removes everything it stored on your computer. Sections that by their nature should continue (such as 6, 10 and 11) continue after your use ends.
 
-## 12. No warranty
+## 10. No warranty
 
-XAICG is provided "as is" and "as available". To the fullest extent the law allows, we give no warranties, express or implied, including of merchantability, fitness for a particular purpose and non-infringement.
+XAICG is provided free, "as is" and "as available". To the fullest extent the law allows, we give no warranties, express or implied, including of merchantability, fitness for a particular purpose and non-infringement.
 
-## 13. Limit of liability
+## 11. Limit of liability
 
-To the fullest extent the law allows, Unique Labs is not liable for indirect, incidental, special or consequential losses, or for loss of profits, data, reputation or accounts, arising from your use of XAICG. Our total liability for any claim is limited to the amount you paid us for XAICG in the three months before the claim arose. Nothing in these terms limits liability that cannot be limited by law, or takes away rights you have as a consumer where you live.
+To the fullest extent the law allows, Unique Labs is not liable for indirect, incidental, special or consequential losses, or for loss of profits, data, reputation or accounts, arising from your use of XAICG. Because XAICG is free, our total liability for any claim is limited to 50 US dollars. Nothing in these terms limits liability that cannot be limited by law, or takes away rights you have as a consumer where you live.
 
-## 14. General
+## 12. General
 
 If part of these terms is found unenforceable, the rest still applies. Not enforcing a term at one time does not mean we give it up. These terms are the whole agreement between you and us about XAICG.
 
-## 15. Contact
+## 13. Contact
 
 Help and contact: https://xaicg.uniquelabs.org/support
 

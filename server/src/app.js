@@ -1,4 +1,7 @@
 // Fastify application: request context, abuse controls, error handling, routes.
+//
+// The server counts installs and drafts for the admin dashboard. It writes
+// no drafts and holds no accounts.
 
 import net from "node:net";
 import Fastify from "fastify";
@@ -6,48 +9,38 @@ import cors from "@fastify/cors";
 
 import { ApiError, errors } from "./errors.js";
 import { hmac, ipGroup } from "./services/crypto.js";
-import { createActivityGate, createLimiter } from "./services/ratelimit.js";
+import { createLimiter } from "./services/ratelimit.js";
 import { authenticateDevice } from "./services/devices.js";
-import { registerPublicRoutes } from "./routes/public.js";
-import { registerAuthRoutes } from "./routes/auth.js";
-import { registerGenerateRoute } from "./routes/generate.js";
+import { registerApiRoutes } from "./routes/api.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 
 const MINUTE = 60_000;
 
-export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl = globalThis.fetch }) {
+export async function buildApp({ config, db, clock = Date.now }) {
   const app = Fastify({
     logger:
       config.logLevel === "silent"
         ? false
         : {
             level: config.logLevel,
-            // Log the path only. Query strings can carry an email address or
-            // a pasted license key (admin search), and bodies carry post text.
+            // Log the method and path only.
             serializers: {
               req: (req) => ({ method: req.method, url: String(req.url || "").split("?")[0] }),
             },
           },
     trustProxy: config.trustProxy,
-    // Request logs carry method, path and status only. Bodies (post text) are
-    // never logged.
     bodyLimit: config.limits.bodyBytes,
   });
 
   const limiters = {
     ip: createLimiter({ limit: config.limits.ipPerMinute, windowMs: MINUTE, now: clock }),
-    device: createLimiter({ limit: config.limits.devicePerMinute, windowMs: MINUTE, now: clock }),
+    drafts: createLimiter({ limit: config.limits.draftsPerDevicePerMinute, windowMs: MINUTE, now: clock }),
     register: createLimiter({ limit: config.limits.registerPerIpPerHour, windowMs: 60 * MINUTE, now: clock }),
-    activateFail: createLimiter({ limit: config.limits.activateFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
     adminFail: createLimiter({ limit: config.limits.adminFailuresPer15Min, windowMs: 15 * MINUTE, now: clock }),
-    paidFailure: createLimiter({ limit: config.limits.refundedFailuresPerHour, windowMs: 60 * MINUTE, now: clock }),
-    signInStart: createLimiter({ limit: config.limits.signInStartsPer10Min, windowMs: 10 * MINUTE, now: clock }),
   };
-  const gate = createActivityGate({ cooldownMs: config.limits.cooldownMs, now: clock });
 
   const sweeper = setInterval(() => {
     for (const limiter of Object.values(limiters)) limiter.sweep();
-    gate.sweep();
   }, MINUTE);
   sweeper.unref();
   app.addHook("onClose", async () => clearInterval(sweeper));
@@ -118,10 +111,7 @@ export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl
     const hit = limiters.ip.take(group);
     if (!hit.ok) throw errors.tooMany("rate_limited", "Too many requests from this network. Slow down a little.", hit.retryAfterMs);
 
-    // With an allowlist configured, only the published extension may make
-    // state-changing calls. GET is exempt: Chrome sends no Origin header on
-    // an extension's GET requests. That is safe because GET /v1/me changes
-    // nothing: it only describes the caller's own account.
+    // With an allowlist configured, only the published extension may report.
     if (route.startsWith("/v1/") && req.method !== "GET" && config.allowedOrigins.length) {
       const origin = req.headers.origin || "";
       if (!config.allowedOrigins.includes(origin)) {
@@ -171,12 +161,11 @@ export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl
     if (!match) throw errors.unauthorized();
     const device = await authenticateDevice(db, match[1]);
     if (!device) throw errors.unauthorized();
-    if (device.blocked) throw errors.forbidden("device_blocked", "This install has been blocked. Contact support.");
-    if (device.user?.blocked) throw errors.forbidden("account_blocked", "This account has been blocked. Contact support.");
+    if (device.blocked) throw errors.forbidden("device_blocked", "This install has been blocked.");
     req.device = device;
   }
 
-  const ctx = { config, db, engine, limiters, gate, clock, requireDevice, fetchImpl };
+  const ctx = { config, db, limiters, clock, requireDevice };
 
   /* ------------------------------- routes --------------------------------- */
 
@@ -198,9 +187,7 @@ export async function buildApp({ config, db, engine, clock = Date.now, fetchImpl
     }
   });
 
-  registerPublicRoutes(app, ctx);
-  await registerAuthRoutes(app, ctx);
-  registerGenerateRoute(app, ctx);
+  registerApiRoutes(app, ctx);
   await registerAdminRoutes(app, ctx);
 
   return app;

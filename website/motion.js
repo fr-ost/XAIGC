@@ -133,22 +133,19 @@
     const run = $("#demoRun");
     const again = $("#demoAgain");
     const toast = $("#demoToast");
-    const left = $("#demoLeft");
-    const bar = $("#demoBar");
+    const written = $("#demoWritten"); // drafts "written today" in the corner card
     const chips = $$("[data-tone]", demo);
-    const TOTAL = Number(left?.dataset.total || 5); // free comments a day
 
     let tone = "auto";
     let variant = 0;
-    let remaining = Math.max(TOTAL - 1, 1);
+    let today = Number(written?.dataset.start || 41);
     let job = 0; // bumping this cancels whatever is being typed
     let touched = false;
     let cycle = null;
 
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const showQuota = () => {
-      if (left) left.textContent = String(remaining);
-      if (bar) bar.style.width = `${((TOTAL - remaining) / TOTAL) * 100}%`;
+    const showCount = () => {
+      if (written) written.textContent = String(today);
     };
     const select = (name) => {
       tone = name;
@@ -179,9 +176,8 @@
         demo.classList.remove("typing");
       }
       if (spend) {
-        // Never shown at zero: the demo is not there to say no.
-        remaining = remaining > 1 ? remaining - 1 : Math.max(TOTAL - 1, 1);
-        showQuota();
+        today++; // there is no limit to count down to
+        showCount();
       }
       toast?.classList.add("show");
     }
@@ -192,13 +188,13 @@
       fn();
     };
     run.addEventListener("click", byHand(() => { variant = 0; write({ spend: true }); }));
-    // As in the extension, another draft from the same request costs nothing.
+    // As in the extension, "try another" shows a draft that was already written.
     again.addEventListener("click", byHand(() => { variant++; write({ spend: false }); }));
     for (const chip of chips) {
       chip.addEventListener("click", byHand(() => { select(chip.dataset.tone); variant = 0; write({ spend: true }); }));
     }
 
-    showQuota();
+    showCount();
     const start = () => {
       write({ spend: false });
       if (calm) return;

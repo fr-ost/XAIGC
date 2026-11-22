@@ -33,21 +33,6 @@ const VERSION = JSON.parse(await readFile(path.join(ROOT, "extension", "manifest
 
 /* ------------------------------ sample data ------------------------------ */
 
-const user = { name: "Alex Rivera", email: "alex.rivera@example.com" };
-const links = { buy: "https://uniquelabs.org", support: "https://uniquelabs.org", website: "https://uniquelabs.org" };
-const auth = { google: true, signInRequired: false };
-
-const freeAccount = {
-  plan: "free", planLabel: "Free", licensed: false, license: null, notice: null, accountLicense: null, user, auth, links,
-  quota: { scope: "free", limit: 5, used: 2, remaining: 3, resetsAt: "2027-01-01T00:00:00.000Z" },
-  upgrade: [{ plan: "Starter", perDay: 60 }, { plan: "Pro", perDay: 200 }, { plan: "Agency", perDay: 600 }],
-};
-const proAccount = {
-  plan: "pro", planLabel: "Pro", licensed: true, notice: null, accountLicense: null, user, auth, links,
-  license: { hint: "XAICG-7K2QM-*****-*****-**VNE", state: "active", plan: "Pro", expiresAt: "2027-06-30T00:00:00.000Z", devicesUsed: 1, maxDevices: 2 },
-  quota: { scope: "day", limit: 200, used: 38, remaining: 162, resetsAt: "2027-01-01T00:00:00.000Z" },
-};
-
 const replies = {
   reply: [
     "Cheaper is nice, but the bridge has to stay up on a busy day for the cut to mean anything.",
@@ -78,9 +63,10 @@ const popupThread = { mode: "thread", inputs: { post: "", thread: "why distribut
 
 // What each page finds in extension storage. `frames` overrides it per iframe
 // name, so one screenshot can show two popups in different states.
-const preview = (storage, frames = {}) => ({ version: VERSION, deviceId: "4b7c1d2e-9a53-4f08-b6c1-7d2e5a903c41", replies, storage, frames });
-const FREE = preview({ account: freeAccount, settings: { outputMode: "insert", showQuestionButton: true } });
-const PRO = preview({ account: proAccount, settings, popupState: popupPosts }, { thread: { popupState: popupThread } });
+// `device` is what the extension says about the on-device AI: ready.
+const preview = (storage, frames = {}) => ({ version: VERSION, replies, storage, frames, device: { state: "available" } });
+const PLAIN = preview({ settings: { outputMode: "insert", showQuestionButton: true }, deviceStatus: { state: "available" } });
+const FULL = preview({ settings, popupState: popupPosts, deviceStatus: { state: "available" } }, { thread: { popupState: popupThread } });
 
 /* ------------------------------ PNG without alpha ------------------------- */
 
@@ -234,10 +220,10 @@ await shot(1, {
   points: ["Typed straight into X's reply box", "Sounds like you, not like an AI", "Nothing is ever posted for you"],
   frames: [{ name: "x", src: TIMELINE, width: 660, height: 560, x: 40, y: 122 }],
   callouts: [
-    { text: "3 drafts from every click", icon: "3", x: 380, y: 78, rotate: 3 },
-    { text: "Try another, free", icon: "↻", x: 36, y: 668, rotate: -3, dark: true },
+    { text: "Free and unlimited", icon: "∞", x: 400, y: 78, rotate: 3 },
+    { text: "Try another, instantly", icon: "↻", x: 36, y: 668, rotate: -3, dark: true },
   ],
-}, FREE, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
+}, PLAIN, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
 
 await shot(2, {
   badge: "9 tones",
@@ -246,7 +232,7 @@ await shot(2, {
   chips: ["!Auto", "Casual", "Witty", "Supportive", "Skeptical", "Analytical", "Blunt", "Technical", "Professional"],
   frames: [{ name: "x", src: TIMELINE, width: 660, height: 600, x: 40, y: 100 }],
   callouts: [{ text: "Asks a sharp question too", icon: "?", x: 30, y: 60, rotate: -3 }],
-}, FREE, (page) => openTones(page.frameLocator('iframe[name="x"]')));
+}, PLAIN, (page) => openTones(page.frameLocator('iframe[name="x"]')));
 
 await shot(3, {
   badge: "Compose",
@@ -258,7 +244,7 @@ await shot(3, {
     { name: "thread", src: POPUP, width: 380, height: 640, chrome: "popup", x: 318, y: 132, rotate: 4, tilt: -10, scale: 0.94, z: 1 },
   ],
   callouts: [{ text: "From one line of an idea", icon: "✦", x: 250, y: 44, rotate: 3, dark: true }],
-}, PRO, async (page) => {
+}, FULL, async (page) => {
   // Start at the compose card, so the idea and the drafts it produced both show.
   await scrollFrameTo(page, "posts", ".compose");
   await scrollFrameTo(page, "thread", ".compose");
@@ -268,22 +254,21 @@ await shot(4, {
   badge: "Your voice",
   headline: "Make it *sound like you*",
   sub: "Describe how you write once. It shapes every reply, post and thread.",
-  points: ["A persona in your own words", "Reply length, language and emoji", "18 languages to write in"],
+  points: ["A persona in your own words", "Reply length, language and emoji", "English, Spanish, German, French, Japanese"],
   frames: [{ name: "voice", src: OPTIONS, width: 800, height: 600, x: 10, y: 96, scale: 0.86, tilt: -11 }],
   callouts: [{ text: "Remembers your last drafts, so it never repeats", icon: "✓", x: 150, y: 690, rotate: -2 }],
-}, PRO, (page) => scrollFrameTo(page, "voice", "section:has(#persona)", 18));
+}, FULL, (page) => scrollFrameTo(page, "voice", "section:has(#persona)", 18));
 
 await shot(5, {
-  badge: "Free · 5 comments every day",
-  headline: "Start free. Your plan *follows you*",
-  sub: "Sign in with Google and it is there on every browser you use. No key to type, no API key to find.",
-  chips: ["Starter $0.99", "!Pro $1.99", "Agency $4.99"],
+  badge: "Free forever",
+  headline: "Free, unlimited, and *on your computer*",
+  sub: "Every draft is written privately on your own computer. No account, no API key, no limit.",
+  chips: ["!$0 forever", "No sign-up", "No limit", "Private"],
   frames: [
-    { name: "account", src: OPTIONS, width: 760, height: 600, x: -6, y: 70, scale: 0.8, tilt: -10, z: 1 },
+    { name: "settings", src: OPTIONS, width: 760, height: 600, x: -6, y: 70, scale: 0.8, tilt: -10, z: 1 },
     { name: "posts", src: POPUP, width: 380, height: 520, chrome: "popup", x: 330, y: 250, scale: 0.9, rotate: 3, tilt: -8, z: 2 },
   ],
-  callouts: [{ text: "per month", x: 0, y: 0, rotate: 0, hidden: true }].filter((c) => !c.hidden),
-}, PRO);
+}, FULL, (page) => scrollFrameTo(page, "settings", "#device", 18));
 
 console.log("promo tiles");
 for (const [size, width, height, file] of [
@@ -291,7 +276,7 @@ for (const [size, width, height, file] of [
   ["marquee", 1400, 560, path.join(STORE_OUT, "promo-marquee.png")],
   ["og", 1200, 630, path.join(SITE_OUT, "og.png")],
 ]) {
-  const { context, page } = await open({ width, height, data: FREE });
+  const { context, page } = await open({ width, height, data: PLAIN });
   await page.goto(`${BASE}/store/scenes/promo.html?size=${size}`);
   await settle(page, 200);
   await save(file, await page.screenshot({ type: "png" }));
@@ -303,7 +288,7 @@ console.log("website screenshots (2x)");
 const SHOTS = path.join(SITE_OUT, "shots");
 
 for (const [name, act, height] of [["reply", draftReply, 520], ["tones", openTones, 640]]) {
-  const { context, page } = await open({ width: 700, height, scale: 2, data: FREE });
+  const { context, page } = await open({ width: 700, height, scale: 2, data: PLAIN });
   await page.goto(TIMELINE);
   await act(page);
   await settle(page);
@@ -312,7 +297,7 @@ for (const [name, act, height] of [["reply", draftReply, 520], ["tones", openTon
 }
 
 for (const [name, state] of [["compose", popupPosts], ["thread", popupThread]]) {
-  const { context, page } = await open({ width: 380, height: 700, scale: 2, data: preview({ account: proAccount, settings, popupState: state }) });
+  const { context, page } = await open({ width: 380, height: 700, scale: 2, data: preview({ settings, popupState: state }) });
   await page.goto(POPUP);
   await page.locator("#resultList li").first().waitFor();
   await settle(page);
@@ -321,17 +306,13 @@ for (const [name, state] of [["compose", popupPosts], ["thread", popupThread]]) 
 }
 
 {
-  const { context, page } = await open({ width: 800, height: 900, scale: 2, data: PRO });
+  const { context, page } = await open({ width: 800, height: 900, scale: 2, data: FULL });
   await page.goto(OPTIONS);
-  await page.locator("#signedIn").waitFor();
+  await page.locator("#device:not([hidden])").waitFor();
   await settle(page);
   await save(path.join(SHOTS, "voice.png"), await page.locator("#persona").locator("xpath=ancestor::section").screenshot({ type: "png" }));
-  // Bounding boxes are relative to the viewport and the capture above scrolled it; a full-page clip is not.
-  const scrollY = await page.evaluate(() => window.scrollY);
-  const a = await page.locator("#account").boundingBox();
-  const b = await page.locator("#license").boundingBox();
-  const clip = { x: a.x, y: a.y + scrollY, width: a.width, height: b.y + b.height - a.y };
-  await save(path.join(SHOTS, "account.png"), await page.screenshot({ type: "png", clip, fullPage: true }));
+  // The on-device AI, ready: the card that says drafts are written here.
+  await save(path.join(SHOTS, "ai.png"), await page.locator("#device").screenshot({ type: "png" }));
   await context.close();
 }
 

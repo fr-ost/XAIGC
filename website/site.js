@@ -26,9 +26,6 @@
       a.textContent = a.classList.contains("small") ? "Coming soon" : "Coming soon to Chrome";
     }
   }
-  for (const a of all('[data-link="buy"]')) {
-    if (cfg.buyUrl) outside(a, cfg.buyUrl);
-  }
   // "Contact" buttons: an email address when one is set.
   for (const a of all('[data-link="contact"]')) {
     if (cfg.supportEmail) {

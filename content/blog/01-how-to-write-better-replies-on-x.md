@@ -84,6 +84,6 @@ Disagreement is one of the most valuable things a reply can offer, and one of th
 
 ## Where a tool helps, and where it does not
 
-The slow part of replying is the blank box. A drafting tool is good at getting you past it. [XAICG](/) puts an AI Reply button on every post, reads that one post and types a draft into the reply box in a voice you have described. It is built around the rules above: react to one detail, keep it short, no generic praise.
+The slow part of replying is the blank box. A drafting tool is good at getting you past it. [XAICG](/), a free Chrome extension, puts an AI Reply button on every post, reads that one post and types a draft into the reply box in a voice you have described. The draft is written privately on your own computer, with no limit on how many you ask for. It is built around the rules above: react to one detail, keep it short, no generic praise.
 
 What a tool cannot supply is the experience and the opinion. Those are yours. Treat the draft as a first pass, change the part where you know more than the model does, and post it yourself. If you are curious which kinds of reply work best, the next read is [nine types of replies that start conversations](/blog/reply-types-that-start-conversations).

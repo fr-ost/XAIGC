@@ -1,16 +1,12 @@
-// The on-device engine of XAICG Unlimited, against a stand-in for Chrome's model.
+// The writing engine, against a stand-in for Chrome's built-in model.
 //
-//   node --test editions/unlimited/test/
+//   node --test "test/*.test.mjs"
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { buildUnlimited, domError, fakeModel } from "./helpers.mjs";
-
-const built = buildUnlimited();
-const { availability, deviceLanguage, DeviceError, generate, onDevice } = await import(pathToFileURL(path.join(built, "lib", "ondevice.js")).href);
-const { buildDevicePrompt } = await import(pathToFileURL(path.join(built, "lib", "device-prompts.js")).href);
+import { availability, deviceLanguage, DeviceError, generate, onDevice } from "../extension/lib/ondevice.js";
+import { buildDevicePrompt } from "../extension/lib/device-prompts.js";
+import { domError, fakeModel } from "./helpers.mjs";
 
 const post = { author: "novaprotocol", text: "We just cut bridge fees by 80% for every user, starting Monday. Withdrawals included." };
 const reply = (extra = {}) => ({ kind: "reply", post, options: { language: "en", length: "medium", emoji: "auto", tone: "auto" }, ...extra });

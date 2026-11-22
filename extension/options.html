@@ -16,93 +16,20 @@
         <small>X AI Comment/Reply Generator for Twitter</small>
       </div>
     </div>
-    <span id="planBadge" class="badge">…</span>
+    <span class="badge pro">Free forever</span>
   </header>
 
   <main>
     <h1 class="page-title">Settings</h1>
 
     <section id="welcome" class="card welcome" hidden>
-      <h2 class="welcome-title">You're set up</h2>
+      <h2 class="welcome-title">Welcome to XAICG</h2>
       <p>Open <a href="https://x.com" target="_blank" rel="noopener">x.com</a>. Every post now has <b>AI Reply</b> and <b>Question</b> buttons, and the arrow next to them opens tones. Drafts are typed into the reply box for you to review. Nothing is posted until you press Reply.</p>
       <p>For original posts and threads, click the XAICG icon in the toolbar.</p>
-      <p id="welcomeSignIn" hidden><b>One step first:</b> sign in with Google below to get your free comments.</p>
+      <p id="welcomeSetup" hidden><b>One step first:</b> press <b>Set up</b> below. The AI model is downloaded once, and then XAICG is free and unlimited.</p>
     </section>
 
-    <section id="device" aria-label="On this computer" hidden></section>
-
-    <section id="account" class="card" hidden>
-      <div class="card-head"><h2><span id="accountTitle">Account</span></h2></div>
-      <div id="signedOut" class="stack">
-        <p id="signInWhy" class="muted"></p>
-        <button id="googleSignIn" class="gsi" type="button">
-          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          <span>Sign in with Google</span>
-        </button>
-        <p class="muted small">Chrome asks which Google account to use. XAICG keeps your Google account ID, name and email address so it can recognise you. It cannot see or change anything else in your Google account.</p>
-      </div>
-      <div id="signedIn" class="who" hidden>
-        <span id="avatar" class="avatar" aria-hidden="true"></span>
-        <div class="who-text">
-          <strong id="userName"></strong>
-          <span id="userEmail" class="muted"></span>
-        </div>
-        <button id="signOut" class="btn" type="button">Sign out</button>
-      </div>
-      <p id="signInStatus" class="status" role="status" aria-live="polite"></p>
-    </section>
-
-    <section id="license" class="card">
-      <div class="card-head">
-        <h2><span id="planTitle">Free plan</span></h2>
-        <button id="refresh" class="btn sm" type="button">Refresh</button>
-      </div>
-      <p id="planLead" class="muted lead"></p>
-      <p id="serverProblem" class="problem" role="alert" hidden></p>
-
-      <div id="planBody" class="plan-body">
-        <div class="quota-line">
-          <span><b id="quotaLeft">–</b> <span id="quotaLabel" class="muted">generations left</span></span>
-          <span id="quotaSub" class="muted small"></span>
-        </div>
-        <div id="quotaBar" class="bar"><i></i></div>
-        <p id="notice" class="notice" hidden></p>
-      </div>
-
-      <dl id="licenseInfo" class="facts" hidden>
-        <div class="wide"><dt>License</dt><dd id="licHint" class="mono"></dd></div>
-        <div><dt>Plan</dt><dd id="licPlan"></dd></div>
-        <div><dt>Valid until</dt><dd id="licExpires"></dd></div>
-        <div><dt>Devices</dt><dd id="licDevices"></dd></div>
-      </dl>
-
-      <div id="accountLicenseBox" class="replace" hidden>
-        <p id="accountLicenseText"></p>
-        <button id="attachLicense" class="btn primary" type="button">Use it on this browser</button>
-      </div>
-
-      <!-- A license is for later. It stays folded away until someone has one. -->
-      <details id="haveKey" class="have-key">
-        <summary>I have a license key</summary>
-        <form id="activateForm" class="activate">
-          <label for="licenseKey">License key</label>
-          <div class="inline">
-            <input id="licenseKey" type="text" class="mono" placeholder="XAICG-XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false" maxlength="80">
-            <button id="activate" class="btn primary" type="submit">Activate</button>
-          </div>
-        </form>
-      </details>
-      <p id="licenseStatus" class="status" role="status" aria-live="polite"></p>
-      <div id="replaceBox" class="replace" hidden>
-        <p>This license is already in use on its maximum number of devices. You can move it here by signing out the device that has been idle longest.</p>
-        <button id="replace" class="btn" type="button">Move the license to this browser</button>
-      </div>
-
-      <div class="card-foot">
-        <a id="buy" class="btn" target="_blank" rel="noopener">See plans</a>
-        <button id="deactivate" class="btn danger" type="button" hidden>Remove license from this browser</button>
-      </div>
-    </section>
+    <section id="device" aria-label="On-device AI" hidden></section>
 
     <section class="card voice">
       <div class="card-head">
@@ -140,21 +67,9 @@
             <option value="en">English</option>
             <option value="auto">Match the post's language</option>
             <option value="es">Spanish</option>
-            <option value="pt">Portuguese</option>
-            <option value="fr">French</option>
             <option value="de">German</option>
-            <option value="it">Italian</option>
-            <option value="nl">Dutch</option>
-            <option value="pl">Polish</option>
-            <option value="tr">Turkish</option>
-            <option value="id">Indonesian</option>
-            <option value="ru">Russian</option>
-            <option value="ar">Arabic</option>
-            <option value="hi">Hindi</option>
-            <option value="bn">Bengali</option>
+            <option value="fr">French</option>
             <option value="ja">Japanese</option>
-            <option value="ko">Korean</option>
-            <option value="zh">Chinese</option>
           </select>
         </div>
         <div>
@@ -206,10 +121,9 @@
       <div class="card-head"><h2>About</h2></div>
       <dl class="facts">
         <div><dt>Version</dt><dd id="version"></dd></div>
-        <div class="wide"><dt>Install ID</dt><dd id="deviceId" class="mono"></dd></div>
         <div><dt>Support</dt><dd><a id="support" href="https://xaicg.uniquelabs.org/support" target="_blank" rel="noopener">Help and support</a></dd></div>
       </dl>
-      <p id="aboutData" class="muted small">Quote your install ID when contacting support. XAICG sends the text of the post you are replying to, and your settings above, to the XAICG server to write a draft. It never posts for you and does not read your messages or account data.</p>
+      <p class="muted small">XAICG is free, with no account and no limit. Drafts are written on this computer by XAICG's on-device AI: the post you answer, your settings and your drafts stay here. The XAICG server is only told that this install exists and how many drafts of each kind it wrote, never what they say. XAICG never posts for you and does not read your messages or account data.</p>
     </section>
   </main>
 

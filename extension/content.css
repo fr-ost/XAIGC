@@ -109,10 +109,12 @@
 .xaicg-regen[data-busy="1"] .xaicg-ico {
   animation: xaicg-spin 0.8s linear infinite;
 }
-/* A small dot says the allowance is running low: white from 70% used, red
-   from 90%. The exact numbers are in the tooltip. */
-.xaicg-btn.gauge-warn::after,
-.xaicg-btn.gauge-bad::after {
+/* Until the on-device AI is set up, the buttons are dimmed and carry a
+   small dot. A click explains what to do; the tooltip says it too. */
+.xaicg-btn.not-ready {
+  opacity: 0.6;
+}
+.xaicg-btn.not-ready.ai::after {
   content: "";
   position: absolute;
   top: -3px;
@@ -122,9 +124,6 @@
   border-radius: 50%;
   border: 2px solid var(--xaicg-on-primary);
   background: #ffffff;
-}
-.xaicg-btn.gauge-bad::after {
-  background: var(--xaicg-down);
 }
 /* A quick pulse when the draft lands; a shake when it could not. */
 .xaicg-btn.xaicg-ok {

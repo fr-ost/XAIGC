@@ -2,6 +2,7 @@
 title: Before You Install a Chrome Extension for X: A Safety Check
 description: Extensions for X can read what you read. A short checklist covering permissions, site access, API keys, the privacy policy and who makes it.
 date: 2026-11-14
+updated: 2026-11-22
 tag: Privacy
 related: is-it-safe-to-use-ai-replies-on-x, ai-reply-generator-for-x-guide, how-to-write-better-replies-on-x
 ---
@@ -34,6 +35,7 @@ Each listing on the Chrome Web Store has a section on privacy practices, where t
 
 - what is read from the page
 - what is sent to a server, and whether it is stored
+- whether the AI runs on a server or on your computer
 - whether data is sold or used for advertising
 
 If the listing says one thing and the policy another, or if there is no policy at all, stop there.
@@ -50,7 +52,7 @@ Some AI tools ask for your own OpenAI key. It works, and it has costs you should
 - The bill is yours, and depends on how much you click.
 - If the key leaks, someone else can spend your money.
 
-Tools that run the model on their own server avoid all three. If you do use a key, create one only for that tool and set a spending limit on it.
+Tools that run the model themselves avoid all three, whether on their own server or on your computer. If you do use a key, create one only for that tool and set a spending limit on it.
 
 ## 6. Ask whether it acts for you
 
@@ -88,11 +90,11 @@ Once or twice a year, open `chrome://extensions` and remove what you no longer u
 
 This is our own extension, so check it against the list yourself.
 
-- **Sites:** x.com and twitter.com, plus its own server. Nothing else.
-- **Permissions:** storage, for your settings and recent drafts on your device. Identity, for the Sign in with Google button. Clipboard write, for the Copy buttons.
+- **Sites:** x.com and twitter.com, plus its own server, which only counts installs and drafts. Nothing else.
+- **Permissions:** storage, for your settings and recent drafts on your device, and clipboard write, for the Copy buttons. No sign-in.
 - **What it reads:** the one post you click. Not your messages, followers or password.
-- **What is stored:** the server does not save the post or the draft. The [privacy policy](/privacy) lists what is kept and why.
-- **API key:** none. The writing happens on our server.
+- **Where it writes:** on your computer, with on-device AI. The post and the draft are not sent anywhere. The server is told that an install exists and how many drafts of each kind it wrote, never what they say. The [privacy policy](/privacy) has the details.
+- **API key and account:** none.
 - **Acting for you:** never. A draft waits in the reply box until you press Reply.
 - **Who makes it:** Unique Labs. There is a [support page](/support) and a [contact page](/contact).
 - **Code:** everything is in the package. Nothing is downloaded and run later.

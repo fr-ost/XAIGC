@@ -146,3 +146,9 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 0 
 
 .top .btn { border: 0; background: #1e2329; color: #ffffff; }
 .top .btn:hover { background: #2b3139; }
+
+/* Comments per day, oldest on the left. */
+.chart { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-bottom: 16px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.chart .bar { flex: 1; min-width: 4px; border-radius: 3px 3px 0 0; background: var(--accent); opacity: 0.85; }
+.chart .bar:hover { opacity: 1; }
+td b { color: var(--text); }

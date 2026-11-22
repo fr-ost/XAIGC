@@ -563,3 +563,12 @@ main > :nth-child(n + 5) {
     box-shadow: 0 0 0 6px rgba(14, 203, 129, 0.06);
   }
 }
+/* When everything is ready, the popup's card is only a reassurance. */
+.device.popup.quiet {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.device.popup.quiet .device-text {
+  margin-top: 2px;
+  font-size: 12px;
+}

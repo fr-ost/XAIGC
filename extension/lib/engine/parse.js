@@ -1,9 +1,6 @@
 // Reading the model's answer. Pure, no I/O.
 //
-// This file, select.js and text.js are also copied into the Unlimited
-// edition of the extension (see scripts/pack-extension.mjs), where drafts
-// written on the user's own computer get the same cleanup and ranking as
-// drafts written here. Keep them free of Node-only APIs.
+// Plain JavaScript with no browser or Node APIs, so the tests run it in Node.
 
 // Pull the string array out of whatever the model returned: strict JSON, JSON
 // wrapped in prose or a code fence, truncated JSON, or plain lines.

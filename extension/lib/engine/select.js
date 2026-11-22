@@ -3,8 +3,6 @@
 // The model returns several candidates. Each one is cleaned (formatting only,
 // never rewording), scored against the things that make text read as
 // machine-written or repetitive, and the best ones are returned in order.
-//
-// Also copied into the Unlimited edition of the extension (see parse.js).
 
 import {
   bannedHits,

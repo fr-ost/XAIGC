@@ -1,12 +1,13 @@
-// Prompts for drafts written on this computer (XAICG Unlimited).
+// Prompts for the on-device model.
 //
-// Chrome's built-in model is much smaller than the one on the XAICG server,
-// so these prompts are deliberately short and plain: small models follow
-// a few clear rules better than many. They are not the server's prompts.
+// The model is small, so these prompts are deliberately short and plain: a
+// small model follows a few clear rules better than many. Variety
+// comes from giving each of the three drafts a different direction, chosen
+// partly by what the post is about.
 
 import { hasEmoji } from "./engine/text.js";
 
-// Languages Chrome's built-in model writes. Anything else is left to the server.
+// Languages the on-device model writes.
 export const DEVICE_LANGUAGES = ["en", "es", "de", "fr", "ja"];
 const NAMES = { en: "English", es: "Spanish", de: "German", fr: "French", ja: "Japanese" };
 
@@ -41,6 +42,7 @@ const ANGLES = {
     "agree, then add what was left out",
     "a dry one-liner",
     "an ordinary user's point of view",
+    "a small observation nobody else made",
   ],
   question: ["how it works in practice", "a detail the post left out", "the cost or tradeoff", "what happens next", "who it is really for"],
   quote: ["your own take that stands alone", "the detail most people will miss", "mild disagreement", "what this means in practice", "a dry one-liner"],
@@ -62,7 +64,7 @@ Rules:
 
 // Material from the page or the user is fenced in tags, so it must not be
 // able to open or close one. Every "<" becomes a look-alike, which the
-// cleanup turns back into "<" in the draft (as on the server).
+// cleanup turns back into "<" in the draft.
 const LT_STANDIN = "‹";
 const fence = (s, max) =>
   String(s || "")
@@ -78,8 +80,28 @@ const bullets = (items, max, n) =>
     .map((s) => `- ${s}`)
     .join("\n");
 
+// Replies get a few extra directions when the post is clearly about one of
+// these subjects. They are added twice, so they are picked more often.
+const TOPICS = [
+  [/\b(token|airdrop|staking|defi|web3|on-?chain|protocol|wallet|btc|bitcoin|eth|ethereum|solana|memecoin|crypto|dex)\b|\$[a-z]{2,6}\b/i,
+    ["fees and speed in practice", "does this get real users or only farmers", "what could go wrong", "quietly bullish, no hype words"]],
+  [/\b(ai|agent|agents|model|models|llm|gpt|automation|inference|prompt)\b/i,
+    ["what it is like in daily use", "doubt about the execution, not the idea", "how it fits a real workflow", "quietly impressed by one specific thing"]],
+  [/\b(reward|rewards|campaign|contest|leaderboard|earn|quest|points|season|giveaway)\b/i,
+    ["a participant's point of view", "who really benefits", "one thing unclear about the rules"]],
+  [/\b(lol|lmao|meme|joke)\b|\u{1F602}|\u{1F923}|\u{1F480}/iu, ["dry humor", "playful teasing", "a short punchy joke"]],
+  [/\b(risk|issue|problem|delay|hack|hacked|scam|bug|failed|loss|outage|down)\b/i,
+    ["cautious and realistic", "who carries the risk", "the tradeoff nobody mentioned"]],
+];
+
+function replyAngles(source) {
+  let pool = [...ANGLES.reply];
+  for (const [test, extra] of TOPICS) if (test.test(source)) pool = pool.concat(extra, extra);
+  return pool;
+}
+
 function pick(pool, n, rng) {
-  const copy = [...pool];
+  const copy = [...new Set(pool)];
   const out = [];
   while (copy.length && out.length < n) out.push(copy.splice(Math.floor(rng() * copy.length), 1)[0]);
   return out;
@@ -111,7 +133,8 @@ export function buildDevicePrompt(input, { lang, strict = false, rng = Math.rand
 
   const language = lang === "match" ? "Write in the same language as the material." : `Write in ${NAMES[lang] || "English"}.`;
   const emoji = emojiMax > 0 ? "At most one emoji, and only if it adds something." : "No emoji.";
-  const angles = input.kind === "thread" ? [] : input.kind === "rewrite" ? ANGLES.rewrite : pick(ANGLES[input.kind], n, rng);
+  const angles =
+    input.kind === "thread" ? [] : input.kind === "rewrite" ? ANGLES.rewrite : pick(input.kind === "reply" ? replyAngles(source) : ANGLES[input.kind], n, rng);
   const directions = angles.map((a, i) => `${i + 1}. ${a}`).join("\n");
   const author = String(input.post?.author || "").replace(/[^A-Za-z0-9_]/g, "").slice(0, 40) || "user";
   const post = () => `<post author="@${author}">\n${fence(source, 1500)}\n</post>`;

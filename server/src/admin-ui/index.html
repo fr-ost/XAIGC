@@ -13,12 +13,11 @@
       <span class="logo"><svg viewBox="0 0 128 128" aria-hidden="true"><rect width="128" height="128" rx="28" fill="#FCD535"/><path fill="#181A20" d="M42 26h44a20 20 0 0 1 20 20v26a20 20 0 0 1-20 20H62l-22 18 3-18.3A20 20 0 0 1 22 72V46a20 20 0 0 1 20-20z"/><g fill="none" stroke="#FCD535" stroke-width="11" stroke-linecap="round"><path d="M46 43l27 32"/><path d="M73 43L46 75"/></g><path fill="#FCD535" d="M90 45c1.300 7.600 3.700 10 11.300 11.300C93.700 57.600 91.300 60 90 67.600 88.700 60 86.300 57.600 78.700 56.300 86.300 55 88.700 52.600 90 45z"/></svg></span>
       <div>
         <strong>XAICG Admin</strong>
-        <small>A product of Unique Labs</small>
+        <small>Installs and comments</small>
       </div>
     </div>
     <div class="top-actions">
       <span id="callerTag" class="tag" hidden></span>
-      <span id="modelTag" class="tag" hidden></span>
       <button id="refresh" class="btn ghost" hidden>Refresh</button>
       <button id="signOut" class="btn ghost" hidden>Sign out</button>
     </div>
@@ -37,146 +36,30 @@
     </section>
 
     <div id="app" hidden>
-      <section class="stats" id="stats" aria-label="Today"></section>
+      <section class="stats" id="stats" aria-label="Totals"></section>
 
       <section class="card">
         <div class="card-head">
-          <h2>Last 14 days</h2>
-          <span class="muted" id="capNote"></span>
+          <h2>Last 30 days</h2>
+          <span class="muted small">Days are UTC. Comments are counted when they are written, whether or not they are posted.</span>
         </div>
+        <div class="chart" id="chart" aria-hidden="true"></div>
         <div class="table-wrap">
           <table id="daysTable">
-            <thead><tr><th>Day (UTC)</th><th class="num">Total</th><th class="num">Licensed</th><th class="num">Free</th><th class="num">Tokens in</th><th class="num">Tokens out</th><th class="num">Est. cost</th></tr></thead>
+            <thead><tr></tr></thead>
             <tbody></tbody>
           </table>
         </div>
-        <p class="muted small" id="outcomes"></p>
       </section>
 
-      <section class="card" id="issueCard">
-        <div class="card-head"><h2>Issue licenses</h2></div>
-        <p class="muted small">Add the customer's email and they only have to sign in with that Google account: the license is theirs, no key to type. The key still works as a fallback.</p>
-        <form id="createForm" class="grid">
-          <div class="field">
-            <label for="cPlan">Plan</label>
-            <select id="cPlan" required></select>
-          </div>
-          <div class="field">
-            <label for="cValidity">Validity</label>
-            <select id="cValidity">
-              <option value="lifetime">Never expires</option>
-              <option value="days" selected>Days, starting at first activation</option>
-              <option value="date">Fixed end date</option>
-            </select>
-          </div>
-          <div class="field" id="cDaysField">
-            <label for="cDays">Days</label>
-            <input id="cDays" type="number" min="1" max="36500" value="30">
-          </div>
-          <div class="field" id="cDateField" hidden>
-            <label for="cDate">End date</label>
-            <input id="cDate" type="date">
-          </div>
-          <div class="field">
-            <label for="cEmail">Customer email <span class="muted">(optional)</span></label>
-            <input id="cEmail" type="email" maxlength="254" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="cNote">Note <span class="muted">(optional)</span></label>
-            <input id="cNote" type="text" maxlength="500" placeholder="Order id, reseller, reason">
-          </div>
-          <div class="field">
-            <label for="cDevices">Devices <span class="muted">(blank = plan default)</span></label>
-            <input id="cDevices" type="number" min="1" max="1000">
-          </div>
-          <div class="field">
-            <label for="cDaily">Daily limit <span class="muted">(blank = plan default)</span></label>
-            <input id="cDaily" type="number" min="1" max="1000000">
-          </div>
-          <div class="field">
-            <label for="cCount">How many keys</label>
-            <input id="cCount" type="number" min="1" max="100" value="1" required>
-          </div>
-          <div class="field actions">
-            <button class="btn primary" type="submit">Create</button>
-          </div>
-        </form>
-        <p id="createError" class="error" role="alert"></p>
-        <div id="created" class="created" hidden>
-          <div class="card-head">
-            <strong>New keys</strong>
-            <button id="copyAll" class="btn ghost" type="button">Copy all</button>
-          </div>
-          <p class="muted small">Copy these now. Keys are stored only as a hash and cannot be shown again. If one is lost, rotate it.</p>
-          <ul id="createdList"></ul>
-        </div>
-      </section>
-
-      <section class="card" id="usersCard">
-        <div class="card-head">
-          <h2>Users <span class="muted" id="userCount"></span></h2>
-          <div class="filters">
-            <input id="userSearch" type="search" placeholder="Search email or name" aria-label="Search users">
-            <select id="userFilter" aria-label="Filter users">
-              <option value="">All users</option>
-              <option value="licensed">Licensed</option>
-              <option value="free">On the free plan</option>
-              <option value="blocked">Blocked</option>
-            </select>
-          </div>
-        </div>
-        <p class="muted small" id="usersNote"></p>
-        <div class="table-wrap">
-          <table id="userTable">
-            <thead><tr><th>User</th><th>Plan</th><th class="num">Browsers</th><th class="num">Generations</th><th>Joined</th><th>Last sign-in</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="pager">
-          <button id="userPrev" class="btn ghost" type="button">Previous</button>
-          <span id="userPageInfo" class="muted"></span>
-          <button id="userNext" class="btn ghost" type="button">Next</button>
-        </div>
-      </section>
-
-      <section class="card" id="licensesCard">
-        <div class="card-head">
-          <h2>Licenses <span class="muted" id="licenseCount"></span></h2>
-          <div class="filters">
-            <input id="search" type="search" placeholder="Search email, note, key or hint" aria-label="Search licenses">
-            <select id="statusFilter" aria-label="Filter by state">
-              <option value="">All states</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-              <option value="revoked">Revoked</option>
-            </select>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table id="licenseTable">
-            <thead><tr><th>Key</th><th>Plan</th><th>State</th><th>Customer</th><th class="num">Devices</th><th class="num">Today</th><th>Expires</th><th>Created</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="pager">
-          <button id="prevPage" class="btn ghost" type="button">Previous</button>
-          <span id="pageInfo" class="muted"></span>
-          <button id="nextPage" class="btn ghost" type="button">Next</button>
-        </div>
+      <section class="card">
+        <div class="card-head"><h2>Versions in use</h2><span class="muted small">Installs seen in the last 30 days</span></div>
+        <p id="versions" class="muted"></p>
+        <p class="muted small">Only counts reach this server: that an install exists, its extension version, and how many drafts of each kind it wrote. Never the posts, the drafts or anything about the person.</p>
       </section>
     </div>
   </main>
 
-  <dialog id="detail">
-    <div class="dialog-head">
-      <h2 id="dTitle">License</h2>
-      <button id="dClose" class="btn ghost" type="button" aria-label="Close">Close</button>
-    </div>
-    <div id="dBody"></div>
-  </dialog>
-
-  <div id="toast" role="status" aria-live="polite"></div>
-  <footer>XAICG · A product of <a href="https://uniquelabs.org" target="_blank" rel="noopener">Unique Labs</a> · Developed by Shahriar Ahmed</footer>
   <script src="/admin/admin.js"></script>
 </body>
 </html>

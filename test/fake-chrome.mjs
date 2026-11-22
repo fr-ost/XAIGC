@@ -1,7 +1,8 @@
-// A stand-in for the chrome.* APIs and the XAICG server, enough to run the
-// extension's real background.js in Node. Import it before background.js.
+// A stand-in for the chrome.* APIs and the XAICG counting server, enough to
+// run the extension's real background.js in Node. Import it before background.js.
 
 const store = {};
+const changed = [];
 const area = {
   async get(k) {
     if (k == null) return structuredClone(store);
@@ -20,48 +21,51 @@ const area = {
     for (const x of [].concat(k)) delete store[x];
   },
 };
-const changed = [];
 const listeners = {};
 const ev = (name) => ({ addListener: (fn) => (listeners[name] = fn) });
 
 export const fake = {
   store,
-  calls: [],
+  listeners,
+  calls: [], // every request to the server: { path, body, headers }
   badge: [],
-  // What the server answers to /v1/generate and /v1/me.
-  account: { plan: "free", planLabel: "Free", licensed: false, quota: { scope: "free", limit: 5, used: 0, remaining: 5 }, auth: { google: true, signInRequired: false }, user: null, links: {} },
+  tabs: [],
+  serverDown: false,
+  // Tokens the server has forgotten: /v1/usage answers 401 for them.
+  forgotten: new Set(),
 };
 
 globalThis.chrome = {
   runtime: {
     id: "x",
-    getManifest: () => ({ version: "3.1.3", oauth2: { client_id: "1-a.apps.googleusercontent.com" } }),
+    getManifest: () => ({ version: "4.0.0" }),
     getURL: (p) => `chrome-extension://x/${p}`,
     onMessage: ev("message"),
     onInstalled: ev("installed"),
     onStartup: ev("startup"),
   },
   storage: { local: area, onChanged: { addListener: (fn) => changed.push(fn) } },
-  tabs: { create: async () => ({}) },
-  identity: {},
+  tabs: { create: async (t) => fake.tabs.push(t) },
   action: {
     setBadgeText: async ({ text }) => fake.badge.push(text),
     setBadgeBackgroundColor: async () => {},
   },
 };
 
+let tokens = 0;
 globalThis.fetch = async (url, init = {}) => {
   const path = new URL(url).pathname;
   const body = init.body ? JSON.parse(init.body) : null;
-  fake.calls.push({ path, body });
+  fake.calls.push({ path, body, headers: init.headers || {} });
+  if (fake.serverDown) throw new TypeError("Failed to fetch");
   const json = (status, data) => ({ ok: status < 400, status, json: async () => data });
-  if (path === "/v1/devices") return json(200, { token: "dt", deviceId: "d1", account: fake.account });
-  if (path === "/v1/me") return json(200, { account: fake.account });
-  if (path === "/v1/generate") {
-    fake.account = { ...fake.account, quota: { ...fake.account.quota, used: fake.account.quota.used + 1, remaining: fake.account.quota.remaining - 1 } };
-    return json(200, { kind: body.kind, variants: ["A draft from the server."], account: fake.account });
+  if (path === "/v1/devices") return json(200, { token: `xd_${++tokens}`, deviceId: "d1", created: true });
+  if (path === "/v1/usage") {
+    const token = String(init.headers?.Authorization || "").replace(/^Bearer /, "");
+    if (fake.forgotten.has(token)) return json(401, { error: { code: "unauthorized" } });
+    return json(200, { ok: true, counted: true });
   }
-  return json(404, { error: { code: "not_found", message: "nope" } });
+  return json(404, { error: { code: "not_found" } });
 };
 
 // Send a message the way an extension page does, and wait for the answer.
@@ -71,4 +75,6 @@ export const send = (msg) =>
     if (kept !== true) resolve(undefined);
   });
 
-export const serverGenerations = () => fake.calls.filter((c) => c.path === "/v1/generate").length;
+export const reports = () => fake.calls.filter((c) => c.path === "/v1/usage");
+// Counts are sent after the draft is returned; give them a moment.
+export const settle = () => new Promise((resolve) => setTimeout(resolve, 20));

@@ -1,6 +1,6 @@
 ---
-description: How to contact the XAICG team at Unique Labs about support, licenses and billing, privacy requests, partnerships or feedback, and what to include.
-lead: Questions, problems, license trouble or ideas. A person reads every message.
+description: How to contact the XAICG team at Unique Labs about setup problems, bugs, privacy questions, partnerships or feedback, and what to include in your message.
+lead: Questions, problems or ideas. A person reads every message.
 ---
 
 # Contact
@@ -9,8 +9,8 @@ lead: Questions, problems, license trouble or ideas. A person reads every messag
 
 Many questions already have an answer:
 
-- The [support page](/support) has fixes for the common problems: missing buttons, sign-in, licenses and limits.
-- The [FAQ](/faq) covers the free plan, pricing, languages and privacy.
+- The [support page](/support) has fixes for the common problems: setting up the AI, missing buttons, languages and slow drafts.
+- The [FAQ](/faq) covers how XAICG works, what it costs (nothing) and privacy.
 
 If neither helps, use the button at the bottom of this page.
 
@@ -18,23 +18,20 @@ If neither helps, use the button at the bottom of this page.
 
 So that we can help in the first reply, please include:
 
-- your Install ID and the extension's version, both shown in Settings under About
+- the extension's version, shown in Settings under About
+- your operating system and Chrome version
 - what you clicked and what happened, with the exact message if there was one
 - a screenshot, if you can
 
-Please do not send your Google password or a full license key. We never need either.
+Please do not send passwords. We never need one.
 
-## Licenses and billing
+## Privacy
 
-Tell us the email address you gave when you bought, and what you expected to see. A license belongs to the Google account with that address, so signing in with it is usually all that is needed.
-
-## Privacy and your data
-
-You can ask us to delete your account. Write from the account's email address, or send the Install ID shown in Settings under About. We erase your Google account ID, your name and your email address. The [privacy policy](/privacy) explains what is kept and why.
+XAICG has no accounts and keeps no personal data on its server: the post you answer and your drafts never leave your computer. The [privacy policy](/privacy) explains the counts the server does keep, and why. Uninstalling XAICG removes everything it stored on your computer.
 
 ## Partnerships, press and feedback
 
-We are glad to hear from people who write about tools for X, from teams who want to use XAICG across several accounts, and from anyone with an idea that would make it better. Use the same button.
+We are glad to hear from people who write about tools for X, from teams who use XAICG across several accounts, and from anyone with an idea that would make it better. Use the same button.
 
 ## Who you are writing to
 

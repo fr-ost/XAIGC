@@ -22,8 +22,7 @@
 // Markdown here is a small subset: headings, paragraphs, bullet and numbered
 // lists, tables, quotes, bold, italic, inline code, [links](/like/this) and
 // bare web addresses. Files under content/ may start with a "---" block of
-// `key: value` lines, and may use {{free}}, {{ladder}}, {{perDay.Pro}} and
-// {{price.Pro}} to quote the numbers in config.js.
+// `key: value` lines.
 
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
@@ -46,29 +45,13 @@ if (!cfg || !/^https:\/\/[^/]+$/.test(cfg.siteUrl || "")) {
 }
 const ORIGIN = cfg.siteUrl;
 const VERSION = JSON.parse(await readFile(path.join(root, "extension", "manifest.json"), "utf8")).version;
-const FREE = Number(cfg.freePerDay);
-const PLANS = cfg.plans || [];
 const NAME = "XAICG";
 const FULL_NAME = "X AI Comment/Reply Generator for Twitter";
 const MAKER = "Unique Labs";
 const MAKER_URL = "https://uniquelabs.org";
 const SHARE_IMAGE = "/assets/og.png"; // 1200 x 630
-
-// "Starter gives 60 a day for $0.99 a month, Pro gives 200 for $1.99 and Agency gives 600 for $4.99"
-const ladder = () => {
-  const parts = PLANS.map((p, i) => `${p.name} gives ${p.perDay}${i === 0 ? " a day" : ""}${p.price ? ` for ${p.price}${i === 0 ? " a month" : ""}` : ""}`);
-  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts.join("");
-};
-const tokens = (text) =>
-  text.replace(/\{\{(\w+)(?:\.(\w+))?\}\}/g, (whole, key, sub) => {
-    if (key === "free") return String(FREE);
-    if (key === "freeLess1") return String(Math.max(FREE - 1, 0));
-    if (key === "ladder") return ladder();
-    const plan = PLANS.find((p) => p.name === sub);
-    if (plan && key === "perDay") return String(plan.perDay);
-    if (plan && key === "price") return String(plan.price);
-    return whole; // left for the page that knows what it means
-  });
+// Every page that offers the extension says the same about it.
+const PITCH = "Free forever, with no limit and no sign-up.";
 
 /* ---------------------------------- helpers --------------------------------- */
 
@@ -134,10 +117,7 @@ function parseMarkdown(source, { fill = false } = {}) {
     }
     text = text.slice(text.indexOf("\n", end + 1) + 1);
   }
-  if (fill) {
-    text = tokens(text);
-    for (const key of Object.keys(meta)) meta[key] = tokens(meta[key]);
-  }
+
 
   const lines = text.split("\n");
   const blocks = [];
@@ -202,13 +182,13 @@ const readDoc = async (file, options) => parseMarkdown(await readFile(file, "utf
 const NAV = [
   { label: "Features", href: "/#features" },
   { label: "How it works", href: "/#how" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Privacy", href: "/#private" },
   { label: "Blog", href: "/blog" },
   { label: "FAQ", href: "/faq" },
   { label: "Support", href: "/support" },
 ];
 const FOOTER = [
-  { title: "Product", links: [["Features", "/#features"], ["How it works", "/#how"], ["Pricing", "/#pricing"], ["FAQ", "/faq"]] },
+  { title: "Product", links: [["Features", "/#features"], ["How it works", "/#how"], ["Free forever", "/#free"], ["FAQ", "/faq"]] },
   { title: "Resources", links: [["Blog", "/blog"], ["Support", "/support"], ["Contact", "/contact"]] },
   { title: "Company", links: [["About", "/about"], [MAKER, MAKER_URL]] },
   { title: "Legal", links: [["Privacy policy", "/privacy"], ["Terms and conditions", "/terms"]] },
@@ -228,7 +208,7 @@ function header(current) {
       <nav aria-label="Main">
         ${links.join("\n        ")}
       </nav>
-      <a class="btn primary small" data-link="store" href="/#pricing">Add to Chrome</a>
+      <a class="btn primary small" data-link="store" href="/#free">Add to Chrome</a>
       <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
     </header>
   </div>`;
@@ -266,10 +246,9 @@ function fillLinks(html) {
   const contact = cfg.supportEmail ? { href: `mailto:${cfg.supportEmail}`, outside: false } : { href: cfg.contactUrl || MAKER_URL, outside: true };
   const targets = {
     store: cfg.chromeStoreUrl ? { href: cfg.chromeStoreUrl, outside: true } : null,
-    buy: cfg.buyUrl ? { href: cfg.buyUrl, outside: true } : null,
     contact,
   };
-  return html.replace(/<a\b([^>]*\bdata-link="(store|buy|contact)"[^>]*)>/g, (tag, attrs, kind) => {
+  return html.replace(/<a\b([^>]*\bdata-link="(store|contact)"[^>]*)>/g, (tag, attrs, kind) => {
     const target = targets[kind];
     if (!target) return tag;
     const rest = attrs.replace(/\s(?:href|target|rel)="[^"]*"/g, "");
@@ -381,7 +360,7 @@ const closingCard = ({ heading, text, button }) => `    <section class="band alt
       </div>
     </section>`;
 const contactButton = `<a class="btn primary" data-link="contact" href="${MAKER_URL}" rel="noopener">${cfg.supportEmail ? `Email ${escape(cfg.supportEmail)}` : "Contact support"}</a>`;
-const storeButton = '<a class="btn primary" data-link="store" href="/#pricing">Add to Chrome</a>';
+const storeButton = '<a class="btn primary" data-link="store" href="/#free">Add to Chrome</a>';
 
 /* ---------------------------------- layouts --------------------------------- */
 
@@ -431,39 +410,6 @@ function help(blocks, closing) {
 ${closing}
   </main>`,
   };
-}
-
-/* ---------------------------------- pricing --------------------------------- */
-
-function planCards() {
-  const card = ({ name, price, period, lines, cta, featured }) => `          <article class="plan${featured ? " featured" : ""}">
-            <div class="plan-top"><h3>${name}</h3>${featured ? '<span class="plan-tag">Most popular</span>' : ""}</div>
-            <p class="plan-price">${price ? `<strong class="num">${price}</strong>${period ? `<span> ${period}</span>` : ""}` : '<span class="plan-quiet">See current pricing</span>'}</p>
-            <ul>
-              ${lines.map((line) => `<li>${line}</li>`).join("\n              ")}
-            </ul>
-            ${cta}
-          </article>`;
-  const s = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-  return [
-    card({
-      name: "Free",
-      price: "$0",
-      period: "per month",
-      lines: [`${s(FREE, "comment")} a day`, "Every tone and every writing mode", "No card and no API key"],
-      cta: '<a class="btn" data-link="store" href="#top">Start free</a>',
-    }),
-    ...PLANS.map((p) =>
-      card({
-        name: p.name,
-        price: p.price,
-        period: p.period,
-        featured: p.featured,
-        lines: [`${s(p.perDay, "comment")} a day`, `${s(p.devices, "browser")} at a time`, "Your license follows your Google account"],
-        cta: `<a class="btn${p.featured ? " primary" : ""}" data-link="buy" href="#pricing">Get ${p.name}</a>`,
-      }),
-    ),
-  ].join("\n");
 }
 
 /* ------------------------------------ blog ---------------------------------- */
@@ -549,7 +495,7 @@ function postPage(post, posts) {
     <aside class="article-cta">
       <div>
         <h2>Try ${NAME} free</h2>
-        <p>${FREE} comments every day, in your own voice. No card and no API key.</p>
+        <p>Unlimited replies in your own voice, written on your computer. ${PITCH}</p>
       </div>
       ${storeButton}
     </aside>
@@ -586,7 +532,7 @@ ${posts.map((p) => postCard(p, "h2")).join("\n")}
         </div>
       </div>
     </section>
-${closingCard({ heading: `Put it into practice`, text: `${NAME} drafts replies in your own voice, with ${FREE} free comments every day.`, button: storeButton })}
+${closingCard({ heading: `Put it into practice`, text: `${NAME} drafts replies in your own voice. ${PITCH}`, button: storeButton })}
   </main>`;
   return page({
     at: "/blog",
@@ -641,11 +587,11 @@ const posts = await loadPosts();
 
 // Home.
 {
-  const description = `${NAME} is a Chrome extension that drafts replies, comments, posts and threads for X (Twitter) in your own voice. ${FREE} free comments a day. No API key needed.`;
-  const sections = sizeImages(tokens(await readFile(path.join(content, "home.html"), "utf8")))
-    .replace("{{plans}}", planCards())
-    .replace("{{posts}}", posts.slice(0, 3).map((p) => postCard(p, "h3")).join("\n"));
-  const money = (price) => String(price || "").replace(/[^0-9.]/g, "");
+  const description = `Free, unlimited AI replies and comments for X (Twitter) in your own voice. ${NAME} writes on your own computer: no sign-up, no API key, no limit.`;
+  const sections = sizeImages(await readFile(path.join(content, "home.html"), "utf8")).replace(
+    "{{posts}}",
+    posts.slice(0, 3).map((p) => postCard(p, "h3")).join("\n"),
+  );
   const app = {
     "@type": "SoftwareApplication",
     "@id": `${ORIGIN}/#app`,
@@ -657,7 +603,7 @@ const posts = await loadPosts();
     applicationCategory: "BrowserApplication",
     applicationSubCategory: "Chrome extension",
     operatingSystem: "Chrome",
-    browserRequirements: "Requires Google Chrome 111 or newer",
+    browserRequirements: "Requires desktop Google Chrome 138 or newer on Windows, macOS, Linux or a Chromebook Plus",
     softwareVersion: VERSION,
     ...(cfg.chromeStoreUrl ? { installUrl: cfg.chromeStoreUrl } : {}),
     author: { "@id": organization["@id"] },
@@ -667,26 +613,20 @@ const posts = await loadPosts();
       "Nine tones, including Auto",
       "Posts, threads and rewrites from the toolbar popup",
       "A persona that keeps drafts in your own voice",
-      "18 languages",
+      "Unlimited and free: no sign-up, no API key",
+      "Private: the AI runs on your own computer",
+      "English, Spanish, German, French and Japanese",
       "Nothing is posted without you",
     ],
-    offers: [
-      { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD", description: `${FREE} comments a day` },
-      ...PLANS.filter((p) => money(p.price)).map((p) => ({
-        "@type": "Offer",
-        name: p.name,
-        price: money(p.price),
-        priceCurrency: "USD",
-        description: `${p.perDay} comments a day on ${p.devices} browser${p.devices === 1 ? "" : "s"}, ${p.period}`,
-      })),
-    ],
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock", description: "Free forever, unlimited" },
   };
   out.set(
     "index.html",
     page({
       at: "/",
-      title: `AI Reply Generator for X (Twitter) | ${NAME} Chrome Extension`,
-      share: `${NAME}: AI Reply and Comment Generator for X (Twitter)`,
+      title: `Free AI Reply Generator for X (Twitter) | ${NAME} Extension`,
+      share: `${NAME}: Free, Unlimited AI Replies for X (Twitter)`,
       description,
       schema: [app],
       main: `\n  <main id="main">\n${sections}  </main>\n`,
@@ -702,21 +642,21 @@ const documents = [
     at: "/privacy",
     name: "Privacy Policy",
     title: `Privacy Policy | ${NAME}`,
-    description: `What ${NAME} reads on X, what its server keeps and why, who else receives data, and the choices you have. Written in plain language.`,
+    description: `What ${NAME} reads on X, what stays on your computer, the counts its server keeps and why, and the choices you have. In plain language.`,
   },
   {
     source: "TERMS.md",
     at: "/terms",
     name: "Terms and Conditions",
     title: `Terms and Conditions | ${NAME}`,
-    description: `The terms for using ${NAME}: the free plan, paid plans and licenses, acceptable use, and your responsibility for what you post on X.`,
+    description: `The terms for using ${NAME}, the free AI reply generator for X: what it does, acceptable use, and your responsibility for what you post.`,
   },
   {
     source: "SUPPORT.md",
     at: "/support",
     name: "Support",
     title: `Support and Help | ${NAME}`,
-    description: `Help with ${NAME}: getting started, the AI Reply buttons on X, sign-in, the free plan, licenses, and how to reach a person.`,
+    description: `Help with ${NAME}: setting up the on-device AI, computer requirements, the AI Reply buttons on X, languages, privacy, and how to reach a person.`,
     layout: "help",
     closing: closingCard({ heading: "Still stuck?", text: "Write to us and a person will read it.", button: contactButton }),
   },
@@ -729,7 +669,7 @@ const documents = [
     faq: true,
     closing: closingCard({ heading: "Did not find your answer?", text: `The support page has step-by-step fixes, and you can write to us.`, button: '<a class="btn primary" href="/support">Open support</a>' }),
   },
-  { source: "content/about.md", at: "/about", name: "About", title: `About ${NAME} and ${MAKER}`, closing: closingCard({ heading: `Try ${NAME} free`, text: `${FREE} comments every day, in your own voice. No card and no API key.`, button: storeButton }) },
+  { source: "content/about.md", at: "/about", name: "About", title: `About ${NAME} and ${MAKER}`, closing: closingCard({ heading: `Try ${NAME}`, text: `Replies in your own voice, written on your computer. ${PITCH}`, button: storeButton }) },
   { source: "content/contact.md", at: "/contact", name: "Contact", title: `Contact ${NAME} Support`, closing: closingCard({ heading: "Write to us", text: "A person reads every message.", button: contactButton }) },
 ];
 

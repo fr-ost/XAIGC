@@ -1,7 +1,4 @@
-// Text utilities for the generation engine. Pure functions, no I/O.
-// Several of these are ports of the v2 in-browser engine, tightened up.
-//
-// Also copied into the Unlimited edition of the extension (see parse.js).
+// Text utilities for the writing engine. Pure functions, no I/O.
 
 export const EMOJI_RE = /(?:\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?)*)/gu;
 

@@ -70,6 +70,6 @@ Give it a few weeks before you judge. Replying is a habit that compounds. We hav
 
 The limit on this strategy is time. Reading a post, finding an angle and writing two good sentences takes a few minutes, and thirty of those is an afternoon.
 
-That is the part [XAICG](/) is for. It adds an AI Reply button to every post, drafts a reply in your own voice from that one post and leaves it in the reply box for you to edit and send. You still choose the posts and you still decide what you think. The first draft just stops being the bottleneck.
+That is the part [XAICG](/) is for. It is a free Chrome extension with no limit, and it adds an AI Reply button to every post, drafts a reply in your own voice from that one post and leaves it in the reply box for you to edit and send. You still choose the posts and you still decide what you think. The first draft just stops being the bottleneck.
 
 Whichever way you write them, the rule is the same: reply where you have something to add, and say it the way you would say it out loud. More on that in [how to write better replies on X](/blog/how-to-write-better-replies-on-x).

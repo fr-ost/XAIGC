@@ -129,20 +129,17 @@
   // reply it helped write.
   let draftedBox = null;
 
-  // Settings and the cached account are read straight from extension storage
-  // and kept fresh through change events.
+  // Settings, and whether the on-device AI is ready, are read straight
+  // from extension storage and kept fresh through change events.
   let settings = { ...DEFAULT_SETTINGS };
-  let account = null;
-  // Unlimited edition: where drafts are written. Never set in the standard edition.
-  let deviceRoute = null;
+  let deviceStatus = null;
 
   async function loadState() {
     if (!runtimeAlive()) return;
     try {
-      const stored = await chrome.storage.local.get(["settings", "account", "deviceRoute"]);
+      const stored = await chrome.storage.local.get(["settings", "deviceStatus"]);
       settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
-      account = stored.account || null;
-      deviceRoute = stored.deviceRoute || null;
+      deviceStatus = stored.deviceStatus || null;
       applySound();
     } catch {
       /* extension context gone */
@@ -157,10 +154,9 @@
         applySound();
         document.querySelectorAll(".xaicg-btn.q").forEach((b) => (b.hidden = !settings.showQuestionButton));
       }
-      if (changes.account || changes.deviceRoute) {
-        if (changes.account) account = changes.account.newValue || null;
-        if (changes.deviceRoute) deviceRoute = changes.deviceRoute.newValue || null;
-        document.querySelectorAll(".xaicg-btn").forEach(applyGauge);
+      if (changes.deviceStatus) {
+        deviceStatus = changes.deviceStatus.newValue || null;
+        document.querySelectorAll(".xaicg-btn").forEach(applyStatus);
       }
     });
   } catch {
@@ -205,26 +201,17 @@
 
   function showError(err) {
     if (err?.code !== "context") sfx("error");
-    const openPlans = () => send("xaicg:open-plans").catch(() => {});
-    const openAccount = () => send("xaicg:open-options", { section: "account" }).catch(() => {});
+    const openSetup = () => send("xaicg:open-options", { section: "device" }).catch(() => {});
     switch (err?.code) {
-      case "sign_in_required":
-        return toast(err.message || "Sign in with Google to get your free comments.", { error: true, action: { label: "Sign in", run: openAccount } });
-      case "free_limit":
-        return toast(err.message || "You've used today's free comments. They come back at 00:00 UTC.", { error: true, action: { label: "See plans", run: openPlans } });
-      case "free_busy":
-        return toast(err.message, { error: true, action: { label: "See plans", run: openPlans } });
+      case "device_not_ready":
+        return toast(err.message, { error: true, action: { label: "Set up", run: openSetup } });
+      case "device_unavailable":
       case "device_language":
+        return toast(err.message, { error: true, ms: 7000, action: { label: "Settings", run: openSetup } });
       case "device_failed":
       case "device_no_usable_output":
       case "device_blocked":
-      case "device_not_ready":
-      case "device_unavailable":
-        return toast(err.message, { error: true, ms: 6000, action: { label: "Settings", run: () => send("xaicg:open-options", { section: "device" }).catch(() => {}) } });
-      case "cooldown":
-      case "busy":
-      case "rate_limited":
-        return toast(err.message || "Slow down a moment.", { error: true, ms: 2600 });
+        return toast(err.message, { error: true, ms: 5000 });
       default:
         return toast(err?.message || "Something went wrong.", { error: true, ms: 4200 });
     }
@@ -297,17 +284,6 @@
     let text = (texts[0] || "").slice(0, 3800);
     if (!text && extra.length) text = extra.shift();
     return { author, text, extra };
-  }
-
-  // The signed-in account's handle, read from X's own navigation. It is
-  // hashed in the service worker before leaving the browser.
-  function viewerHandle() {
-    const href = document.querySelector('a[data-testid="AppTabBar_Profile_Link"]')?.getAttribute("href") || "";
-    const fromNav = href.match(/^\/([A-Za-z0-9_]{1,15})$/);
-    if (fromNav) return fromNav[1];
-    const switcher = document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"]')?.textContent || "";
-    const fromSwitcher = switcher.match(/@([A-Za-z0-9_]{1,15})/);
-    return fromSwitcher ? fromSwitcher[1] : null;
   }
 
   /* --------------------------- finding the reply box ----------------------- */
@@ -456,21 +432,9 @@
 
   /* ------------------------------- generation ------------------------------ */
 
-  // Per-post draft state, so "try another" can step through the variants the
-  // server already returned before spending another generation.
+  // Per-post draft state, so "try another" can step through the drafts the
+  // model already wrote before asking it for more.
   const drafts = new WeakMap();
-
-  function quotaNote(acct) {
-    if (!acct || acct.licensed) return "";
-    const left = acct.quota?.remaining ?? 0;
-    return ` ${left} free ${left === 1 ? "comment" : "comments"} left today.`;
-  }
-
-  // What to add to the "draft inserted" message.
-  function resultNote(data) {
-    if (data.engine === "device") return " Written on this computer.";
-    return `${data.fallbackNote ? ` ${data.fallbackNote}` : ""}${quotaNote(data.account)}`;
-  }
 
   async function nextDraft(article, kind, tone) {
     const state = drafts.get(article);
@@ -484,12 +448,12 @@
     if (!post.text) throw fail("no_text", "Couldn't find any text in this post to reply to.");
     const rejected = state && state.kind === kind ? [...state.shown, state.variants[state.index]].filter(Boolean).slice(-4) : [];
     const data = await send("xaicg:generate", {
-      payload: { kind, tone: tone === "default" ? undefined : tone, post, rejected, handle: viewerHandle() },
+      payload: { kind, tone: tone === "default" ? undefined : tone, post, rejected },
     });
     const variants = data.variants || [];
     if (!variants.length) throw fail("empty", "Nothing came back. Try again.");
     drafts.set(article, { kind, tone, variants, index: 0, shown: rejected });
-    return { text: variants[0], note: resultNote(data) };
+    return { text: variants[0], note: "" };
   }
 
   async function deliver(article, kind, text, note, knownBox = null) {
@@ -725,23 +689,14 @@
 
   /* ------------------------------ post buttons ----------------------------- */
 
-  // Tint the buttons as the allowance runs down: amber from 70% used, red
-  // from 90%, with the exact numbers in the tooltip.
-  function applyGauge(btn) {
-    btn.classList.remove("gauge-warn", "gauge-bad");
-    if (deviceRoute?.engine === "device") {
-      btn.dataset.quota = "Unlimited, written on this computer";
-      btn.title = `${btn.dataset.baseTitle} · ${btn.dataset.quota}`;
-      return;
-    }
-    const q = account?.quota;
-    if (!q || !q.limit) return;
-    const pct = (q.used / q.limit) * 100;
-    if (pct >= 90) btn.classList.add("gauge-bad");
-    else if (pct >= 70) btn.classList.add("gauge-warn");
-    const scope = q.scope === "free" ? "free comments left today" : "generations left today";
-    btn.dataset.quota = `${q.remaining} of ${q.limit} ${scope}`;
-    btn.title = `${btn.dataset.baseTitle} · ${btn.dataset.quota}`;
+  // The tooltip says whether the on-device AI is ready. Until it is set
+  // up, the buttons are dimmed, and a click explains what to do.
+  function applyStatus(btn) {
+    const state = deviceStatus?.state;
+    const note =
+      state === "available" ? "Free and unlimited" : state === "downloadable" || state === "downloading" ? "Set up XAICG's AI first (XAICG Settings)" : state ? "XAICG's AI can't run on this computer" : "";
+    btn.classList.toggle("not-ready", Boolean(state) && state !== "available");
+    btn.title = note ? `${btn.dataset.baseTitle} · ${note}` : btn.dataset.baseTitle;
   }
 
   function makeButton(className, html, title) {
@@ -778,7 +733,7 @@
     more.addEventListener("click", guard(() => (more.getAttribute("aria-expanded") === "true" ? closeMenu() : openMenu(more, article, reply))));
 
     wrap.append(reply, question, more);
-    [reply, question].forEach(applyGauge);
+    [reply, question].forEach(applyStatus);
     return wrap;
   }
 

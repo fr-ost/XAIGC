@@ -1,6 +1,7 @@
-// XAICG popup: account status and the compose studio (posts, threads, rewrites).
+// XAICG popup: whether the on-device AI is ready, and the compose studio
+// (posts, threads, rewrites).
 
-import { $, copy, renderAccount, send } from "./lib/client.js";
+import { $, copy, send } from "./lib/client.js";
 import { deviceUi } from "./lib/device-ui.js";
 
 const MODES = {
@@ -26,11 +27,7 @@ const MODES = {
 
 // The popup closes whenever it loses focus, so its state lives in storage.
 const state = { mode: "post", inputs: { post: "", thread: "", rewrite: "" }, tone: "", size: "medium", tweets: "5", result: null };
-let buyUrl = "https://uniquelabs.org";
-let lastAccount = null;
-// Unlimited edition: where drafts are written (null in the standard edition).
-let route = null;
-const onDevice = () => route?.engine === "device";
+let card = null; // the AI card, once mounted
 
 const persist = () => chrome.storage.local.set({ popupState: state });
 
@@ -38,44 +35,6 @@ function setStatus(message, kind = "") {
   const el = $("status");
   el.textContent = message;
   el.className = `status ${kind}`.trim();
-}
-
-function showAccount(account) {
-  if (account) lastAccount = account;
-  const d = renderAccount(account, {
-    badge: $("planBadge"),
-    left: $("quotaLeft"),
-    label: $("quotaLabel"),
-    sub: $("quotaSub"),
-    bar: $("quotaBar"),
-    notice: $("notice"),
-  });
-  if (!d) return;
-  buyUrl = d.buyUrl;
-  const upgrade = $("upgrade");
-  const spent = d.free && !d.signInRequired && d.left === 0;
-  upgrade.hidden = !d.free || d.signInRequired;
-  upgrade.href = buyUrl;
-  upgrade.textContent = spent ? "Get more comments" : "See plans";
-  upgrade.className = spent ? "btn sm primary" : "btn sm";
-  // Until someone has signed in there is nothing to count: offer the
-  // sign-in instead of an empty meter.
-  $("start").hidden = !d.signInRequired;
-  $("usage").hidden = d.signInRequired;
-  $("startCount").textContent = String(account.quota?.limit || 5);
-  $("problem").hidden = true;
-  // Drafts written on this computer need no account and are not counted:
-  // the sign-in offer and the meter would only confuse.
-  if (onDevice()) {
-    $("start").hidden = true;
-    $("usage").hidden = true;
-    if (d.free) {
-      $("planBadge").textContent = "Unlimited";
-      $("planBadge").className = "badge pro";
-      upgrade.className = "btn sm";
-      upgrade.textContent = "See plans";
-    }
-  }
 }
 
 function applyMode() {
@@ -175,24 +134,21 @@ async function generate() {
   const button = $("generate");
   button.disabled = true;
   button.classList.add("busy");
-  setStatus(onDevice() ? "Writing on this computer…" : "Writing…");
+  setStatus("Writing on this computer…");
   sfx("start");
   try {
     const data = await send("xaicg:generate", { payload });
     sfx("done");
     state.result = { kind: data.kind, items: data.thread || data.variants || [] };
-    showAccount(data.account);
-    setStatus(data.fallbackNote || "");
+    setStatus("");
     renderResult();
     persist();
     $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (err) {
     sfx("error");
     setStatus(err.message, "error");
-    if (err.code === "free_limit" || err.code === "daily_limit" || err.code === "sign_in_required") {
-      const { account } = await chrome.storage.local.get("account");
-      showAccount(account);
-    }
+    // A setup problem: the card above says what to do.
+    if (err.code === "device_not_ready" || err.code === "device_unavailable") card?.refresh(true);
   } finally {
     button.disabled = false;
     button.classList.remove("busy");
@@ -231,30 +187,8 @@ $("copyAll").addEventListener("click", async () => {
   setTimeout(() => ($("copyAll").textContent = "Copy thread"), 1400);
 });
 $("openOptions").addEventListener("click", () => chrome.runtime.openOptionsPage());
-// Chrome shows its own Google account prompt. If that prompt takes the focus
-// and closes this popup, the sign-in still finishes in the background, and
-// the popup shows the free plan the next time it is opened.
-$("startSignIn").addEventListener("click", async () => {
-  const button = $("startSignIn");
-  const say = (message, kind = "") => {
-    $("startStatus").textContent = message;
-    $("startStatus").className = `status ${kind}`.trim();
-  };
-  button.disabled = true;
-  say("Waiting for Google…");
-  try {
-    const { account } = await send("xaicg:signin");
-    showAccount(account);
-    sfx("done");
-  } catch (err) {
-    say(err.message, err.code === "sign_in_cancelled" ? "" : "error");
-  } finally {
-    button.disabled = false;
-  }
-});
-
 (async function init() {
-  const stored = await chrome.storage.local.get(["popupState", "account", "settings"]);
+  const stored = await chrome.storage.local.get(["popupState", "settings"]);
   if (globalThis.XAICG_SFX) globalThis.XAICG_SFX.enabled = stored.settings?.sfx !== false;
   if (stored.popupState) {
     Object.assign(state, stored.popupState);
@@ -263,27 +197,13 @@ $("startSignIn").addEventListener("click", async () => {
   }
   applyMode();
   renderResult();
-  if (stored.account) showAccount(stored.account);
-  if (deviceUi) {
-    deviceUi
-      .mount($("device"), {
-        variant: "popup",
-        onRoute: (info) => {
-          route = info;
-          if (lastAccount) showAccount(lastAccount);
-          if (onDevice()) $("problem").hidden = true;
-        },
-      })
-      .catch(() => {});
-  }
-  try {
-    const { account } = await send("xaicg:account", { refresh: true });
-    showAccount(account);
-  } catch (err) {
-    if (!stored.account && !onDevice()) {
-      $("problem").textContent = `${err.message} Your plan will show here once the server answers.`;
-      $("problem").hidden = false;
-      $("usage").hidden = true; // nothing to count without the server
-    }
-  }
+  card = await deviceUi
+    .mount($("device"), {
+      variant: "popup",
+      onState: ({ state }) => {
+        // When everything is ready, the card is only a reassurance: keep it small.
+        $("device").classList.toggle("quiet", state === "available");
+      },
+    })
+    .catch(() => null);
 })();

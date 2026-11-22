@@ -1,22 +1,11 @@
-// Shared by the Unlimited edition's tests.
-//
-// buildUnlimited() packs the edition into a temporary folder (the same way
-// the store build is made) and returns its path. fakeModel() stands in for
-// Chrome's built-in model: these tests run in Node, where there is none.
+// Shared by the extension's tests. fakeModel() stands in for Chrome's
+// built-in model: these tests run in Node, where there is none.
 
-import { mkdtempSync } from "node:fs";
-import { execFileSync } from "node:child_process";
-import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-export const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-
-export function buildUnlimited() {
-  const out = mkdtempSync(path.join(tmpdir(), "xaicg-unlimited-"));
-  execFileSync(process.execPath, [path.join(root, "scripts", "pack-extension.mjs"), "--edition", "unlimited", "--no-zip", "--out", out], { stdio: "pipe" });
-  return out;
-}
+export const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const extension = (...parts) => path.join(root, "extension", ...parts);
 
 // A stand-in for the global `LanguageModel`. `answers` is a list of replies,
 // each a string or a function (prompt, options) => string, or an Error to throw.

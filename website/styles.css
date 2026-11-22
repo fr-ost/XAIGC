@@ -1644,3 +1644,9 @@ ul.help-text li {
     gap: 2px;
   }
 }
+
+/* The hero's corner card: drafts written today, with no limit to count down to. */
+.mini .unlimited {
+  color: var(--up);
+  font-weight: 600;
+}

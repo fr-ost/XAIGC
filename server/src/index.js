@@ -3,8 +3,6 @@
 
 import { loadConfig } from "./config.js";
 import { createDb, migrate, waitForDatabase } from "./db/index.js";
-import { createOpenAI } from "./engine/openai.js";
-import { createEngine } from "./engine/index.js";
 import { buildApp } from "./app.js";
 
 async function main() {
@@ -27,15 +25,6 @@ async function main() {
   await waitForDatabase(db, { logger: bootLog });
   await migrate(db, bootLog);
 
-  const openai = createOpenAI(config, { logger: bootLog });
-  if (!config.openai.apiKey) {
-    bootLog.warn("OPENAI_API_KEY is not set: generation requests will fail until it is.");
-  } else if (config.openai.verifyModelOnBoot) {
-    // Refuse to start on a definite misconfiguration, so a bad deploy never
-    // replaces a healthy one.
-    await openai.verifyModel();
-  }
-
   if (config.production && !config.clientIpHeader && !config.trustProxy) {
     bootLog.warn(
       "CLIENT_IP_HEADER is not set and this does not look like Railway: client addresses are read from the socket. " +
@@ -44,10 +33,9 @@ async function main() {
     );
   }
 
-  const engine = createEngine(config, { openai, logger: bootLog });
-  const app = await buildApp({ config, db, engine });
+  const app = await buildApp({ config, db });
 
-  // Keep the events table bounded.
+  // Rows from earlier versions, which logged each server generation, age out.
   const prune = async () => {
     try {
       await db.query("DELETE FROM usage_events WHERE ts < now() - make_interval(days => $1)", [config.usageEventRetentionDays]);
@@ -78,7 +66,7 @@ async function main() {
   await app.listen({ port: config.port, host: config.host });
   for (const notice of config.notices) app.log.warn(notice);
   app.log.info(
-    { version: config.version, database: db.kind, model: config.openai.model, admin: Boolean(config.adminToken), freePerDay: config.free.dailyLimit },
+    { version: config.version, database: db.kind, admin: Boolean(config.adminToken) },
     "XAICG server ready",
   );
 }

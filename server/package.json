@@ -1,9 +1,9 @@
 {
   "name": "xaicg-server",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
-  "description": "XAICG backend: generation engine, licensing, trial and abuse prevention. A product of Unique Labs.",
+  "description": "XAICG server: counts installs and drafts for the admin dashboard. Drafts are written on each user's computer. A product of Unique Labs.",
   "author": "Shahriar Ahmed (https://uniquelabs.org)",
   "homepage": "https://uniquelabs.org",
   "license": "UNLICENSED",
