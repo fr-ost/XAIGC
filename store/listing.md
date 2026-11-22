@@ -36,46 +36,138 @@ The name and the short summary on the store come from `extension/manifest.json`,
 
 ### Description
 
-```
-X AI Comment/Reply Generator for Twitter (XAICG) is a free AI reply generator for X (Twitter). It drafts comments, replies, posts and threads in your own voice, with no limit, no sign-up and no API key. You read every draft and post it yourself.
+About 8,000 characters (the store allows 16,000). The same text is in [`description.txt`](description.txt) for copying. It names no AI model and repeats no keyword lists.
 
-FREE AND UNLIMITED
-XAICG's AI runs on your own computer, so a draft costs nothing to make. There are no plans, no trial, no credits and no ads. Reply to as many posts as you like, every day.
+```
+XAICG is a free AI reply generator for X (Twitter). It adds an AI Reply button to every post, writes a comment that sounds like you, and types it into the reply box so you can read it, edit it and post it yourself. Free forever, with no daily limit, no sign-up and no API key. Your drafts are written privately on your own computer.
+
+Replying is how people get noticed on X, but finding something worth saying to every post takes time. XAICG removes the blank box. You choose the posts, you decide what you think, and the first draft is ready in a moment.
+
+FREE, UNLIMITED AND PRIVATE
+Most AI writing tools send your text to a server and pay for every request, so they limit you or charge you. XAICG's AI runs on your computer instead. A draft costs nothing to make, so there are no plans, no credits, no trial and no ads. Reply to as many posts as you like, every day.
+Because the writing happens on your device, the post you answer, your persona and your drafts never leave your computer.
 
 HOW IT WORKS
-After installing, press Set up once: the AI model is downloaded to your computer. Then XAICG adds two buttons to every post on x.com: AI Reply and Question. Click one and a draft is typed into X's own reply box. Change it if you like, then press Reply. Nothing is ever posted for you.
+1. Add XAICG to Chrome.
+2. Press Set up once. The AI model is downloaded to your computer, which takes a few minutes.
+3. Open x.com. Every post now has an AI Reply button and a Question button.
+4. Click one. A draft appears in X's reply box. Change anything you like and press Reply.
+Nothing is ever posted for you. Every comment goes out because you sent it.
 
 WHAT YOU CAN DO
-• Reply to any post with one click
-• Ask a short, specific question about a post
-• Pick a tone: casual, witty, supportive, skeptical, analytical, blunt, technical or professional. Auto picks one to fit the post.
-• "Try another" steps through more drafts, as often as you like
-• Copy a line for a quote post
-• Write original posts in three lengths from a rough idea
-• Turn one idea into a thread of three to eight posts
-• Rewrite a draft of your own so it reads better and keeps your facts, names and links
-• Write in English, Spanish, German, French or Japanese, or match each post's language
-• Soft sound effects when a draft arrives and when you send your reply. Switch them off in Settings if you prefer quiet.
 
-SOUNDS LIKE YOU
-Describe your persona once, or start from a preset and edit it. XAICG is built to avoid the usual signs of AI writing: no generic praise, no hype words, no hashtags you did not ask for. It reacts to one concrete detail in the post, the way a person does, and it keeps track of your recent drafts so it does not repeat itself.
+AI replies and comments
+• One click on any post writes a reply that reacts to a specific detail in it, the way a person would.
+• Each click brings back several drafts. Press "Try another" to step through them, as often as you like.
+• Replies are typed straight into X's own reply box, so you can edit them in place.
 
-PRIVATE BY DESIGN
-• The post you answer, your persona and your drafts stay on your computer
-• No account, no email, no sign-in
-• XAICG reads only the post you click, never your messages, followers or password
-• To count its users, XAICG only reports that an install exists and how many drafts of each kind it wrote, never what they say
-• No advertising, no analytics trackers, no sale of data
+Sharp questions
+• The Question button writes one short, specific question about the post. Good questions are among the easiest replies to answer, which makes them a simple way to start a conversation.
+• Generic questions like "Thoughts?" are filtered out.
+
+Tones for every post
+• Auto picks a tone that fits each post.
+• Or choose casual, witty, supportive, skeptical, analytical, blunt, technical or professional from the menu next to the buttons.
+
+Quote posts
+• Copy a line for a quote post: your own comment that makes sense on its own above the post you are quoting.
+
+Posts, threads and rewrites
+• Open XAICG from Chrome's toolbar and describe an idea in a sentence or two.
+• Get post drafts in three lengths, ready to copy or open in X.
+• Turn one idea into a thread of three to eight posts, with a clear first post and an ending that lands the point.
+• Paste a draft of your own and get tighter versions that keep your facts, names, numbers and links.
+
+SOUNDS LIKE YOU, NOT LIKE AN ASSISTANT
+The biggest problem with AI replies is that they all sound the same. XAICG is built to avoid the usual signs of machine writing:
+• No generic praise such as "Great point" or "Love this"
+• No hype words, no long dashes, no hashtags or links you did not ask for
+• No summarizing the post back to its author
+• Short, plain sentences that react to one concrete detail
+It also keeps your last 30 drafts on your computer and steers new ones away from repeating their openings and phrasing, so a week of replies does not read like one template.
+
+Make it yours in Settings:
+• Describe your voice in your own words, or start from a preset: Skeptical trader, Blunt founder, Developer, Witty, Analytical or Supportive realist.
+• Choose a default tone and a reply length: short (4 to 12 words), medium (8 to 22) or long (18 to 40).
+• Decide on emoji: never, at most one, or only when the post has them.
+
+LANGUAGES
+XAICG writes in English, Spanish, German, French and Japanese. Pick one, or have it match the language of each post.
+
+YOUR WAY OF WORKING
+• Type into the reply box, or copy to the clipboard only, if you would rather paste drafts yourself and leave the page untouched.
+• Show or hide the Question button.
+• Soft sound effects when a draft starts, when it arrives and when you send your reply. Switch them off in one click.
+• Clear your reply memory at any time.
+
+WHO USES IT
+• Creators and writers who reply every day to grow their audience
+• Founders and builders who want to show up in their industry's conversations without losing hours to it
+• Marketers, community managers and social media teams who answer many posts across a day
+• People in fast-moving circles, such as tech, AI and crypto, where timely replies matter
+• Anyone writing on X in a second language who wants a clean first draft to start from
+• Anyone who knows what they want to say and wants to say it faster
+
+TIPS FOR BETTER REPLIES
+• Reply where you have something to add: an experience, a fact, a real question or an honest disagreement.
+• Describe your voice in Settings. A few lines about how you write, and what you never say, change the drafts more than anything else.
+• Add the one thing only you know before you post: a number, a name, what happened when you tried it.
+• Keep it short. One or two sentences is the natural size of a reply.
+More guides are on the XAICG blog: https://xaicg.uniquelabs.org/blog
+
+PRIVACY
+• Drafts are written on your computer. The post you answer, your settings and your drafts are not sent to us or to anyone else.
+• No account, no email address, no sign-in.
+• XAICG reads only the post you click. It never reads your messages, your followers or your password, and it cannot post, like or follow for you.
+• To know how many people use it, XAICG reports only that an install exists and how many drafts of each kind it wrote, never what they say.
+• No advertising, no analytics trackers, no sale of data.
 Full policy: https://xaicg.uniquelabs.org/privacy
 
 WHAT YOUR COMPUTER NEEDS
-Desktop Chrome on Windows 10 or 11, macOS 13 or later, Linux or a Chromebook Plus; about 22 GB of free disk space; and a graphics card with more than 4 GB of memory, or 16 GB of RAM and 4 processor cores. The settings page tells you straight away if your computer can run it.
+The AI runs on your own computer, so it needs a reasonably capable one:
+• Desktop Google Chrome on Windows 10 or 11, macOS 13 or later, Linux, or a Chromebook Plus
+• About 22 GB of free disk space
+• A graphics card with more than 4 GB of memory, or 16 GB of memory and 4 processor cores
+The settings page tells you straight away whether your computer can run it. Chrome on phones and tablets is not supported.
 
+QUESTIONS PEOPLE ASK
+
+Is XAICG really free?
+Yes, free forever, with every feature included. There is no paid version.
+
+Is there a daily limit?
+No. Reply to as many posts as you want.
+
+Do I need an account or an OpenAI API key?
+No. Install it, press Set up once, and start replying.
+
+Does it work on twitter.com too?
+Yes. The buttons appear on x.com and twitter.com, in the timeline, on single posts and in replies.
+
+Can I use it for my own posts, not only replies?
+Yes. The toolbar popup writes original posts and full threads from a rough idea, and rewrites your own drafts.
+
+Does it post automatically?
+Never. It only writes drafts. You read each one and press Reply yourself.
+
+Is it safe for my X account?
+XAICG does not automate anything: no bulk replies, no scheduling, no auto-posting. Every reply is one you chose to send by hand. X's rules still apply to what you post, so use it to write better replies, not more spam.
+
+Why does it download something?
+The AI model has to be on your computer to write there. It is downloaded once, when you press Set up.
+
+Will it work offline?
+Once it is set up, drafts are written on your computer without needing an internet connection. You still need a connection to use X itself.
+
+RESPONSIBLE USE
+XAICG is a writing assistant, not a bot. It writes one draft at a time, on the post you clicked, and waits for you. You are responsible for what you post. Read every draft before sending it, and check any fact it states.
+
+HELP AND CONTACT
 Help: https://xaicg.uniquelabs.org/support
+FAQ: https://xaicg.uniquelabs.org/faq
 Terms: https://xaicg.uniquelabs.org/terms
 
-ABOUT
-XAICG is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
+XAICG (X AI Comment/Reply Generator for Twitter) is a product of Unique Labs (uniquelabs.org), developed by Shahriar Ahmed.
 
 XAICG is an independent product. It is not affiliated with, endorsed by or sponsored by X Corp. X and Twitter are trademarks of their owner.
 ```
