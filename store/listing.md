@@ -188,11 +188,13 @@ XAICG is an independent product. It is not affiliated with, endorsed by or spons
 | Screenshot 2 | `store/assets/screenshot-2.png` (tone menu) | 1280×800 |
 | Screenshot 3 | `store/assets/screenshot-3.png` (posts and threads) | 1280×800 |
 | Screenshot 4 | `store/assets/screenshot-4.png` (voice settings) | 1280×800 |
-| Screenshot 5 | `store/assets/screenshot-5.png` (free, unlimited, on your computer) | 1280×800 |
+| Screenshot 5 | `store/assets/screenshot-5.png` (written on your computer) | 1280×800 |
 | Small promo tile | `store/assets/promo-small.png` | 440×280 |
 | Marquee promo tile | `store/assets/promo-marquee.png` | 1400×560 |
 
 Upload the screenshots in this order: the first one is what people see in search results. They show the real extension on a sample timeline with made-up accounts, not X's logo or anyone's real posts.
+
+**Keep promotional words out of the images.** The Chrome Web Store rejects images (screenshots, promo tiles, icon) that carry badges or text such as "free", "free forever", "$0", "unlimited", "new", "#1", "recommended" or "premium" (violation "Red Nickel": mimicking ranking, performance, status or promotional information). Version 4.0.0 was rejected for a "Free forever" badge. The images now describe features only, and the extension's own screens no longer show a "Free" badge, so screenshots of them stay clean. Saying the extension is free belongs in the description text, in plain sentences.
 
 ### Additional fields
 
@@ -287,7 +289,7 @@ The publisher account may ask whether you are a **trader** (for listing in the E
 ```
 XAICG needs no username, password or license.
 
-Setup: after installing, the settings page opens. Under "One step left: set up the AI", press "Set up" and wait for the one-time download of the on-device AI model (a progress bar shows it). When the card says "Ready: free and unlimited", XAICG is ready.
+Setup: after installing, the settings page opens. Under "One step left: set up the AI", press "Set up" and wait for the one-time download of the on-device AI model (a progress bar shows it). When the card says "Ready to write", XAICG is ready.
 
 The on-device model needs desktop Chrome 138 or later on Windows, macOS, Linux or a Chromebook Plus, about 22 GB of free disk space, and a graphics card with more than 4 GB of memory or 16 GB of RAM. On a computer that cannot run it, the settings page says "Not available on this computer" and lists these requirements.
 

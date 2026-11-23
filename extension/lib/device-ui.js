@@ -63,18 +63,18 @@ function words(state, variant) {
     case "available":
       return {
         tone: "on",
-        title: "Ready: free and unlimited",
+        title: "Ready to write",
         text: popup
-          ? "Drafts are written privately on this computer. No limit, nothing to pay."
-          : `Drafts are written on this computer by XAICG's on-device AI. There is no limit and nothing to pay, and the post you answer never leaves your computer. XAICG writes ${LANGUAGES}.`,
+          ? "Drafts are written privately on this computer."
+          : `Drafts are written on this computer by XAICG's on-device AI, and the post you answer never leaves your computer. XAICG writes ${LANGUAGES}.`,
       };
     case "downloadable":
       return {
         tone: "setup",
         title: "One step left: set up the AI",
         text: popup
-          ? "XAICG's AI runs on your computer. It needs a one-time download, then it's free and unlimited."
-          : "XAICG writes with an AI model that runs on this computer. It needs a one-time download, which can take a few minutes. After that, drafts are free and unlimited, and nothing you write is sent anywhere.",
+          ? "XAICG's AI runs on your computer. It needs a one-time download, then it's ready."
+          : "XAICG writes with an AI model that runs on this computer. It needs a one-time download, which can take a few minutes. After that, drafts are written right here, and nothing you write is sent anywhere.",
         action: "Set up",
       };
     case "downloading":

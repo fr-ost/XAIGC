@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "X AI Comment/Reply Generator for Twitter",
   "short_name": "XAICG",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Free, unlimited AI comments and replies for X (Twitter), written privately on your computer. No sign-up, no API key.",
   "homepage_url": "https://xaicg.uniquelabs.org",
   "minimum_chrome_version": "138",

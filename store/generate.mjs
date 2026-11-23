@@ -220,13 +220,13 @@ await shot(1, {
   points: ["Typed straight into X's reply box", "Sounds like you, not like an AI", "Nothing is ever posted for you"],
   frames: [{ name: "x", src: TIMELINE, width: 660, height: 560, x: 40, y: 122 }],
   callouts: [
-    { text: "Free and unlimited", icon: "∞", x: 400, y: 78, rotate: 3 },
+    { text: "Written on your computer", icon: "✓", x: 400, y: 78, rotate: 3 },
     { text: "Try another, instantly", icon: "↻", x: 36, y: 668, rotate: -3, dark: true },
   ],
 }, PLAIN, (page) => draftReply(page.frameLocator('iframe[name="x"]')));
 
 await shot(2, {
-  badge: "9 tones",
+  badge: "Tones",
   headline: "A tone for *every moment*",
   sub: "Leave it on Auto and each post decides. Or pick the one you want.",
   chips: ["!Auto", "Casual", "Witty", "Supportive", "Skeptical", "Analytical", "Blunt", "Technical", "Professional"],
@@ -260,10 +260,10 @@ await shot(4, {
 }, FULL, (page) => scrollFrameTo(page, "voice", "section:has(#persona)", 18));
 
 await shot(5, {
-  badge: "Free forever",
-  headline: "Free, unlimited, and *on your computer*",
-  sub: "Every draft is written privately on your own computer. No account, no API key, no limit.",
-  chips: ["!$0 forever", "No sign-up", "No limit", "Private"],
+  badge: "Private",
+  headline: "Written *on your computer*",
+  sub: "Every draft is written privately on your own computer. The post you answer stays there.",
+  chips: ["!On your computer", "No sign-up", "No API key", "You post it yourself"],
   frames: [
     { name: "settings", src: OPTIONS, width: 760, height: 600, x: -6, y: 70, scale: 0.8, tilt: -10, z: 1 },
     { name: "posts", src: POPUP, width: 380, height: 520, chrome: "popup", x: 330, y: 250, scale: 0.9, rotate: 3, tilt: -8, z: 2 },

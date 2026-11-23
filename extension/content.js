@@ -694,7 +694,7 @@
   function applyStatus(btn) {
     const state = deviceStatus?.state;
     const note =
-      state === "available" ? "Free and unlimited" : state === "downloadable" || state === "downloading" ? "Set up XAICG's AI first (XAICG Settings)" : state ? "XAICG's AI can't run on this computer" : "";
+      state === "available" ? "Written on this computer" : state === "downloadable" || state === "downloading" ? "Set up XAICG's AI first (XAICG Settings)" : state ? "XAICG's AI can't run on this computer" : "";
     btn.classList.toggle("not-ready", Boolean(state) && state !== "available");
     btn.title = note ? `${btn.dataset.baseTitle} · ${note}` : btn.dataset.baseTitle;
   }

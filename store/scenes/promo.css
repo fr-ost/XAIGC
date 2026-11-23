@@ -62,3 +62,9 @@ h1 em { font-style: normal; color: var(--primary); }
 [data-size="small"] .lockup img { width: 72px; height: 72px; }
 [data-size="small"] h1, [data-size="small"] .demo, [data-size="small"] .stats { display: none; }
 [data-size="small"] .tag { margin-top: 20px; font-size: 20px; font-weight: 500; color: var(--body); }
+
+/* The website's link preview may say it is free; the store tiles may not. */
+html:not([data-size="og"]) .og-only,
+html[data-size="og"] .store-only {
+  display: none !important;
+}
